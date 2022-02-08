@@ -1,5 +1,5 @@
 import os
-import zipfile
+import tarfile
 
 def main():
     print("Branch - The AcaciaLinux packager")
@@ -65,16 +65,17 @@ def main():
     leaf_pkg_file.close()
     print("[*] Done creating leaf.pkg file")
 
-    print("[*] Creating zip file..")
+    print("[*] Creating tar file..")
     
-    pkg_file_zip = zipfile.ZipFile("{}-{}.lfpkg".format(pkg_name, pkg_vers), "w", zipfile.ZIP_DEFLATED)
+    pkg_file_tar_gz = tarfile.open("{}-{}.lfpkg".format(pkg_name, pkg_vers), "w")
 
     for root, dirs, files in os.walk(pkg_work_dir):
         for file in files:
             print("[*] Adding to zip file: {} ".format(file))
-            pkg_file_zip.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(pkg_work_dir, '..')))
+            pkg_file_tar_gz.add(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(pkg_work_dir, '..')))
 
-    pkg_file_zip.close()
+
+    pkg_file_tar_gz.close()
     print("[*] Done. Finished package file is now in cwd")
     
 if(__name__ == "__main__"):
