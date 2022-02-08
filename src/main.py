@@ -71,8 +71,8 @@ def main():
 
     for root, dirs, files in os.walk(pkg_work_dir):
         for file in files:
-            print("[*] Adding to zip file...")
-            pkg_file_zip.write(os.path.join(root,file))
+            print("[*] Adding to zip file: {} ".format(file))
+            pkg_file_zip.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(pkg_work_dir, '..')))
 
     pkg_file_zip.close()
     print("[*] Done. Finished package file is now in cwd")
