@@ -62,12 +62,6 @@ def main():
     leaf_pkg_file = open(os.path.join(pkg_work_dir, "leaf.pkg"), "w")
     leaf_pkg_file.write("name={}\n".format(pkg_name))    
     leaf_pkg_file.write("version={}\n".format(pkg_vers))
-    leaf_pkg_file.write("files=")
-   
-    # ADD FILELIST
-    for file in filelist:
-        leaf_pkg_file.write("[{}]".format(os.path.relpath(file, os.path.join(pkg_work_dir, "data"))))
-    leaf_pkg_file.write("\n")
 
     # ASK FOR DEPENDENCIES
     print("[*] Enter dependency string: [a][b][c][d]")
