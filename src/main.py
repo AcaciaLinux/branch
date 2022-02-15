@@ -12,7 +12,6 @@ def main():
 
 
     # SFTP SUPPORT
-    sftp = False
     if("BSFTP" in os.environ):
         sftp = True
 
@@ -85,7 +84,8 @@ def main():
     
     print("[*] Package file created: {}".format(tar_name))
     
-    if(not sftp):
+    if(not "BSFTP" in os.environ):
+        print("BSFTP variable is not set. Done!")
         exit(0)
 
     serv_ip = ""
@@ -121,7 +121,8 @@ def main():
     
     print("[*] Appending package string to leaf.pkglist")
     url = "http://{}/packages/{}/{}".format(serv_ip, pkg_dir, tar_name)
-    leaf_pkg_list.write("{};{};{};{};{}".format(pkg_name, pkg_vers, pkg_desc, pkg_deps, url))
+    leaf_pkg_list.write("{};{};{};{};{}".format(pkg_name, pkg_vers, pkg_desc, dependencies, url))
+    leaf_pkg_list.close()
 
     print("[*] Uploading leaf.pkglist")
     sftp_con.put("leaf.pkglist")
@@ -134,6 +135,6 @@ def main():
 if(__name__ == "__main__"):
     try:
         main()
-    except KeyboardInterupt:
+    except KeyboardInterrupt:
         print("[*] Keyboard interrupt received.")
         exit(0)
