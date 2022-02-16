@@ -121,7 +121,7 @@ def main():
     
     print("[*] Appending package string to leaf.pkglist")
     url = "http://{}/packages/{}/{}".format(serv_ip, pkg_dir, tar_name)
-    leaf_pkg_list.write("{};{};{};{};{}".format(pkg_name, pkg_vers, pkg_desc, dependencies, url))
+    leaf_pkg_list.write("{};{};{};{};{}\n".format(pkg_name, pkg_vers, pkg_desc, dependencies, url))
     leaf_pkg_list.close()
 
     print("[*] Uploading leaf.pkglist")
