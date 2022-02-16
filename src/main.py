@@ -102,7 +102,7 @@ def main():
     sftp_con.cwd("/var/www/html/packages/")
 
     print("[*] mkdir package subdir")
-    pkg_dir = "{}-{}".format(pkg_name, pkg_vers)
+    pkg_dir = pkg_name
     sftp_con.mkdir(pkg_dir)
     
     print("[*] cd package subdir")
