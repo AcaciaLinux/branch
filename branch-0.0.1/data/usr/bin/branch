@@ -1,0 +1,12 @@
+# YOU MAY EDIT THE FOLLOWING VARIABLES TO
+# CHANGE DEFAULT OPTIONS IN BRANCH
+
+
+# ZSH breaks python script (Suspended job?)
+
+export BSHELL=/bin/bash
+# !!
+# possibly add default pkg dir as env variable instead of asking?
+# !!
+
+python3 /usr/bin/branch.py
