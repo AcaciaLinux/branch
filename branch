@@ -1,7 +1,0 @@
-# YOU MAY EDIT THE FOLLOWING VARIABLES TO
-# CHANGE DEFAULT OPTIONS IN BRANCH
-
-export BSHELL=/bin/bash
-export BSFTP
-export SERVIP=84.252.121.236
-python /usr/bin/branch.py
