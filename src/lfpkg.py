@@ -16,8 +16,13 @@ def parse():
     for prop in lfpkg_arr:
         prop_arr = prop.split("=")
         
+        # Check if key has a value
         key = prop_arr[0]
-        val = prop_arr[1]
+        if(len(prop_arr) != 2):
+            val = ""
+        else:
+            val = prop_arr[1]
+
 
         if(key == "name"):
             leafpkg.name = val
