@@ -6,8 +6,12 @@ import sys
 import help
 import initpkg
 import tarpkg
+import pushpkg
+import config
 
 def main():
+    config.load_config()
+
     args = len(sys.argv)
 
     if(args == 2):
@@ -18,8 +22,8 @@ def main():
             tarpkg.pack()
 
         elif(sys.argv[1] == "push"):
-            print()
-        
+            pushpkg.push()
+
         elif(sys.argv[1] == "packpush"):
             print()
 
