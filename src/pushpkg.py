@@ -29,6 +29,62 @@ def push(options):
             exit(-1)
 
     #sftp
+    print("Connecting to repository server..")
     sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
     
+    print("Changing remote workdir to {}..".format(options.sftp_workdir))
+    sftp_con.cwd(sftp_workdir)
+
+    print("Fetching current package list..")
+    sftp_con.get("leaf.pkglist", localpath="/tmp/leaf.pkglist_temp")
+
+    print("Updating package list..")
+    updatePkgList(leafpkg, options)
     
+    print("Uploading updated package list..")
+    sftp_con.put("/tmp/leaf.pkglist_new")
+    
+    print("Cleaning up...")
+    os.remove("/tmp/leaf.pkglist_new")i
+    os.remove("/tmp/leaf.pkglist_temp")
+
+    print("Creating pkg subdir..")
+    sftp_con.mkdir(leafpkg.name)
+    sftp_con.cwd(leafpkg.name)
+    
+    print("Uploading package file..")
+    sftp_con.put("../{}".format(tar_name))
+    
+    sftp_con.close()
+    print("Done!")
+
+def updatePkgList(pkg_target, options):
+    print("Parsing current package list..")
+
+    # old lfpkg file
+    lfpkglist_file_old = open("/tmp/leaf.pkglist_temp", "r")
+    lfpkglist_arr_old = lfpkglist_file_old.read().split()
+
+    # new lfpkg file
+    lfpkglist_file_new = open("/tmp/leaf.pkglist_new", "w")
+
+    for prop in lfpkglist_arr_old:
+        prop_arr = prop.split(";")
+
+        pkg_name = prop_arr[0]
+
+        if(pkg_name == pkg_target.name):
+            print("Updating target package in pkglist...")
+        else:
+            lfpkglist_file_new.write(prop)
+            
+    os.remove("/tmp/leaf.pkglist_temp")
+    
+    print("Appending package to pkglist") 
+    tar_name = "{}-{}.lfpkg".format(pkg_target.name, pkg_target.version)
+    url = "http://{}/packages/{}/{}".format(options.sftp_ip, options.web_subdir, tar_name)
+
+    lfpkglist_file_new.write("{};{};{};{};{}\n".format(pkg_target.name, pkg_target.version, pkg_target.description, pkg_target.dependencies, url))
+    lfpkglist_file_new.close()
+    
+

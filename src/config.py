@@ -1,12 +1,14 @@
 import os
 
 class branchOpts():
-    def __init__(self, sftp_enable, sftp_ip, sftp_user, ssh_key, ssh_passphrase):
+    def __init__(self, sftp_enable, sftp_ip, sftp_user, ssh_key, ssh_passphrase, sftp_workdir, web_subdir):
         self.sftp_enable = sftp_enable
         self.sftp_ip = sftp_ip
         self.sftp_user = sftp_user
         self.ssh_key = ssh_key
         self.ssh_passphrase = ssh_passphrase
+        self.sftp_workdir = sftp_workdir
+        self.web_subdir = web_subdir
 
     def toString(self):
         return "enable_sftp: {} ip: {} user: {}".format(self.sftp_enable, self.sftp_ip, self.sftp_user)
@@ -19,7 +21,7 @@ def load_config():
     conf_file = open("{}/.config/branch/branch.conf".format(home), "r")
     conf_arr = conf_file.read().split()
 
-    options = branchOpts("", False, "", "", "")
+    options = branchOpts("", False, "", "", "", "", "")
 
     for prop in conf_arr:
         prop_arr = prop.split("=")
@@ -46,9 +48,13 @@ def load_config():
         elif(key == "sftp_user"):
             options.sftp_user = val
         elif(key == "ssh_key"):
-            option.ssh_key = val
+            options.ssh_key = val
         elif(key == "ssh_passphrase"):
             options.ssh_passphrase = val
+        elif(key == "sftp_workdir"):
+            options.sftp_workdir = val
+        elif(key == "web_subdir"):
+            options.web_subdir = val
 
     return options
 
@@ -77,16 +83,14 @@ def create_config():
         sftp_support = True
     else:
         branch_cfg.write("sftp_enable=false\n")
-        branch_cfg.write("sftp_ip=\n")
-        branch_cfg.write("sftp_user=\n")
 
 
     if(sftp_support):
-        print("Enter the SSH-Servers IP Address:")
+        print("Enter the Remote-Servers IP Address:")
         ip = input()
         branch_cfg.write("sftp_ip={}\n".format(ip)) 
         
-        print("Enter a username:")
+        print("Enter remote username:")
         user = input()
         branch_cfg.write("sftp_user={}\n".format(user))
 
@@ -98,6 +102,14 @@ def create_config():
         print("Enter the SSH-Key passphrase:")
         key_passphrase = input()
         branch_cfg.write("ssh_passphrase={}\n".format(key_passphrase))
+        
+        print("Enter sftp workdir: (Location where packages are stored on the Webserver)")
+        sftp_wkd = input()
+        branch_cfg.write("sftp_workdir={}\n".format(sftp_wkd))
+
+        print("Enter web subdirectory: (https://xy.xy/SUBDIRECTORY/packages)")
+        web_sub = input()
+        branch_cfg.write("web_subdir={}\n".format(web_sub))
 
     print("Configuration completed.")
 
