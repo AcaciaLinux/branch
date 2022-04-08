@@ -3,6 +3,7 @@ import tarpkg
 import lfpkg
 import config
 import pysftp
+from paramiko import AuthenticationException
 
 def push(options):
     if not(options.sftp_enable):
@@ -30,8 +31,12 @@ def push(options):
 
     #sftp
     print("Connecting to repository server..")
-    sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
-    
+    try:
+        sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
+    except AuthenticationException:
+        print("Could not connect to the SSH Server. Authentication Failure.")
+        exit(0)
+
     print("Changing remote workdir to {}..".format(options.sftp_workdir))
     sftp_con.cwd(sftp_workdir)
 
@@ -45,7 +50,7 @@ def push(options):
     sftp_con.put("/tmp/leaf.pkglist_new")
     
     print("Cleaning up...")
-    os.remove("/tmp/leaf.pkglist_new")i
+    os.remove("/tmp/leaf.pkglist_new")
     os.remove("/tmp/leaf.pkglist_temp")
 
     print("Creating pkg subdir..")
