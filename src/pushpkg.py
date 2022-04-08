@@ -1,8 +1,14 @@
 import os
 import tarpkg
 import lfpkg
+import config
+import pysftp
 
-def push():
+def push(options):
+    if not(options.sftp_enable):
+        print("Sftp support is currently disabled. Reconfigure with reconf option.")
+        exit(0)
+
     if not("leaf.pkg" in os.listdir(os.getcwd())):
         print("This does not appear to be a package directory. Aborting.")
         exit(-1)
@@ -23,10 +29,6 @@ def push():
             exit(-1)
 
     #sftp
-    print("todo: push sftp")
-       
-        
-
-        
-
-
+    sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
+    
+    

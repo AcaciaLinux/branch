@@ -15,3 +15,6 @@ def helpMsg():
     print()
     print("packpush:")
     print("Runs pack and push")
+    print()
+    print("reconf:")
+    print("Deletes the current configuration file and reruns the setup assistant")

@@ -10,8 +10,7 @@ import pushpkg
 import config
 
 def main():
-    config.load_config()
-
+    conf = config.load_config()
     args = len(sys.argv)
 
     if(args == 2):
@@ -22,10 +21,14 @@ def main():
             tarpkg.pack()
 
         elif(sys.argv[1] == "push"):
-            pushpkg.push()
+            pushpkg.push(conf)
 
         elif(sys.argv[1] == "packpush"):
-            print()
+            tarpkg.pack()
+            pushpkg.push(conf)
+        
+        elif(sys.argv[1] == "reconf"):
+            config.reconf()
 
         else:
            help.helpMsg() 
@@ -34,4 +37,9 @@ def main():
         exit(0)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()
+        print("Exiting on Keyboard interrupt.")
+        exit(0)
