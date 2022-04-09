@@ -93,9 +93,9 @@ def updatePkgList(pkg_target, options):
             lfpkglist_file_new.write(prop)
             lfpkglist_file_new.write("\n")
              
-    print("Appending package to pkglist") 
+    print("Appending package to pkglist")
     tar_name = "{}-{}.lfpkg".format(pkg_target.name, pkg_target.version)
-    url = "http://{}/packages/{}/{}".format(options.sftp_ip, options.web_subdir, tar_name)
+    url = "http://{}/packages/{}/{}".format(options.sftp_ip, pkg_target.name, tar_name)
 
     lfpkglist_file_new.write("{};{};{};{};{}\n".format(pkg_target.name, pkg_target.version, pkg_target.description, pkg_target.dependencies, url))
     lfpkglist_file_new.close()
