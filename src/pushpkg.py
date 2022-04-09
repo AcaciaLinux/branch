@@ -14,7 +14,7 @@ def push(options):
         print("This does not appear to be a package directory. Aborting.")
         exit(-1)
 
-    leafpkg = lfpkg.parse()
+    leafpkg = lfpkg.parse("leaf.pkg")
 
     pwd = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
