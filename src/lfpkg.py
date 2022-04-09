@@ -33,6 +33,4 @@ def parse(pkgFile_path):
         elif(key == "dependencies"):
             leafpkg.dependencies = val
 
-
-    print("Description={}".format(leafpkg.description))
     return leafpkg
