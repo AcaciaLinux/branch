@@ -47,14 +47,18 @@ def push(options):
     updatePkgList(leafpkg, options)
     
     print("Uploading updated package list..")
-    sftp_con.put("/tmp/leaf.pkglist_new")
+    sftp_con.put("/tmp/leaf.pkglist")
     
     print("Cleaning up...")
-    os.remove("/tmp/leaf.pkglist_new")
+    os.remove("/tmp/leaf.pkglist")
     os.remove("/tmp/leaf.pkglist_temp")
 
     print("Creating pkg subdir..")
-    sftp_con.mkdir(leafpkg.name)
+    try:
+        sftp_con.mkdir(leafpkg.name)
+    except IOError:
+        print("Package subdirectory already exists. Assuming update.")
+    
     sftp_con.cwd(leafpkg.name)
     
     print("Uploading package file..")
@@ -68,23 +72,27 @@ def updatePkgList(pkg_target, options):
 
     # old lfpkg file
     lfpkglist_file_old = open("/tmp/leaf.pkglist_temp", "r")
-    lfpkglist_arr_old = lfpkglist_file_old.read().split()
+    lfpkglist_arr_old = lfpkglist_file_old.read().split("\n")
+
+    print(lfpkglist_arr_old)
 
     # new lfpkg file
-    lfpkglist_file_new = open("/tmp/leaf.pkglist_new", "w")
+    lfpkglist_file_new = open("/tmp/leaf.pkglist", "w")
 
     for prop in lfpkglist_arr_old:
         prop_arr = prop.split(";")
 
         pkg_name = prop_arr[0]
-
+        print("Updating package: {}".format(pkg_name))
+        
         if(pkg_name == pkg_target.name):
             print("Updating target package in pkglist...")
+        elif(pkg_name == ""):
+            print("Empty line in pkglist?")
         else:
             lfpkglist_file_new.write(prop)
-            
-    os.remove("/tmp/leaf.pkglist_temp")
-    
+            lfpkglist_file_new.write("\n")
+             
     print("Appending package to pkglist") 
     tar_name = "{}-{}.lfpkg".format(pkg_target.name, pkg_target.version)
     url = "http://{}/packages/{}/{}".format(options.sftp_ip, options.web_subdir, tar_name)
