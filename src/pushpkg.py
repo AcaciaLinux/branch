@@ -38,7 +38,7 @@ def push(options):
         exit(0)
 
     print("Changing remote workdir to {}..".format(options.sftp_workdir))
-    sftp_con.cwd(sftp_workdir)
+    sftp_con.cwd(options.sftp_workdir)
 
     print("Fetching current package list..")
     sftp_con.get("leaf.pkglist", localpath="/tmp/leaf.pkglist_temp")
