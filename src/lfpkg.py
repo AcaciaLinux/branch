@@ -9,7 +9,7 @@ class lfpkg():
 
 def parse(pkgFile_path):
     lfpkg_file = open(pkgFile_path, "r")
-    lfpkg_arr = lfpkg_file.read().split()
+    lfpkg_arr = lfpkg_file.read().split("\n")
     
     leafpkg = lfpkg("", "", "", "")
 
@@ -32,5 +32,7 @@ def parse(pkgFile_path):
             leafpkg.description = val
         elif(key == "dependencies"):
             leafpkg.dependencies = val
-            
+
+
+    print("Description={}".format(leafpkg.description))
     return leafpkg
