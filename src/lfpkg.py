@@ -7,8 +7,8 @@ class lfpkg():
         self.description = description
         self.dependencies = dependencies
 
-def parse():
-    lfpkg_file = open("leaf.pkg", "r")
+def parse(pkgFile_path):
+    lfpkg_file = open(pkgFile_path, "r")
     lfpkg_arr = lfpkg_file.read().split()
     
     leafpkg = lfpkg("", "", "", "")

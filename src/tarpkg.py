@@ -7,7 +7,7 @@ def pack():
         print("This does not appear to be a package directory. Aborting.")
         exit(-1)
     
-    leafpkg = lfpkg.parse()
+    leafpkg = lfpkg.parse("leaf.pkg")
     
     print("Creating lfpkg file for {}...".format(leafpkg.name))
 
