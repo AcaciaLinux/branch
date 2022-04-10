@@ -107,7 +107,7 @@ def create_config():
         sftp_wkd = input()
         branch_cfg.write("sftp_workdir={}\n".format(sftp_wkd))
 
-        print("Enter web subdirectory: (https://xy.xy/SUBDIRECTORY/packages)")
+        print("Enter web subdirectory: (https://xy.xy/SUBDIRECTORY/example-package)")
         web_sub = input()
         branch_cfg.write("web_subdir={}\n".format(web_sub))
 
