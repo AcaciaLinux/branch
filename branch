@@ -1,1 +1,2 @@
-#!python3 /usr/share/branch/main.py
+#!/bin/sh
+python3 /usr/share/branch/main.py $@
