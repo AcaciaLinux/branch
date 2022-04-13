@@ -13,7 +13,7 @@ def pack():
 
     pwd = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
-    pkg_file_tar_gz = tarfile.open(os.path.join(pwd, tar_name), "w:gz")
+    pkg_file_tar_gz = tarfile.open(os.path.join(pwd, tar_name), "w:xz")
 
     for root, dirs, files in os.walk(os.getcwd()):
         for file in files:
