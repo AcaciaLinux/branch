@@ -3,11 +3,12 @@
 # Copyright (c) zimsneexh (The AcaciaLinux project), 2022
 
 import sys
-import help
-import initpkg
-import tarpkg
-import pushpkg
-import config
+from utils import help
+from leafpkg import initpkg
+from leafpkg import tarpkg
+from leafpkg import pushpkg
+from leafpkg import lfpkg
+from config import config
 
 def main():
     conf = config.load_config()

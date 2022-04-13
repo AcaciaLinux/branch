@@ -1,6 +1,6 @@
 import tarfile
 import os
-import lfpkg
+from leafpkg import lfpkg
 
 def pack():
     if not("leaf.pkg" in os.listdir(os.getcwd())):
