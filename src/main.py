@@ -9,6 +9,8 @@ from leafpkg import tarpkg
 from leafpkg import pushpkg
 from leafpkg import lfpkg
 from config import config
+from pkgbuild import build
+from pkgbuild import bpbutil
 
 def main():
     conf = config.load_config()
@@ -30,6 +32,11 @@ def main():
         
         elif(sys.argv[1] == "reconf"):
             config.reconf()
+
+        elif(sys.argv[1] == "build"):
+            build.build()            
+        elif(sys.argv[1] == "bpbutil"):
+            bpbutil.createbpb()
 
         else:
            help.helpMsg() 

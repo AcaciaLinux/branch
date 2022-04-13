@@ -112,6 +112,7 @@ def create_config():
         branch_cfg.write("web_subdir={}\n".format(web_sub))
 
     print("Configuration completed.")
+    exit(0)
 
 def check_config():
     config_exists = False
