@@ -20,8 +20,9 @@ def pack():
             print("Adding f: {}".format(os.path.join(root, file)))
             pkg_file_tar_gz.add(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(os.getcwd(), '..')))
         for dir in dirs:
-            print("Adding d {}".format(os.path.join(root, dir)))
-            pkg_file_tar_gz.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
+            if (len(os.listdir(os.path.join(root, dir))) == 0):
+                print("Adding d {}".format(os.path.join(root, dir)))
+                pkg_file_tar_gz.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
     pkg_file_tar_gz.close()
 
     print("Package file created in {}".format(pwd))
