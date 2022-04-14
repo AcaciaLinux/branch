@@ -1,0 +1,9 @@
+name=hello
+version=there
+source=https://monn.de
+dependencies=[1][2][3]
+build={
+	echo "monn"
+
+
+}
