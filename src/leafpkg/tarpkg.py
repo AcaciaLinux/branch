@@ -15,7 +15,7 @@ def pack():
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
     pkg_file_tar_gz = tarfile.open(os.path.join(pwd, tar_name), "w:xz")
 
-    for root, dirs, files in os.walk(os.getcwd()):
+    for root, dirs, files in os.walk(os.getcwd(), followlinks=False):
         for file in files:
             print("Adding f: {}".format(os.path.join(root, file)))
             pkg_file_tar_gz.add(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(os.getcwd(), '..')))
