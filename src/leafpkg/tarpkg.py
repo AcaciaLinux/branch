@@ -8,23 +8,21 @@ def pack():
         exit(-1)
     
     leafpkg = lfpkg.parse("leaf.pkg")
-    
+
     print("Creating lfpkg file for {}...".format(leafpkg.name))
 
     pwd = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
-    pkg_file_tar_gz = tarfile.open(os.path.join(pwd, tar_name), "w:xz")
+    pkg_file_tar = tarfile.open(os.path.join(pwd, tar_name), "w:xz")
 
     for root, dirs, files in os.walk(os.getcwd(), followlinks=False):
         for file in files:
-            print("Adding f: {}".format(os.path.join(root, file)))
-            pkg_file_tar_gz.add(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(os.getcwd(), '..')))
+            print("Adding file: {}".format(os.path.join(root, file)))
+            pkg_file_tar.add(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(os.getcwd(), '..')))
         for dir in dirs:
             if (len(os.listdir(os.path.join(root, dir))) == 0):
-                print("Adding d {}".format(os.path.join(root, dir)))
-                pkg_file_tar_gz.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
-    pkg_file_tar_gz.close()
-
-    print("Package file created in {}".format(pwd))
-
+                print("Adding dir: {}".format(os.path.join(root, dir)))
+                pkg_file_tar.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
     
+    pkg_file_tar.close()
+    print("Package file created in {}".format(pwd))
