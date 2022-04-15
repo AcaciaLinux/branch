@@ -74,8 +74,6 @@ def updatePkgList(pkg_target, options):
     lfpkglist_file_old = open("/tmp/leaf.pkglist_temp", "r")
     lfpkglist_arr_old = lfpkglist_file_old.read().split("\n")
 
-    print(lfpkglist_arr_old)
-
     # new lfpkg file
     lfpkglist_file_new = open("/tmp/leaf.pkglist", "w")
 

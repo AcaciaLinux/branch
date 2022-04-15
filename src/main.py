@@ -18,7 +18,7 @@ def main():
 
     if(args == 2):
         if(sys.argv[1] == "init"):
-            initpkg.newpkg() 
+            initpkg.pkg_utility() 
 
         elif(sys.argv[1] == "pack"):
             tarpkg.pack()
@@ -37,6 +37,13 @@ def main():
             build.build()            
         elif(sys.argv[1] == "bpbutil"):
             bpbutil.createbpb()
+        elif(sys.argv[1] == "buildpack"):
+            build.build()
+            tarpkg.pack()
+        elif(sys.argv[1] == "buildpackpush"):
+            build.build()
+            tarpkg.pack()
+            pushpkg.push(conf)
 
         else:
            help.helpMsg() 

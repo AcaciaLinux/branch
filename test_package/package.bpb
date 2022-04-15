@@ -1,0 +1,16 @@
+name=bash
+version=5.1.16
+source=https://ftp.gnu.org/gnu/bash/bash-5.1.16.tar.gz
+dependencies=[]
+description=The Bourne-Again SHell
+build={
+	cd bash-5.1.16
+	./configure --prefix=/usr                      \
+            --docdir=/usr/share/doc/bash-5.1.16 \
+            --without-bash-malloc              \
+            --with-installed-readline
+	
+	make -j $(nproc)
+	make DESTDIR=$PKG_INSTALL_DIR -j1 install	
+	echo Package directory is: $PKG_INSTALL_DIR
+}

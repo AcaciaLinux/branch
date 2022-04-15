@@ -32,8 +32,9 @@ def load_config():
             answ = input()
             if(answ == "y"):
                 reconf()
+                exit(0)
             else:
-                print("Cannot continue with broken Configuration file. Exiting.")
+                print("Cannot continue with broken configuration file. Exiting.")
                 exit(-1)
 
         val = prop_arr[1]

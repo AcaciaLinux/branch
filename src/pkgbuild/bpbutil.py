@@ -3,7 +3,7 @@ import os
 #Creates a branch package build file.
 def createbpb():
     if("leaf.pkg" in os.listdir(os.getcwd())):
-        print("This appears to be a package directory. Aboting.")
+        print("This appears to be a package directory. Aborting.")
         exit(-1)
 
     if("package.bpb" in os.listdir(os.getcwd())):
@@ -30,6 +30,7 @@ def createbpb():
     bpb_file.write("version={}\n".format(pkg_version))
     bpb_file.write("source={}\n".format(pkg_src))
     bpb_file.write("dependencies={}\n".format(pkg_deps))
+    bpb_file.write("description={}\n".format(pkg_des))
     bpb_file.write('''build={}''')
 
     print("package.bpb created!")
