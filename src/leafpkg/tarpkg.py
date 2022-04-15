@@ -23,6 +23,9 @@ def pack():
             if (len(os.listdir(os.path.join(root, dir))) == 0):
                 print("Adding dir: {}".format(os.path.join(root, dir)))
                 pkg_file_tar.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
-    
+            elif (os.path.islink(os.path.join(root, dir))):
+                print("Adding dirlink: {}".format(os.path.join(root, dir)))
+                pkg_file_tar.add(os.path.join(root, dir), os.path.relpath(os.path.join(root, dir), os.path.join(os.getcwd(), '..')))
+
     pkg_file_tar.close()
     print("Package file created in {}".format(pwd))
