@@ -38,13 +38,7 @@ def build():
     os.chdir("build")
 
     source_request = requests.get(BPBopts.source, stream=True)
-    
-    # Fetch filename from HTTP-Header if possible, use link otherwise.
-    source_file = ""
-    if "Content-Disposition" in source_request.headers.keys():
-        source_file = re.findall("filename=(.+)", source_request.headers["Content-Disposition"])[0]
-    else:
-        source_file = BPBopts.source.split("/")[-1]
+    source_file = BPBopts.source.split("/")[-1]
 
     # fetch sources
     print("Fetching source:", source_file)
