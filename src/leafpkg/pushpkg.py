@@ -86,7 +86,7 @@ def updatePkgList(pkg_target, options):
         if(pkg_name == pkg_target.name):
             print("Updating target package in pkglist...")
         elif(pkg_name == ""):
-            print("Empty line in pkglist?")
+            print("Skipping empty line in package list...")
         else:
             lfpkglist_file_new.write(prop)
             lfpkglist_file_new.write("\n")
