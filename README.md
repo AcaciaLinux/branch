@@ -32,6 +32,9 @@ A 'branch' package file can either be created manually or by using the provided 
 branch bpbutil
 ```
 
+### Available package builds
+All package builds used in AcaciaLinux are available in the [Package build repository](https://github.com/AcaciaLinux/BranchPackageBuilds)
+
 # Dependencies:
 'branch' requires a python3 interpreter as well as [pysftp](https://pypi.org/project/pysftp/) and [requests](https://pypi.org/project/requests/). To install python dependencies run:
 
