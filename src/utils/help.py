@@ -31,3 +31,5 @@ def helpMsg():
     print("bpbutil:")
     print("Utility to easily create bpb files")
     print()
+    print("cleandir:")
+    print("Utility to clean package build directory")

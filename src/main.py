@@ -44,6 +44,8 @@ def main():
             build.build()
             tarpkg.pack()
             pushpkg.push(conf)
+        elif(sys.argv[1] == "cleandir"):
+            build.cleanAll()
 
         else:
            help.helpMsg() 

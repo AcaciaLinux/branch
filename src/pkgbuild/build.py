@@ -74,12 +74,41 @@ def build():
     print("Buildscript completed.")
     print("=========================================================")
     os.chdir("..")
-    clean()
+    cleanBuildDir()
     os.chdir(os.path.join(destdir, ".."))
 
-def clean():
+def cleanBuildDir():
     print("Cleaning up..")
     shutil.rmtree("build")
+
+
+def cleanAll():
+    if not("package.bpb" in os.listdir(os.getcwd())):
+        print("This package does not contain a package build file (package.bpb). Aborting.")
+        exit(-1)
+   
+
+    try:
+        shutil.rmtree("build")
+    except FileNotFoundError:
+        print("No build directory found..")
+
+    
+    BPBopts = parseBuildFile()
+    pkg_dir = "{}-{}".format(BPBopts.name, BPBopts.version)
+    
+    try:
+        shutil.rmtree(pkg_dir)
+    except FileNotFoundError:
+        print("No package directory found..")
+
+    try:
+        os.remove("{}-{}.lfpkg".format(BPBopts.name, BPBopts.version))    
+    except FileNotFoundError:
+        print("No package file found..")
+
+    print("Done cleaning current workdirectory..")
+
 
 def parseBuildFile():
     build_file = open("package.bpb", "r")
