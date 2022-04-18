@@ -1,29 +1,55 @@
 # Branch - The AcaciaLinux packaging tool
-'branch' is a simple tool written in python3 to create [leaf](https://github.com/AcaciaLinux/leaf) package files (.lfpkg)
+'branch' is a simple to use tool written in python3 to create [leaf](https://github.com/AcaciaLinux/leaf) package files (.lfpkg) and run [BranchPackageBuilds](https://github.com/AcaciaLinux/BranchPackageBuilds).
 
 # Usage: Packaging guide
 A detailed packaging guide is available on the [wiki](https://github.com/AcaciaLinux/docs/wiki/Packaging).
 
+# Usage: Branch package builds
+The 'branch' package build system builds a package from a provided source using a special package.bpb file.
+
+### File Layout: Example package (atk)
+```txt
+name=atk
+version=2.38.0
+source=https://download.gnome.org/sources/atk/2.38/atk-2.38.0.tar.xz
+dependencies=[glib]
+description=ATK provides the set of accessibility interfaces that are implemented by other toolkits and applications.
+build={
+	cd atk-2.38.0
+	mkdir build &&
+	cd    build &&
+
+	meson --prefix=/usr --buildtype=release .. &&
+	ninja
+	
+	DESTDIR=$PKG_INSTALL_DIR ninja install
+}
+```
+
+### Creating a 'branch' package build file
+A 'branch' package file can either be created manually or by using the provided utility:
+```bash
+branch bpbutil
+```
+
 # Dependencies:
-'branch' requires a python3 interpreter as well as [pysftp](https://pypi.org/project/pysftp/). pysftp can be installed with the python pip package manager:
+'branch' requires a python3 interpreter as well as [pysftp](https://pypi.org/project/pysftp/) and [requests](https://pypi.org/project/requests/). To install python dependencies run:
 
 ```bash
-python3 -m pip install pysftp
+python3 -m pip install pysftp requests
 ```
 
 # Installation:
-'branch' can be installed using the provided Makefile:
-
+'branch' can be installed on any distribution using the provided Makefile:
 ```bash
 git clone https://github.com/AcaciaLinux/branch
 cd branch
-make install
+(sudo/doas) make install
 ```
-
-Todo: lfpkg for branch
+A package file is available for AcaciaLinux, but it is likely out of date.
 
 # Configuration
-When launching 'branch' for the first time, it will run a configuration assistant to populate its configuration file located at ~/.config/branch/branch.conf
+When launching 'branch' for the first time, it will run a configuration assistant to populate its configuration file located in ~/.config/branch/
 
 ```txt
 >>> branch
