@@ -13,8 +13,9 @@ class BPBOpts():
         self.source = ""
         self.dependencies = ""
         self.description = ""
+        self.build_dependencies = ""
         self.build_script = [ ]
-
+    
 
 def build():
     if not("package.bpb" in os.listdir(os.getcwd())):
@@ -23,11 +24,13 @@ def build():
 
     print("package.bpb file found!")
     BPBopts = parseBuildFile() 
-
     destdir = initpkg.newpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies)
-    
-    print("Creating build directory..")
-    
+   
+
+    print("Installing buildtime dependencies: {}".format(BPBopts.build_dependencies))
+    install_deps(BPBopts.build_dependencies)
+
+    print("Creating build directory..")    
     try:
         os.mkdir("build")
     except FileExistsError:
@@ -108,7 +111,8 @@ def cleanAll():
         print("No package file found..")
 
     print("Done cleaning current workdirectory..")
-
+def installDeps(build_dependencies):
+    print("STUB: install deps..")
 
 def parseBuildFile():
     build_file = open("package.bpb", "r")
@@ -155,6 +159,8 @@ def parseBuildFile():
                 BPBopts.dependencies = val
             elif(key == "description"):
                 BPBopts.description = val
+            elif(key == "builddeps"):
+                BPBOpts.build_dependencies = val
             elif(key == "build"):
                 build_opts = True
     
