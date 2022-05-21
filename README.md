@@ -1,6 +1,9 @@
 # Branch - The AcaciaLinux packaging tool
 'branch' is a simple to use tool written in python3 to create [leaf](https://github.com/AcaciaLinux/leaf) package files (.lfpkg) and run [BranchPackageBuilds](https://github.com/AcaciaLinux/BranchPackageBuilds).
 
+# Usage: help
+Run branch -h to get an overview of available commands.
+
 # Usage: Packaging guide
 A detailed packaging guide is available on the [wiki](https://github.com/AcaciaLinux/docs/wiki/Packaging).
 
@@ -76,7 +79,7 @@ Configuration completed.
 
 To rerun this configuration assistant at any time, use:
 ```bash
-branch reconf
+branch --reconf
 ```
 
 ### HostName

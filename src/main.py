@@ -3,6 +3,7 @@
 # Copyright (c) zimsneexh (The AcaciaLinux project), 2022
 
 import sys
+import argparse
 from utils import help
 from leafpkg import initpkg
 from leafpkg import tarpkg
@@ -14,44 +15,58 @@ from pkgbuild import bpbutil
 
 def main():
     conf = config.load_config()
-    args = len(sys.argv)
+    
+    argparser = argparse.ArgumentParser(description="The AcaciaLinux packaging utility.")
+    
 
-    if(args == 2):
-        if(sys.argv[1] == "init"):
-            initpkg.pkg_utility() 
+    argparser.add_argument("-b", "--build", help="Builds a package.bpb file and installs to a new leaf package", action="store_true")
+    argparser.add_argument("-pk", "--pack", help="Packs a leaf.pkg file to a lfpkg file", action="store_true")
+    argparser.add_argument("-pu", "--push", help="Pushes a leaf.pkg file to a remote server", action="store_true")
+    argparser.add_argument("-r", "--reconf", help="Reruns the branch configuration assistant", action="store_true")
+    argparser.add_argument("-i", "--init", help="Initializes a new leaf.pkg file in cwd", action="store_true")
+    argparser.add_argument("-bpb", "--bpbutil", help="Runs the branch package build utility.", action="store_true")
+    argparser.add_argument("-c", "--clean", help="Cleans the current directory.", action="store_true")
+    args = argparser.parse_args()
+    
 
-        elif(sys.argv[1] == "pack"):
-            tarpkg.pack()
+    lenvar = 0
 
-        elif(sys.argv[1] == "push"):
-            pushpkg.push(conf)
+    for key in vars(args):
+        if(args.__dict__[key]):
+            lenvar = lenvar + 1
 
-        elif(sys.argv[1] == "packpush"):
-            tarpkg.pack()
-            pushpkg.push(conf)
-        
-        elif(sys.argv[1] == "reconf"):
-            config.reconf()
+    argCheck(args, conf, lenvar)
 
-        elif(sys.argv[1] == "build"):
-            build.build()            
-        elif(sys.argv[1] == "bpbutil"):
-            bpbutil.createbpb()
-        elif(sys.argv[1] == "buildpack"):
-            build.build()
-            tarpkg.pack()
-        elif(sys.argv[1] == "buildpackpush"):
-            build.build()
-            tarpkg.pack()
-            pushpkg.push(conf)
-        elif(sys.argv[1] == "cleandir"):
-            build.cleanAll()
 
-        else:
-           help.helpMsg() 
+def argCheck(args, conf, lenvar):
+    if(args.init):
+        if(lenvar > 1):
+            print("'init' is a standalone argument. Only running init.")
+
+        initpkg.pkg_utility() 
+    elif(args.reconf):
+        if(lenvar > 1):
+            print("'reconf' is a standalone argument. Only running reconf.")
+
+        config.reconf()
+    elif(args.bpbutil):
+        if(lenvar > 1):
+            print("'bpbutil' is a standalone argument. Only running bpbutil.")
+
+        bpbutil.createbpb()
     else:
-        help.helpMsg()
-        exit(0)
+        if(args.build):
+            print("Running build step..")
+            build.build()
+        if(args.pack):
+            print("Running pack step..")
+            tarpkg.pack()
+        if(args.push):
+            print("Running push step..")
+            pushpkg.push(conf)
+        if(args.clean):
+            print("Running clean step..")
+            build.cleanAll()
 
 if __name__ == "__main__":
     try:
