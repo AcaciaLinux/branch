@@ -20,6 +20,7 @@ def newpkg(pkg_name, pkg_version, pkg_desc, pkg_deps):
     leaf_pf.write("version={}\n".format(pkg_version))
     leaf_pf.write("description={}\n".format(pkg_desc))
     leaf_pf.write("dependencies={}\n".format(pkg_deps))
+    leaf_pf.write("pkgrel=0\n")
 
     print("Package {} created.".format(pkg_name))
     return os.path.join(pkg_path, "data")
