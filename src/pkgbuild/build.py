@@ -5,6 +5,7 @@ import shutil
 import requests
 import tarfile
 from leafpkg import initpkg
+from log import blog
 
 class BPBOpts():
     def __init__(self):
@@ -19,21 +20,21 @@ class BPBOpts():
 
 def build():
     if not("package.bpb" in os.listdir(os.getcwd())):
-        print("This package does not contain a package build file (package.bpb). Aborting.")
+        blog.error("This package does not contain a package build file (package.bpb). Aborting.")
         exit(-1)
 
-    print("package.bpb file found!")
+    blog.info("package.bpb file found!")
     BPBopts = parseBuildFile() 
     destdir = initpkg.newpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies)
    
-    print("Installing build dependencies: {}".format(BPBopts.build_dependencies))
+    blog.info("Installing build dependencies: {}".format(BPBopts.build_dependencies))
     install_deps(BPBopts.build_dependencies)
 
-    print("Creating build directory..")    
+    blog.info("Creating build directory..")    
     try:
         os.mkdir("build")
     except FileExistsError:
-        print("Old build directory found. Removing..")
+        blog.warn("Old build directory found. Removing..")
         shutil.rmtree("build")
         os.mkdir("build")
 
@@ -45,30 +46,30 @@ def build():
             source_file = BPBopts.source.split("/")[-1]
 
             # fetch sources
-            print("Fetching source:", source_file)
+            blog.info("Fetching source:", source_file)
             out_file = open(source_file, "wb")
             shutil.copyfileobj(source_request.raw, out_file)
 
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
-                print("Source is a tar file. Extracting...")
+                blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
                 tar_obj = tar_file.extractall(".")
             else:
-                print("Source is not a tar file. Manual extraction required in build script..")
+                blog.warn("Source is not a tar file. Manual extraction required in build script..")
         
-            print("Source fetched")
+            blog.info("Source fetched")
         except Exception:
-            print("ERROR: Broken link in packagebuildfile. Not fetching source.")
+            blog.error("Broken link in packagebuildfile. Not fetching source.")
     else:
-        print("No source specified. Not fetching source.")
+        log.warn("No source specified. Not fetching source.")
 
     srcdir = os.getcwd()
 
-    print("Package make script will run in:", srcdir)
-    print("Package destination is: ", destdir)
+    blog.info("Package make script will run in: " + srcdir)
+    blog.info("Package destination is: " + destdir)
     print("=========================================================")
-    print("Running build script..")
+    blog.info("Running build script..")
     os.putenv("PKG_INSTALL_DIR", destdir)
     
     build_sh = open(os.path.join(os.getcwd(), "build.sh"), "w")
@@ -80,27 +81,26 @@ def build():
     os.system("chmod +x build.sh")
     subprocess.run(["./build.sh", ""], shell=True)
     
-    print("Buildscript completed.")
+    blog.info("Buildscript completed.")
     print("=========================================================")
     os.chdir("..")
     cleanBuildDir()
-    os.chdir(os.path.join(destdir, ".."))
 
 def cleanBuildDir():
-    print("Cleaning up..")
+    blog.info("Cleaning up..")
     shutil.rmtree("build")
 
 
 def cleanAll():
     if not("package.bpb" in os.listdir(os.getcwd())):
-        print("This package does not contain a package build file (package.bpb). Aborting.")
+        blog.error("This package does not contain a package build file (package.bpb). Aborting.")
         exit(-1)
    
 
     try:
         shutil.rmtree("build")
     except FileNotFoundError:
-        print("No build directory found..")
+        blog.warn("No build directory found..")
 
     
     BPBopts = parseBuildFile()
@@ -109,17 +109,17 @@ def cleanAll():
     try:
         shutil.rmtree(pkg_dir)
     except FileNotFoundError:
-        print("No package directory found..")
+        blog.warn("No package directory found..")
 
     try:
         os.remove("{}-{}.lfpkg".format(BPBopts.name, BPBopts.version))    
     except FileNotFoundError:
-        print("No package file found..")
+        blog.warn("No package file found..")
 
-    print("Done cleaning current workdirectory..")
+    blog.info("Done cleaning current workdirectory..")
 
 def install_deps(build_dependencies):
-    print("STUB: install deps..")
+    blog.warn("STUB: install deps..")
 
 def parseBuildFile():
     build_file = open("package.bpb", "r")
@@ -151,7 +151,7 @@ def parseBuildFile():
                 continue
 
             if(len(prop_arr) != 2):
-                print("Broken package build file. Failed property of key: ", key)
+                blog.error("Broken package build file. Failed property of key: ", key)
                 exit(-1)
 
             val = prop_arr[1]

@@ -73,7 +73,7 @@ def create_config():
     try:
         os.makedirs("{}/.config/branch".format(home))
     except FileExistsError:
-        print("Config directory already exists.")
+        blog.error("Config directory already exists.")
 
     branch_cfg = open("{}/.config/branch/branch.conf".format(home), "w")
     sftp_support = False

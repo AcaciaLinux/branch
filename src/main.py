@@ -3,6 +3,7 @@
 # Copyright (c) zimsneexh (The AcaciaLinux project), 2022
 
 import sys
+import os
 import argparse
 from leafpkg import initpkg
 from leafpkg import tarpkg
