@@ -9,11 +9,17 @@ def pack():
         exit(-1)
     
     leafpkg = lfpkg.parse("leaf.pkg")
-
+    
     blog.info("Creating lfpkg file for {}...".format(leafpkg.name))
 
     pwd = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
+    try:
+        blog.info("Removing old package files..")
+        os.remove(os.path.join(pwd, tar_name))
+    except FileNotFoundError:
+        blog.info("No old package file found.")
+
     pkg_file_tar = tarfile.open(os.path.join(pwd, tar_name), "w:xz")
 
     for root, dirs, files in os.walk(os.getcwd(), followlinks=False):
@@ -30,3 +36,4 @@ def pack():
 
     pkg_file_tar.close()
     blog.info("Package file created in {}".format(pwd))
+    os.chdir("..")

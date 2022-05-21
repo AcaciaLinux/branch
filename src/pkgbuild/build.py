@@ -46,7 +46,7 @@ def build():
             source_file = BPBopts.source.split("/")[-1]
 
             # fetch sources
-            blog.info("Fetching source:", source_file)
+            blog.info("Fetching source: " + source_file)
             out_file = open(source_file, "wb")
             shutil.copyfileobj(source_request.raw, out_file)
 
@@ -59,7 +59,8 @@ def build():
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
         
             blog.info("Source fetched")
-        except Exception:
+        except Exception as ex:
+            print(ex)
             blog.error("Broken link in packagebuildfile. Not fetching source.")
     else:
         log.warn("No source specified. Not fetching source.")
@@ -85,6 +86,7 @@ def build():
     print("=========================================================")
     os.chdir("..")
     cleanBuildDir()
+    os.chdir(os.path.join(destdir, ".."))
 
 def cleanBuildDir():
     blog.info("Cleaning up..")
@@ -110,11 +112,6 @@ def cleanAll():
         shutil.rmtree(pkg_dir)
     except FileNotFoundError:
         blog.warn("No package directory found..")
-
-    try:
-        os.remove("{}-{}.lfpkg".format(BPBopts.name, BPBopts.version))    
-    except FileNotFoundError:
-        blog.warn("No package file found..")
 
     blog.info("Done cleaning current workdirectory..")
 
