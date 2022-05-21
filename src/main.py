@@ -4,7 +4,6 @@
 
 import sys
 import argparse
-from utils import help
 from leafpkg import initpkg
 from leafpkg import tarpkg
 from leafpkg import pushpkg
