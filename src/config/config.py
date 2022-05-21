@@ -1,4 +1,5 @@
 import os
+from log import blog
 
 class branchOpts():
     def __init__(self, sftp_enable, sftp_ip, sftp_user, ssh_key, ssh_passphrase, sftp_workdir, web_subdir):
@@ -28,13 +29,13 @@ def load_config():
         key = prop_arr[0]
 
         if(len(prop_arr) != 2):
-            print("Invalid configuration file. Do you want to recreate it? (y/n).")
+            blog.info("Invalid configuration file. Do you want to recreate it? (y/n).")
             answ = input()
             if(answ == "y"):
                 reconf()
                 exit(0)
             else:
-                print("Cannot continue with broken configuration file. Exiting.")
+                blog.error("Cannot continue with broken configuration file. Exiting.")
                 exit(-1)
 
         val = prop_arr[1]
@@ -61,7 +62,7 @@ def load_config():
 
 def reconf():
     home = os.environ['HOME'];
-    print("Deleting configuration file..")
+    blog.warn("Deleting configuration file..")
     
     os.remove("{}/.config/branch/branch.conf".format(home))
     create_config()
@@ -112,7 +113,7 @@ def create_config():
         web_sub = input()
         branch_cfg.write("web_subdir={}\n".format(web_sub))
 
-    print("Configuration completed.")
+    blog.info("Configuration completed.")
     exit(0)
 
 def check_config():
@@ -130,5 +131,5 @@ def check_config():
         if(answ.lower() == "y"):
             create_config()
         else:
-            print("Cannot continue without config file. Exiting.") 
+            blog.error("Cannot continue without config file. Exiting.") 
             exit(0)

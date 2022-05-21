@@ -26,8 +26,7 @@ def build():
     BPBopts = parseBuildFile() 
     destdir = initpkg.newpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies)
    
-
-    print("Installing buildtime dependencies: {}".format(BPBopts.build_dependencies))
+    print("Installing build dependencies: {}".format(BPBopts.build_dependencies))
     install_deps(BPBopts.build_dependencies)
 
     print("Creating build directory..")    
@@ -40,24 +39,31 @@ def build():
 
     os.chdir("build")
 
-    source_request = requests.get(BPBopts.source, stream=True)
-    source_file = BPBopts.source.split("/")[-1]
+    if(BPBopts.source):
+        try:
+            source_request = requests.get(BPBopts.source, stream=True)
+            source_file = BPBopts.source.split("/")[-1]
 
-    # fetch sources
-    print("Fetching source:", source_file)
-    out_file = open(source_file, "wb")
-    shutil.copyfileobj(source_request.raw, out_file)
+            # fetch sources
+            print("Fetching source:", source_file)
+            out_file = open(source_file, "wb")
+            shutil.copyfileobj(source_request.raw, out_file)
 
-    # check if file is tarfile and extract if it is
-    if(tarfile.is_tarfile(source_file)):
-        print("Source is a tar file. Extracting...")
-        tar_file = tarfile.open(source_file, "r")
-        tar_obj = tar_file.extractall(".")
+            # check if file is tarfile and extract if it is
+            if(tarfile.is_tarfile(source_file)):
+                print("Source is a tar file. Extracting...")
+                tar_file = tarfile.open(source_file, "r")
+                tar_obj = tar_file.extractall(".")
+            else:
+                print("Source is not a tar file. Manual extraction required in build script..")
+        
+            print("Source fetched")
+        except Exception:
+            print("ERROR: Broken link in packagebuildfile. Not fetching source.")
     else:
-        print("Source is not a tar file. Manual extraction required in build script..")
+        print("No source specified. Not fetching source.")
 
     srcdir = os.getcwd()
-    print("Source fetched!")
 
     print("Package make script will run in:", srcdir)
     print("Package destination is: ", destdir)
@@ -111,7 +117,8 @@ def cleanAll():
         print("No package file found..")
 
     print("Done cleaning current workdirectory..")
-def installDeps(build_dependencies):
+
+def install_deps(build_dependencies):
     print("STUB: install deps..")
 
 def parseBuildFile():

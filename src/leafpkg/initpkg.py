@@ -1,7 +1,8 @@
 import os
+from log import blog
 
 def newpkg(pkg_name, pkg_version, pkg_desc, pkg_deps):
-    print("Initializing empty package directory.")
+    blog.info("Initializing empty package directory.")
     pkg_dir = "{}-{}".format(pkg_name, pkg_version)
     pkg_path = os.path.join(os.getcwd(), pkg_dir)
 
@@ -9,7 +10,7 @@ def newpkg(pkg_name, pkg_version, pkg_desc, pkg_deps):
     try:
         os.mkdir(pkg_path)
     except FileExistsError:
-        print("Package directory exists. Did you already create it?")
+        blog.warn("Package directory exists. Did you already create it?")
         exit(-1)
 
     #create data subdir
@@ -22,7 +23,7 @@ def newpkg(pkg_name, pkg_version, pkg_desc, pkg_deps):
     leaf_pf.write("dependencies={}\n".format(pkg_deps))
     leaf_pf.write("pkgrel=0\n")
 
-    print("Package {} created.".format(pkg_name))
+    blog.info("Package {} created.".format(pkg_name))
     return os.path.join(pkg_path, "data")
 
 def pkg_utility():

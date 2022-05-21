@@ -2,16 +2,17 @@ import os
 from leafpkg import tarpkg
 from leafpkg import lfpkg
 from config import config
+from log import blog
 import pysftp
 from paramiko import AuthenticationException
 
 def push(options):
     if not(options.sftp_enable):
-        print("Sftp support is currently disabled. Reconfigure with reconf option.")
+        blog.error("Sftp support is currently disabled. Reconfigure with reconf option.")
         exit(0)
 
     if not("leaf.pkg" in os.listdir(os.getcwd())):
-        print("This does not appear to be a package directory. Aborting.")
+        blog.error("This does not appear to be a package directory. Aborting.")
         exit(-1)
 
     leafpkg = lfpkg.parse("leaf.pkg")
@@ -20,7 +21,7 @@ def push(options):
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
     
     if not(tar_name in os.listdir(pwd)):
-        print("{} does not have a package file.".format(pwd))
+        blog.warn("{} does not have a package file.".format(pwd))
         print("Do you want to run pack? (y/n)")
 
         answ = input()
@@ -30,45 +31,45 @@ def push(options):
             exit(-1)
 
     #sftp
-    print("Connecting to repository server..")
+    blog.info("Connecting to repository server..")
     try:
         sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
     except AuthenticationException:
-        print("Could not connect to the SSH Server. Authentication Failure.")
+        blog.error("Could not connect to the SSH Server. Authentication Failure.")
         exit(0)
 
-    print("Changing remote workdir to {}..".format(options.sftp_workdir))
+    blog.info("Changing remote workdir to {}..".format(options.sftp_workdir))
     sftp_con.cwd(options.sftp_workdir)
 
-    print("Fetching current package list..")
+    blog.info("Fetching current package list..")
     sftp_con.get("leaf.pkglist", localpath="/tmp/leaf.pkglist_temp")
 
-    print("Updating package list..")
+    blog.info("Updating package list..")
     updatePkgList(leafpkg, options)
     
-    print("Uploading updated package list..")
+    blog.info("Uploading updated package list..")
     sftp_con.put("/tmp/leaf.pkglist")
     
-    print("Cleaning up...")
+    blog.info("Cleaning up...")
     os.remove("/tmp/leaf.pkglist")
     os.remove("/tmp/leaf.pkglist_temp")
 
-    print("Creating pkg subdir..")
+    blog.info("Creating pkg subdir..")
     try:
         sftp_con.mkdir(leafpkg.name)
     except IOError:
-        print("Package subdirectory already exists. Assuming update.")
+        blog.warn("Package subdirectory already exists. Assuming update.")
     
     sftp_con.cwd(leafpkg.name)
     
-    print("Uploading package file..")
+    blog.info("Uploading package file..")
     sftp_con.put("../{}".format(tar_name))
     
     sftp_con.close()
-    print("Done!")
+    blog.info("Done uploading package file!")
 
 def updatePkgList(pkg_target, options):
-    print("Parsing current package list..")
+    blog.info("Parsing current package list..")
 
     # old lfpkg file
     lfpkglist_file_old = open("/tmp/leaf.pkglist_temp", "r")
@@ -81,17 +82,17 @@ def updatePkgList(pkg_target, options):
         prop_arr = prop.split(";")
 
         pkg_name = prop_arr[0]
-        print("Updating package: {}".format(pkg_name))
+        blog.info("Updating package: {}".format(pkg_name))
         
         if(pkg_name == pkg_target.name):
-            print("Updating target package in pkglist...")
+            blog.info("Updating target package in pkglist...")
         elif(pkg_name == ""):
-            print("Skipping empty line in package list...")
+            blog.warn("Skipping empty line in package list...")
         else:
             lfpkglist_file_new.write(prop)
             lfpkglist_file_new.write("\n")
              
-    print("Appending package to pkglist")
+    blog.info("Appending package to pkglist")
     tar_name = "{}-{}.lfpkg".format(pkg_target.name, pkg_target.version)
 
     url = "http://{}/{}/{}/{}".format(options.sftp_ip, options.web_subdir, pkg_target.name, tar_name)

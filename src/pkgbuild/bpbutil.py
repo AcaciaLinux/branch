@@ -1,13 +1,14 @@
+from log import blog
 import os
 
 #Creates a branch package build file.
 def createbpb():
     if("leaf.pkg" in os.listdir(os.getcwd())):
-        print("This appears to be a package directory. Aborting.")
+        blog.info("This appears to be a package directory. Aborting.")
         exit(-1)
 
     if("package.bpb" in os.listdir(os.getcwd())):
-        print("This directory already contains a package build file. Aborting.")
+        blog.info("This directory already contains a package build file. Aborting.")
         exit(-1)
 
     print("Package name:")
@@ -37,4 +38,4 @@ def createbpb():
     bpb_file.write("description={}\n".format(pkg_des))
     bpb_file.write('''build={}''')
 
-    print("package.bpb created!")
+    blog.info("package.bpb created!")
