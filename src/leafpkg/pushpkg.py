@@ -67,6 +67,9 @@ def push(options):
     
     sftp_con.close()
     blog.info("Done uploading package file!")
+    
+    # back to build root
+    os.chdir("..")
 
 def updatePkgList(pkg_target, options):
     blog.info("Parsing current package list..")
