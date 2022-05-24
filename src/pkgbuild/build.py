@@ -84,9 +84,12 @@ def build():
     
     blog.info("Buildscript completed.")
     print("=========================================================")
+
+    # change to package root
     os.chdir("..")
+    
+    # clean
     cleanBuildDir()
-    os.chdir(os.path.join(destdir, ".."))
 
 def cleanBuildDir():
     blog.info("Cleaning up..")
