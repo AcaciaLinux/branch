@@ -63,7 +63,7 @@ def build():
             print(ex)
             blog.error("Broken link in packagebuildfile. Not fetching source.")
     else:
-        log.warn("No source specified. Not fetching source.")
+        blog.warn("No source specified. Not fetching source.")
 
     srcdir = os.getcwd()
 
