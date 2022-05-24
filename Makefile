@@ -7,3 +7,9 @@ install:
 	@-cp -rv src/* /usr/share/branch
 	@-cp -v branch /usr/bin/branch
 
+install-pkg:
+	@echo "Installing to pkg"
+	@-mkdir -vp /usr/share/branch
+	@echo "Copying files"
+	@-cp -rv src/* /usr/share/branch
+	@-cp -v branch /usr/bin/branch
