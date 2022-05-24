@@ -9,7 +9,8 @@ install:
 
 install-pkg:
 	@echo "Installing to pkg"
-	@-mkdir -vp /usr/share/branch
+	@-mkdir -vp $(DESTDIR)/usr/share/branch
+	@-mkdir -vp $(DESTDIR)/usr/bin/
 	@echo "Copying files"
-	@-cp -rv src/* /usr/share/branch
-	@-cp -v branch /usr/bin/branch
+	@-cp -rv src/* $(DESTDIR)/usr/share/branch
+	@-cp -v branch $(DESTDIR)/usr/bin/branch
