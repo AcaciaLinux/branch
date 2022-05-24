@@ -36,4 +36,3 @@ def pack():
 
     pkg_file_tar.close()
     blog.info("Package file created in {}".format(pwd))
-    os.chdir("..")
