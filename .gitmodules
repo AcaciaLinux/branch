@@ -1,0 +1,3 @@
+[submodule "src/pyleaf"]
+	path = src/pyleaf
+	url = https://github.com/AcaciaLinux/pyleaf
