@@ -6,6 +6,8 @@ import requests
 import tarfile
 from leafpkg import initpkg
 from log import blog
+from pyleaf import pyleafcore
+
 
 class BPBOpts():
     def __init__(self):
@@ -28,7 +30,7 @@ def build():
     destdir = initpkg.newpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies)
    
     blog.info("Installing build dependencies: {}".format(BPBopts.build_dependencies))
-    install_deps(BPBopts.build_dependencies)
+    install_deps(BPBopts.build_dependencies, BPBopts.dependencies)
 
     blog.info("Creating build directory..")    
     try:
@@ -121,8 +123,17 @@ def cleanAll():
 
     blog.info("Done cleaning current workdirectory..")
 
-def install_deps(build_dependencies):
-    blog.warn("STUB: install deps..")
+def install_deps(build_dependencies, dependencies):
+    deps = []
+    deps.append(build_dependencies)
+    deps.append(dependencies)
+
+    blog.info("Installing package dependencies: " + deps)
+    leafcore = pyleafcore.Leafcore()
+    leafcore.setRootDir("/")
+    leafcore.a_update()
+    leafcore.a_install(deps)
+    blog.info("Dependency installation completed.")
 
 def parseBuildFile():
     build_file = open("package.bpb", "r")
