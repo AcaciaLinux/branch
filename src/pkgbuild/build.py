@@ -128,7 +128,8 @@ def install_deps(build_dependencies, dependencies):
     deps.append(build_dependencies)
     deps.append(dependencies)
 
-    blog.info("Installing package dependencies: " + deps)
+    dep_string = ','.join(deps)
+    blog.info("Installing package dependencies: " + dep_string)
     leafcore = pyleafcore.Leafcore()
     leafcore.setRootDir("/")
     leafcore.a_update()
