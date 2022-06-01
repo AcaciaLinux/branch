@@ -146,7 +146,7 @@ def install_deps(build_dependencies, dependencies):
 
     blog.info("Installing package dependencies: {}".format(deps))
     leafcore = pyleafcore.Leafcore()
-    leafcore.setVerbosity(1)
+    leafcore.setVerbosity(2)
     leafcore.setRootDir("/")
     leafcore.a_update()
     leafcore.a_install(deps)
