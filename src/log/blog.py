@@ -10,10 +10,10 @@ UNDERLINE = '\033[4m'
 
 
 def warn(log):
-    print(WARNING + "[*] Warning: " + log + ENDC)
+    print(WARNING + "==> [WARN] " + ENDC + log)
 
 def error(log):
-    print(FAIL + "[*] Error: " + log + ENDC)
+    print(FAIL + "==> [ERROR] " + ENDC + log)
 
 def info(log):
-    print(NORMAL + "[*] " + log + ENDC)
+    print(OKGREEN + "==> " + ENDC + log)
