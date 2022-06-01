@@ -125,8 +125,24 @@ def cleanAll():
 
 def install_deps(build_dependencies, dependencies):
     deps = []
-    deps.append(build_dependencies)
-    deps.append(dependencies)
+    buff = ""
+
+    # parse build deps
+    for c in build_dependencies:
+        if(c == ']'):
+            deps.append(buff)
+            buff = ""
+        elif(not c == '['):
+            buff = buff + c
+
+    # parse regular deps
+    for c in dependencies:
+        if(c == ']'):
+            deps.append(buff)
+            buff = ""
+        elif(not c == '['):
+            buff = buff + c
+
 
     blog.info("Installing package dependencies: {}".format(deps))
     leafcore = pyleafcore.Leafcore()
