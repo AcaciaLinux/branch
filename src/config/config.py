@@ -11,13 +11,13 @@ class branchOpts():
         self.sftp_workdir = sftp_workdir
         self.web_subdir = web_subdir
 
-    def toString(self):
-        return "enable_sftp: {} ip: {} user: {}".format(self.sftp_enable, self.sftp_ip, self.sftp_user)
-
-
 def load_config():
-    check_config()
+    res = check_config()
     
+    # User requested not to create a configuration file.. Quit
+    if(check_config == -1):
+        return -1
+
     home = os.environ['HOME'];
     conf_file = open("{}/.config/branch/branch.conf".format(home), "r")
     conf_arr = conf_file.read().split()
@@ -29,14 +29,14 @@ def load_config():
         key = prop_arr[0]
 
         if(len(prop_arr) != 2):
-            blog.info("Invalid configuration file. Do you want to recreate it? (y/n).")
+            blog.info("Invalid configuration file. Do you want to rerun the configuration assistant? (y/n).")
             answ = input()
             if(answ == "y"):
                 reconf()
-                exit(0)
+                return load_config()
             else:
                 blog.error("Cannot continue with broken configuration file. Exiting.")
-                exit(-1)
+                return -1
 
         val = prop_arr[1]
         
@@ -65,7 +65,7 @@ def reconf():
     blog.warn("Deleting configuration file..")
     
     os.remove("{}/.config/branch/branch.conf".format(home))
-    create_config()
+    return create_config()
 
 def create_config():
     home = os.environ['HOME'];
@@ -73,7 +73,7 @@ def create_config():
     try:
         os.makedirs("{}/.config/branch".format(home))
     except FileExistsError:
-        blog.error("Config directory already exists.")
+        blog.info("Config directory already exists.")
 
     branch_cfg = open("{}/.config/branch/branch.conf".format(home), "w")
     sftp_support = False
@@ -100,12 +100,12 @@ def create_config():
         key_loc = input()
         branch_cfg.write("ssh_key={}\n".format(key_loc))
 
-        print("WARNING: The SSH-Key passphrase is stored in plain text! (Enter for none)")
+        print("WARNING: The SSH-key passphrase is stored in plain text! (Enter for none)")
         print("Enter the SSH-Key passphrase:")
         key_passphrase = input()
         branch_cfg.write("ssh_passphrase={}\n".format(key_passphrase))
         
-        print("Enter sftp workdir: (Location where packages are stored on the Webserver)")
+        print("Enter sftp workdir: (Location where packages are stored on the webserver)")
         sftp_wkd = input()
         branch_cfg.write("sftp_workdir={}\n".format(sftp_wkd))
 
@@ -114,7 +114,7 @@ def create_config():
         branch_cfg.write("web_subdir={}\n".format(web_sub))
 
     blog.info("Configuration completed.")
-    exit(0)
+    return 0
 
 def check_config():
     config_exists = False
@@ -129,7 +129,7 @@ def check_config():
         print("No config file found. Do you want to create one? (y/n)")
         answ = input()
         if(answ.lower() == "y"):
-            create_config()
+            return create_config()
         else:
             blog.error("Cannot continue without config file. Exiting.") 
-            exit(0)
+            return -1

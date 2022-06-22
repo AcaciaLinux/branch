@@ -5,38 +5,88 @@ from config import config
 from log import blog
 import pysftp
 from paramiko import AuthenticationException
+from pkgbuild import build
+from leafpkg import tarpkg
 
-def push(options):
+def push(options, sc):
+    os_lsdir = os.listdir(os.getcwd())
+    
+    if("leaf.pkg" in os_lsdir):
+        return push_lfpkg(options,sc)
+    elif("package.bpb" in os_lsdir):
+        return push_bpb(options,sc)
+    else:
+        blog.error("This does not appear to be a package build or package directory. Cannot continue")
+        return -1
+
+    return 0
+
+
+def push_bpb(options, sc):
+    bpb_root = os.getcwd()
+
+    BPBopts = build.parseBuildFile()
+    
+    # check if package build file is broken / parse failed
+    if(BPBopts == -1):
+        return -1
+
+    pkg_file = "{}.lfpkg".format(BPBopts.getPkgDirectory())
+   
+    if(not os.path.exists(pkg_file)):
+        blog.error("Package file does not exist yet.")
+        if(sc):
+            blog.info("Automatically running pack step as you requested.")
+            tarpkg.pack(sc)
+        else:
+            print("Do you want to run the pack step?")
+            answ = input()
+            if(answ == "y"):
+                tarpkg.pack(sc)
+            else:
+                return -1
+        
+
+    # run push_lfpkg
+    os.chdir(BPBopts.getPkgDirectory())
+    push_lfpkg(options, sc)
+
+    # change back to bpb_root
+    os.chdir(bpb_root)
+
+def push_lfpkg(options, sc):
     if not(options.sftp_enable):
         blog.error("Sftp support is currently disabled. Reconfigure with reconf option.")
-        exit(0)
+        return -1
 
-    if not("leaf.pkg" in os.listdir(os.getcwd())):
-        blog.error("This does not appear to be a package directory. Aborting.")
-        exit(-1)
 
     leafpkg = lfpkg.parse("leaf.pkg")
-
+    
+    # get pwd
     pwd = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     tar_name = "{}-{}.lfpkg".format(leafpkg.name, leafpkg.version)
     
-    if not(tar_name in os.listdir(pwd)):
-        blog.warn("{} does not have a package file.".format(pwd))
-        print("Do you want to run pack? (y/n)")
-
-        answ = input()
-        if(answ.lower() == "y"):
-            tarpkg.pack()
+    # check if archive exists
+    if(not os.path.exists(os.path.join(pwd, tar_name))):
+        blog.error(".lfpkg file not found.")
+        if(sc):
+            blog.info("Automatically running pack step as you requested.")
+            tarpkg.pack(sc)
         else:
-            exit(-1)
-
+            print("Do you want to run the pack step?")
+            answ = input()
+            if(answ == "y"):
+                tarpkg.pack(sc)
+            else:
+                return -1
+    
     #sftp
     blog.info("Connecting to repository server..")
     try:
         sftp_con = pysftp.Connection(host=options.sftp_ip, username=options.sftp_user, private_key=options.ssh_key, private_key_pass=options.ssh_passphrase) 
     except AuthenticationException:
         blog.error("Could not connect to the SSH Server. Authentication Failure.")
-        exit(0)
+        return -1
 
     blog.info("Changing remote workdir to {}..".format(options.sftp_workdir))
     sftp_con.cwd(options.sftp_workdir)
@@ -85,13 +135,10 @@ def updatePkgList(pkg_target, options):
         prop_arr = prop.split(";")
 
         pkg_name = prop_arr[0]
-        blog.info("Updating package: {}".format(pkg_name))
         
         if(pkg_name == pkg_target.name):
             blog.info("Updating target package in pkglist...")
-        elif(pkg_name == ""):
-            blog.warn("Skipping empty line in package list...")
-        else:
+        elif(not pkg_name == ""):
             lfpkglist_file_new.write(prop)
             lfpkglist_file_new.write("\n")
              

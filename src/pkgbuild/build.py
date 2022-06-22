@@ -5,6 +5,7 @@ import shutil
 import requests
 import tarfile
 from leafpkg import initpkg
+from leafpkg import lfpkg
 from log import blog
 from pyleaf import pyleafcore
 
@@ -17,31 +18,77 @@ class BPBOpts():
         self.dependencies = ""
         self.description = ""
         self.build_dependencies = ""
+        self.real_version = ""
         self.build_script = [ ]
-    
 
-def build():
+    def getPkgDirectory(self):
+        return "{}-{}".format(self.name, self.version)
+
+def build(sc):
     if not("package.bpb" in os.listdir(os.getcwd())):
         blog.error("This package does not contain a package build file (package.bpb). Aborting.")
-        exit(-1)
+        return -1
 
-    blog.info("package.bpb file found!")
+    bpb_root = os.getcwd()
+
+    # parse build file
     BPBopts = parseBuildFile() 
-    destdir = initpkg.newpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies)
-   
-    blog.info("Installing build dependencies: {}".format(BPBopts.build_dependencies))
+    
+    # check if package build file is broken / parser failed
+    if(BPBopts == -1):
+        return -1
+
+    # create leafpkg from packagebuild
+    leafpkg = lfpkg.lfpkg(BPBopts.name, BPBopts.version, BPBopts.description, BPBopts.dependencies, BPBopts.real_version, "")
+    pkg_root = os.path.join(os.getcwd(), leafpkg.getPkgDirectory())
+    leafpkg.pkg_root = pkg_root
+
+    # create pkg directory
+    if(initpkg.newpkg(leafpkg) == 0):
+        blog.warn("Package directory already exists.")
+        if(sc):
+            blog.info("Automatically removing as you requested.")
+            shutil.rmtree(leafpkg.getPkgDirectory())
+            initpkg.newpkg(leafpkg)
+        else:
+            print("Do you want to remove the existing package directory? (y/n)")
+            answ = input()
+            if(answ == "y"):
+                blog.info("Removing..")
+                shutil.rmtree(leafpkg.getPkgDirectory())
+                initpkg.newpkg(leafpkg)
+            else:
+                return -1
+    
+    # install deps with pyleaf
+    blog.info("Installing dependencies..")
     install_deps(BPBopts.build_dependencies, BPBopts.dependencies)
 
+    # check if builddir exists and create / recreate
     blog.info("Creating build directory..")    
     try:
         os.mkdir("build")
     except FileExistsError:
-        blog.warn("Old build directory found. Removing..")
-        shutil.rmtree("build")
-        os.mkdir("build")
+        blog.warn("Old build directory found.")
+        if(sc):
+            blog.info("Automatically removing as you requested.")
+            shutil.rmtree("build")
+            os.mkdir("build")
+        else:
+            print("Do you want to remove the existing build directory? (y/n)")
+            answ = input()
+            if(answ == "y"):
+                blog.info("Removing..")
+                shutil.rmtree("build")
+                os.mkdir("build")
+            else:
+                return -1
 
-    os.chdir("build")
-
+    # build directory is cwd()/build
+    builddir = os.path.join(bpb_root, "build")
+    os.chdir(builddir)
+    
+    # check if packagebuild has a source, if so, fetch it
     if(BPBopts.source):
         try:
             source_request = requests.get(BPBopts.source, stream=True)
@@ -62,66 +109,40 @@ def build():
         
             blog.info("Source fetched")
         except Exception as ex:
-            print(ex)
             blog.error("Broken link in packagebuildfile. Not fetching source.")
     else:
         blog.warn("No source specified. Not fetching source.")
 
-    srcdir = os.getcwd()
 
-    blog.info("Package make script will run in: " + srcdir)
+    destdir = os.path.join(leafpkg.pkg_root, "data")
+
+    blog.info("Package build script will run in: " + builddir)
     blog.info("Package destination is: " + destdir)
     print("=========================================================")
     blog.info("Running build script..")
+    blog.info("PKG_INSTALL_DIR={}".format(destdir))
+    
+    # environment variables
     os.putenv("PKG_INSTALL_DIR", destdir)
     
-    build_sh = open(os.path.join(os.getcwd(), "build.sh"), "w")
+    # write build.sh file to build
+    build_sh = open(os.path.join(builddir, "build.sh"), "w")
     for line in BPBopts.build_script:
         build_sh.write(line)
         build_sh.write("\n")
     build_sh.close()
     
+    # set executable flag
     os.system("chmod +x build.sh")
+
+    # run using subprocess
     subprocess.run(["./build.sh", ""], shell=True)
     
     blog.info("Buildscript completed.")
     print("=========================================================")
 
-    # change to build root
-    os.chdir("..")
-    
-    # clean
-    cleanBuildDir()
-
-    # chdir to packageroot
-    os.chdir(os.path.join(destdir, ".."))
-
-def cleanBuildDir():
-    blog.info("Cleaning up..")
-    shutil.rmtree("build")
-
-
-def cleanAll():
-    if not("package.bpb" in os.listdir(os.getcwd())):
-        blog.error("This package does not contain a package build file (package.bpb). Aborting.")
-        exit(-1)
-   
-
-    try:
-        shutil.rmtree("build")
-    except FileNotFoundError:
-        blog.warn("No build directory found..")
-
-    
-    BPBopts = parseBuildFile()
-    pkg_dir = "{}-{}".format(BPBopts.name, BPBopts.version)
-    
-    try:
-        shutil.rmtree(pkg_dir)
-    except FileNotFoundError:
-        blog.warn("No package directory found..")
-
-    blog.info("Done cleaning current workdirectory..")
+    # chdir to bpbroot
+    os.chdir(bpb_root)
 
 def install_deps(build_dependencies, dependencies):
     deps = []
@@ -142,9 +163,12 @@ def install_deps(build_dependencies, dependencies):
             buff = ""
         elif(not c == '['):
             buff = buff + c
+    
+    if(len(deps) == 0):
+        blog.info("No dependencies provided.")
+        return
 
-
-    blog.info("Installing package dependencies: {}".format(deps))
+    blog.info("Installing dependencies: {}".format(deps))
     leafcore = pyleafcore.Leafcore()
     leafcore.setVerbosity(2)
     leafcore.setRootDir("/")
@@ -183,7 +207,7 @@ def parseBuildFile():
 
             if(len(prop_arr) != 2):
                 blog.error("Broken package build file. Failed property of key: ", key)
-                exit(-1)
+                return -1
 
             val = prop_arr[1]
 
@@ -199,6 +223,10 @@ def parseBuildFile():
                 BPBopts.description = val
             elif(key == "builddeps"):
                 BPBOpts.build_dependencies = val
+            elif(key == "real_version"):
+                BPBOpts.real_version = val
+            
+            # fetch build script until '}'
             elif(key == "build"):
                 build_opts = True
     
