@@ -1,3 +1,7 @@
+# Branch - The AcaciaLinux package build system
+# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+
+# format codes
 HEADER = '\033[95m'
 NORMAL = '\033[94m'
 OKCYAN = '\033[96m'

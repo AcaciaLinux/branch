@@ -1,3 +1,6 @@
+# Branch - The AcaciaLinux package build system
+# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+
 import os
 from leafpkg import tarpkg
 from leafpkg import lfpkg

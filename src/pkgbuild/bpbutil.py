@@ -1,3 +1,6 @@
+# Branch - The AcaciaLinux package build system
+# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+
 from log import blog
 import os
 

@@ -1,7 +1,9 @@
+# Branch - The AcaciaLinux package build system
+# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+
 import os
 from log import blog
 from leafpkg import lfpkg 
-
 
 #
 # Initializes a new package directory
