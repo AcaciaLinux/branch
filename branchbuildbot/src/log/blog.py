@@ -8,7 +8,6 @@ ENDC = '\033[0m'
 BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 
-
 def warn(log):
     print(WARNING + "==> [WARN] " + ENDC + log)
 
@@ -17,3 +16,6 @@ def error(log):
 
 def info(log):
     print(OKGREEN + "==> " + ENDC + log)
+
+def debug(log):
+    print(OKGREEN + "==> [DEBUG] " + ENDC + log)

@@ -13,6 +13,7 @@ class storage():
         blog.debug("Found {} package(s)!".format(pkg_num))
     
     def index(self):
+        packages = [ ]
         dirs = [ f.path for f in os.scandir("./pkgs") if f.is_dir() ]
         for dir in dirs:
             if(os.path.exists(os.path.join(dir, "package.bpb"))):
@@ -34,6 +35,15 @@ class storage():
         bpb_json = build.pack_json(bpb)
         
         return bpb_json
+
+    def get_bpb_obj(self, name):
+        # check if package exists
+        if(not name in self.packages):
+            return None
+
+        pkg_path = self.get_pkg_build_file(name)
+        bpb = build.parse_build_file(pkg_path)
+        return bpb
 
 def check_storage():
     if(not os.path.exists("./pkgs")):

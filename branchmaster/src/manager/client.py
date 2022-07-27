@@ -16,6 +16,9 @@ class Client():
     sock = None
     sel = None
 
+    # ready boolean for build clients
+    is_ready = None
+
     def __init__(self, sock, sel):
         uid = uuid.uuid4();
         blog.debug("Initializing new client with UUID: {}".format(str(uid)))
@@ -25,6 +28,7 @@ class Client():
         self.sock = sock
 
         manager.static_manager.registerClient(self)
+        is_ready = False
 
     def receive_command(self, conn, mask):
         data = conn.recv(4096)

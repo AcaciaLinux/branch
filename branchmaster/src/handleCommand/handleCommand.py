@@ -4,6 +4,7 @@ import main
 from log import blog
 from localstorage import localstorage
 from localstorage import build
+from manager import queue
 
 def handle_command(manager, client, command):
     command = command.decode("utf-8")
@@ -74,6 +75,23 @@ def handle_command(manager, client, command):
         build.write_build_file(bpb_file, bpb)
     
         return "CMD_OK"
+    
+    elif(cmd_header == "SIG_READY"):
+        blog.info("Client {} is ready for commands.".format(client.get_identifier()))
+        client.is_ready = True
+        client.send_command("CMD_OK")
+        manager.queue.notify_ready(manager)
+        return None
+
+    elif(cmd_header == "RELEASE_BUILD"):
+        storage = localstorage.storage()
+        if(cmd_body in storage.packages):
+            blog.info("Controller client requested release build for {}".format(cmd_body))
+            res = manager.get_queue().add_to_queue(manager, cmd_body)
+            return res
+        else:
+            blog.info("Controller client requested release build for invalid package.")
+            return "INV_PKG_NAME"
 
     # 
     # Print requesting client object
@@ -89,9 +107,11 @@ def handle_command(manager, client, command):
     elif(cmd_header == "DEBUG_LIST_CLIENTS"):
         blog.info("Debug Client list requested: ")
         print("Controller clients:")
-        print(manager.getControllerClients())
+        for cl in manager.getControllerClients():
+            print(cl.get_identifier())
         print("Build clients:")
-        print(manager.getBuildClients())
+        for cl in manager.getBuildClients():
+            print(cl.get_identifier())
         return "CMD_OK"
 
     #

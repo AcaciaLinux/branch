@@ -4,9 +4,9 @@ B_NAME = "debug-build"
 B_TYPE = "BUILD"
 
 from log import blog
-from debugshell import debugshell
 from package import package
 from bsocket import connect
+from handlecommand import handleCommand
 import argparse
 
 def main():
@@ -19,13 +19,29 @@ def main():
     # CONFIG FOR PORT
 
     s = connect.connect(B_NAME, B_TYPE)
-    
+
+    # Signal readyness to server
+    blog.info("Sending ready signal")
+    res = connect.send_msg(s, "SIG_READY")
+
+    if(res == "CMD_OK"):
+        blog.info("Server accepted ready status..")
+    else:
+        return
+
     blog.info("Waiting for commands from masterserver..")
     # always wait for cmds from masterserver
     while True:
-        cmd = s.recv(4000)
+        cmd = connect.recv_only(s)
         
-
+        # no data, server exited.
+        if(cmd is ""):
+            blog.warn("Connection to server lost. Exiting.")
+            s.close()
+            exit(0)
+        blog.debug("Handling command from server.. {}".format(cmd))
+        res = handleCommand.handle_command(cmd) 
+        connect.send_msg(s, res) 
 
 if (__name__ == "__main__"):
     try:

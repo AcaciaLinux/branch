@@ -36,6 +36,9 @@ def connect(name, cltype):
 
     return s
 
+def recv_only(socket):
+    data = socket.recv(4096)
+    return data.decode("utf-8")
 
 def send_msg(socket, cmd):
     socket.sendall(bytes(cmd, "utf-8"))
