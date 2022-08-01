@@ -14,9 +14,9 @@ class queue():
             return "INV_PKG"
 
         # We have a build server ready immediately, no need to queue..
-        if(not len(manager.getReadyBuildClients()) == 0):
+        if(not len(manager.get_ready_build_clients()) == 0):
             blog.info("Build request was immediately handled by a ready build client.")
-            clients = manager.getReadyBuildClients()
+            clients = manager.get_ready_build_clients()
             cli = clients[0]
             cli.is_ready = False
             cli.send_command("BUILD_PKG {}".format(pkg_json))
@@ -38,7 +38,7 @@ class queue():
         blog.info("Submitting package to buildserver..")
         pkg = self.build_queue.pop()
        
-        clients = manager.getReadyBuildClients()
+        clients = manager.get_ready_build_clients()
         cli = clients[0]
 
         cli.is_ready = False

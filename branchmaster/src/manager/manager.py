@@ -9,24 +9,24 @@ class manager():
     def get_queue(self):
         return self.queue
 
-    def registerClient(self, client):
+    def register_client(self, client):
         blog.info("Adding client to manager '{}'.".format(client.get_identifier()))
         self.client_array.append(client)
 
-    def getClient(self, uuid):
+    def get_client(self, uuid):
         return self.client_array[uuid]
 
-    def handleCommand(self, client, command):
+    def handle_command(self, client, command):
         blog.debug("Handling command from '{}': {}".format(client.get_identifier(), command))
         res = handleCommand.handle_command(self, client, command)
         if(not res is None):
             client.send_command(res)
 
-    def removeClient(self, client):
+    def remove_client(self, client):
         blog.info("Removing client '{}' from manager.".format(client.get_identifier()))
         self.client_array.remove(client)
 
-    def getControllerClients(self):
+    def get_controller_clients(self):
         res = [ ]
         for cl in self.client_array:
             if(cl.client_type == "CONTROLLER"):
@@ -34,15 +34,15 @@ class manager():
         return res
 
 
-    def getBuildClients(self):
+    def get_build_clients(self):
         res = [ ]
         for cl in self.client_array:
             if(cl.client_type == "BUILD"):
                 res.append(cl)
         return res
 
-    def getReadyBuildClients(self):
-        build_clients = self.getBuildClients()
+    def get_ready_build_clients(self):
+        build_clients = self.get_build_clients()
         res = [ ]
         for cl in build_clients:
             if(cl.is_ready):

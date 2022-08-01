@@ -27,14 +27,14 @@ class Client():
         self.sel = sel
         self.sock = sock
 
-        manager.static_manager.registerClient(self)
+        manager.static_manager.register_client(self)
         is_ready = False
 
     def receive_command(self, conn, mask):
         data = conn.recv(4096)
         if data:
             blog.debug("Received Data from {}. Data: {}".format(self.client_uuid, data)) 
-            manager.static_manager.handleCommand(self, data)
+            manager.static_manager.handle_command(self, data)
         else:
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
@@ -51,7 +51,7 @@ class Client():
 
     def handle_disconnect(self):
         blog.info("Client {} has disconnected.".format(self.get_identifier()))
-        manager.static_manager.removeClient(self)
+        manager.static_manager.remove_client(self)
         self.sel.unregister(self.sock)
         self.sock.close()
 

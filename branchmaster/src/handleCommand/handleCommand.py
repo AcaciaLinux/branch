@@ -107,10 +107,10 @@ def handle_command(manager, client, command):
     elif(cmd_header == "DEBUG_LIST_CLIENTS"):
         blog.info("Debug Client list requested: ")
         print("Controller clients:")
-        for cl in manager.getControllerClients():
+        for cl in manager.get_controller_clients():
             print(cl.get_identifier())
         print("Build clients:")
-        for cl in manager.getBuildClients():
+        for cl in manager.get_build_clients():
             print(cl.get_identifier())
         return "CMD_OK"
 
