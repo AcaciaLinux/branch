@@ -1,11 +1,13 @@
 from log import blog
 from handleCommand import handleCommand 
 from manager import queue
+from manager import jobs
 
 class manager():
     queue = queue.queue()
     client_array = [ ]
-    
+    build_jobs = [ ]
+
     def get_queue(self):
         return self.queue
 
@@ -48,6 +50,26 @@ class manager():
             if(cl.is_ready):
                 res.append(cl)
         return res
+
+    
+    def new_job(self):
+        job = jobs.jobs()
+        self.build_jobs.append(job)
+        return job
+   
+    def get_job_by_client(self, client):
+        for job in self.build_jobs:
+            if job in self.build_jobs:
+                if(job.client == client):
+                    return job
+
+    def get_job_by_id(self, jid):
+        for job in self.build_jobs:
+            if(job.job_id == jid):
+                return job
+
+        return None
+
 
 static_manager = None
 static_manager = manager()

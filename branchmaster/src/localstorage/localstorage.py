@@ -13,6 +13,9 @@ class storage():
         blog.debug("Found {} package(s)!".format(pkg_num))
     
     def index(self):
+        self.packages = [ ]
+
+
         packages = [ ]
         dirs = [ f.path for f in os.scandir("./pkgs") if f.is_dir() ]
         for dir in dirs:

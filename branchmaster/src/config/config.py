@@ -25,6 +25,10 @@ def load_config():
     options = branchOpts()
 
     for prop in conf_arr:
+        # skip comments
+        if(prop[0] == '#'):
+            continue
+        
         prop_arr = prop.split("=")
         key = prop_arr[0]
 
@@ -38,6 +42,11 @@ def load_config():
         elif(key == "port"):
             options.port = val
         elif(key == "debuglog"):
+            if(val == "False"):
+                options.debuglog = False
+            else:
+                options.debuglog = True
+        elif(key == "untrustedclients=False"):
             if(val == "False"):
                 options.debuglog = False
             else:
@@ -58,9 +67,13 @@ def create_config():
     branch_cfg = open(CONFIG_FILE, "w")
     
     # defaults
+    branch_cfg.write("# IP address and port the server should listen on:")
     branch_cfg.write("listenaddr=127.0.0.1\n")
     branch_cfg.write("port=27015\n")
-    branch_cfg.write("debuglog=False")    
+    branch_cfg.write("# Print Debug log messages:")
+    branch_cfg.write("debuglog=False")
+    branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:")
+    branch_cfg.write("untrustedclients=False")
 
 def check_config():
     config_exists = False

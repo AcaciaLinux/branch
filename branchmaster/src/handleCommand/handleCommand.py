@@ -20,6 +20,24 @@ def handle_command(manager, client, command):
         cmd_header = command[0:cmd_header_loc]
         cmd_body = command[cmd_header_loc+1:len(command)]
 
+    
+    if(client.client_type is None):
+        return handle_command_untrusted(manager, client, cmd_header, cmd_body)
+    elif(client.client_type == "CONTROLLER"):
+        return handle_command_controller(manager, client, cmd_header, cmd_body)
+    elif(client.client_type == "BUILD"):
+        return handle_command_build(manager, client, cmd_header, cmd_body)
+    else:
+        return None
+
+
+   
+   
+def handle_command_untrusted(manager, client, cmd_header, cmd_body):
+
+    # TODO: Login system
+    #blog.info("Machine validation failed, but untrusted clients are permitted.")
+
     #
     # Used by a client to set it's type
     # SET_MACHINE_TYPE <TYPE>
@@ -36,16 +54,20 @@ def handle_command(manager, client, command):
             return "INV_MACHINE_TYPE"
 
         return "CMD_OK"
+    else:
+        blog.debug("Received a malformed command from client {}".format(client.client_uuid))
+        return "INV_CMD"
 
+def handle_command_controller(manager, client, cmd_header, cmd_body):
     #
     # Used by a client to set it's display name
     # SET_MACHINE_NAME <NAME>
     #
-    elif(cmd_header == "SET_MACHINE_NAME"):
+    if(cmd_header == "SET_MACHINE_NAME"):
         blog.info("Client name changed. Client '{}' is now known as '{}'".format(client.get_identifier(), cmd_body))
         client.client_name = cmd_body
         return "CMD_OK"
-
+   
     #
     # checkout a package build file
     #
@@ -70,19 +92,12 @@ def handle_command(manager, client, command):
         if(os.path.exists(bpb_file)):
             os.remove(bpb_file)
        
-        
-
         build.write_build_file(bpb_file, bpb)
-    
         return "CMD_OK"
     
-    elif(cmd_header == "SIG_READY"):
-        blog.info("Client {} is ready for commands.".format(client.get_identifier()))
-        client.is_ready = True
-        client.send_command("CMD_OK")
-        manager.queue.notify_ready(manager)
-        return None
-
+    #
+    # Controller client requested clean release build
+    #
     elif(cmd_header == "RELEASE_BUILD"):
         storage = localstorage.storage()
         if(cmd_body in storage.packages):
@@ -93,37 +108,48 @@ def handle_command(manager, client, command):
             blog.info("Controller client requested release build for invalid package.")
             return "INV_PKG_NAME"
 
-    # 
-    # Print requesting client object
-    #
-    elif(cmd_header == "DEBUG_DUMP_VARS"):
-        blog.info("Debug dump requested:")
-        print(client.__dict__)
-        return "CMD_OK"
-    
-    #
-    # Print all clients by type
-    #
-    elif(cmd_header == "DEBUG_LIST_CLIENTS"):
-        blog.info("Debug Client list requested: ")
-        print("Controller clients:")
-        for cl in manager.get_controller_clients():
-            print(cl.get_identifier())
-        print("Build clients:")
-        for cl in manager.get_build_clients():
-            print(cl.get_identifier())
-        return "CMD_OK"
-
-    #
-    # Returns master server version
-    #
-    elif(cmd_header == "MASTER_VERSION"):
-        return main.B_VERSION
-
     #
     # Invalid command
     #
     else:
         blog.debug("Received a malformed command from client {}".format(client.client_uuid))
         return "INV_CMD"
+
+
+
+def handle_command_build(manager, client, cmd_header, cmd_body):
+    #
+    # Used by a client to set it's display name
+    # SET_MACHINE_NAME <NAME>
+    #
+    if(cmd_header == "SET_MACHINE_NAME"):
+        blog.info("Client name changed. Client '{}' is now known as '{}'".format(client.get_identifier(), cmd_body))
+        client.client_name = cmd_body
+        return "CMD_OK"
+
+    # 
+    # Build client sends ready signal
+    #
+    elif(cmd_header == "SIG_READY"):
+        # check if cli just finished a job or not
+        job = manager.get_job_by_client(client)
+        if(not job is None):
+            job.set_completed = True
+            if(not job.get_status == "FAILED"):
+                job.set_status = "COMPLETED"
+
+        blog.info("Client {} is ready for commands.".format(client.get_identifier()))
+        client.is_ready = True
+        client.send_command("CMD_OK")
+        manager.queue.notify_ready(manager)
+        return None
+    
+    #
+    # Invalid command
+    #
+    else:
+        blog.debug("Received a malformed command from client {}".format(client.client_uuid))
+        return "INV_CMD"
+
+
 
