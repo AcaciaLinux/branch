@@ -1,7 +1,7 @@
 import os
 import json
 from log import blog
-from build import build
+from package import build
 
 
 def handle_command(command):

@@ -65,7 +65,7 @@ def parse_build_file(pkg_file):
                 continue
 
             if(len(prop_arr) != 2):
-                blog.error("Broken package build file. Failed property of key: ", key)
+                blog.error("Broken package build file. Failed property of key: {}".format(key))
                 exit(-1)
 
             val = prop_arr[1]

@@ -1,3 +1,6 @@
+BRANCH_CODENAME = "Point Insertion"
+BRANCH_VERSION = "0.1"
+
 B_HOST = "127.0.0.1"
 B_PORT = 27015
 B_NAME = "debug-shell"
@@ -11,7 +14,7 @@ import argparse
 def main():
     print("Branch (CLIENT) - The AcaciaLinux package build system.")
     print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
-    print("Version: 0.1 (Point Insertion)")
+    print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 
     # TODO:

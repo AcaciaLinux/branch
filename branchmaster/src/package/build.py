@@ -24,13 +24,17 @@ class BPBOpts():
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()
 
-    BPBopts.name = json_obj['name']
-    BPBopts.version = json_obj['version']
-    BPBopts.source = json_obj['source']
-    BPBopts.description = json_obj['description']
-    BPBopts.dependencies = json_obj['dependencies']
-    BPBopts.build_dependencies = json_obj['build_dependencies']
-    BPBopts.build_script = json_obj['build_script']
+    try:
+        BPBopts.name = json_obj['name']
+        BPBopts.version = json_obj['version']
+        BPBopts.source = json_obj['source']
+        BPBopts.description = json_obj['description']
+        BPBopts.dependencies = json_obj['dependencies']
+        BPBopts.build_dependencies = json_obj['build_dependencies']
+        BPBopts.build_script = json_obj['build_script']
+    except KeyError:
+        blog.debug("Client submitted invalid package build.")
+        return None
 
     return BPBopts
     

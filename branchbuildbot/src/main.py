@@ -1,3 +1,6 @@
+BRANCH_CODENAME="Point Insertion"
+BRANCH_VERSION="0.1"
+
 B_HOST = "127.0.0.1"
 B_PORT = 27015
 B_NAME = "debug-build"
@@ -10,7 +13,7 @@ from handlecommand import handleCommand
 import argparse
 
 def main():
-    print("Branch (CLIENT) - The AcaciaLinux package build system.")
+    print("Branch (BUILDBOT) - The AcaciaLinux package build system.")
     print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
     print("Version: 0.1 (Point Insertion)")
     print()
@@ -39,6 +42,7 @@ def main():
             blog.warn("Connection to server lost. Exiting.")
             s.close()
             exit(0)
+
         blog.debug("Handling command from server.. {}".format(cmd))
         res = handleCommand.handle_command(cmd) 
         connect.send_msg(s, res) 
