@@ -16,8 +16,10 @@ class BPBOpts():
         self.build_dependencies = ""
         self.build_script = [ ]
 
-def pack_json(bpb_obj):
-    return json.dumps(bpb_obj.__dict__)
+        self.job_id = "job"
+
+    def get_json(self):
+        return json.dumps(self.__dict__)
 
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()

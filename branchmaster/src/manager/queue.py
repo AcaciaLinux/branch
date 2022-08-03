@@ -1,7 +1,7 @@
 import json
 
 from log import blog
-from localstorage import build
+from package import build
 from localstorage import localstorage
 
 class queue():

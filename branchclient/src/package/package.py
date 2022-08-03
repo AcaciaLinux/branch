@@ -22,7 +22,7 @@ def submit_package():
     s = connect.connect(main.B_NAME, main.B_TYPE)
     
     bpb = build.parse_build_file("package.bpb")
-    json_str = build.pack_json(bpb)
+    json_str = bpb.get_json()
     resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
     
     if(resp == "CMD_OK"):

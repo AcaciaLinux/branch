@@ -1,7 +1,7 @@
 
 import os
 from log import blog
-from localstorage import build
+from package import build
 import json
 
 class storage():
@@ -35,7 +35,7 @@ class storage():
 
         pkg_path = self.get_pkg_build_file(name)
         bpb = build.parse_build_file(pkg_path)
-        bpb_json = build.pack_json(bpb)
+        bpb_json = bpb.get_json()
         
         return bpb_json
 

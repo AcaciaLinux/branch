@@ -1,3 +1,5 @@
+import main
+
 HEADER = '\033[95m'
 NORMAL = '\033[94m'
 OKCYAN = '\033[96m'
@@ -18,4 +20,5 @@ def info(log):
     print(OKGREEN + "==> " + ENDC + log)
 
 def debug(log):
-    print(OKGREEN + "==> [DEBUG] " + ENDC + log)
+    if(main.BRANCH_OPTIONS.debuglog):
+        print(OKGREEN + "==> [DEBUG] " + ENDC + log)

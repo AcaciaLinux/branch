@@ -18,8 +18,8 @@ class BPBOpts():
 
         self.job_id = "job"
 
-def pack_json(bpb_obj):
-    return json.dumps(bpb_obj.__dict__)
+    def get_json(self):
+        return json.dumps(self.__dict__)
 
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()
@@ -89,6 +89,10 @@ def parse_build_file(pkg_file):
 
 
 def create_pkg_workdir(pkg_opts):
+    if(os.path.exists(pkg_opts.name)):
+        blog.warn("Fetching latest version of pkgbuild..")
+        shutil.rmtree(pkg_opts.name)
+
     os.mkdir(pkg_opts.name)
     wkdir = os.path.join(os.getcwd(), pkg_opts.name)
     pkg_file = os.path.join(wkdir, "package.bpb")

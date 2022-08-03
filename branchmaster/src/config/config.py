@@ -7,6 +7,7 @@ class branchOpts():
     port = None
     listenaddr = None
     debuglog = None
+    untrustedclients = None
 
     def __init__(self):
         self.port = 0
@@ -48,9 +49,9 @@ def load_config():
                 options.debuglog = True
         elif(key == "untrustedclients=False"):
             if(val == "False"):
-                options.debuglog = False
+                options.untrustedclients = False
             else:
-                options.debuglog = True
+                options.untrustedclients = True
         else:
             blog.warn("Skipping unknown configuration key: {}".format(key)) 
 

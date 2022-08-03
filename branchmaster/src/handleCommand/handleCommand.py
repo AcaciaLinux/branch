@@ -3,7 +3,7 @@ import os
 import main
 from log import blog
 from localstorage import localstorage
-from localstorage import build
+from package import build
 from manager import queue
 
 def handle_command(manager, client, command):

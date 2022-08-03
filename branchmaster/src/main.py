@@ -7,6 +7,8 @@ from bsocket import server
 from manager import manager
 from localstorage import localstorage
 
+BRANCH_OPTIONS = config.load_config()
+
 def main():
     print("Branch (SERVER) - The AcaciaLinux package build system.")
     print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
@@ -14,13 +16,10 @@ def main():
     print()
 
     blog.info("Masterserver initializing..")
-    blog.info("Loading configuration file..")
-    options = config.load_config()
-
     localstorage.check_storage()
 
-    blog.info("Serving on {} port {}".format(options.listenaddr, options.port))
-    server.init_server(options.listenaddr, int(options.port)) 
+    blog.info("Serving on {} port {}".format(BRANCH_OPTIONS.listenaddr, BRANCH_OPTIONS.port))
+    server.init_server(BRANCH_OPTIONS.listenaddr, int(BRANCH_OPTIONS.port)) 
  
 
 if (__name__ == "__main__"):
