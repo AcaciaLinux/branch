@@ -38,7 +38,6 @@ class queue():
         blog.info("A new build client is ready to accept build jobs. Submitting immediately.")
         
         # submit package
-        blog.info("Submitting package to buildserver..")
         pkg = self.build_queue.pop()
        
         clients = manager.get_ready_build_clients()
@@ -54,9 +53,11 @@ class queue():
         job_id = manager.new_job().job_id
         job_obj = manager.get_job_by_id(job_id)
 
+        blog.info("Build job '{}' submitted.".format(job_id))
+        
         # assign our client to the job
         job_obj.client = client
-        job_obj.set_status = "INIT"
+        job_obj.set_status("INIT")
 
         pkg.job_id = job_id
         pkg_json = json.dumps(pkg.__dict__)

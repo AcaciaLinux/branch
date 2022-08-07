@@ -1,7 +1,7 @@
 BRANCH_CODENAME = "Point Insertion"
 BRANCH_VERSION = "0.1"
 
-B_HOST = "127.0.0.1"
+B_HOST = "192.168.1.101"
 B_PORT = 27015
 B_NAME = "debug-shell"
 B_TYPE = "CONTROLLER"

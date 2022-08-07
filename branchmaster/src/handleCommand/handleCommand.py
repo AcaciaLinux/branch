@@ -29,10 +29,7 @@ def handle_command(manager, client, command):
         return handle_command_build(manager, client, cmd_header, cmd_body)
     else:
         return None
-
-
-   
-   
+  
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
 
     # TODO: Login system
@@ -134,15 +131,52 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         # check if cli just finished a job or not
         job = manager.get_job_by_client(client)
         if(not job is None):
+            blog.info("Build job '{}' completed.".format(job.get_jobid()))
             job.set_completed = True
             if(not job.get_status == "FAILED"):
-                job.set_status = "COMPLETED"
+                job.set_status("COMPLETED")
 
         blog.info("Client {} is ready for commands.".format(client.get_identifier()))
         client.is_ready = True
         client.send_command("CMD_OK")
         manager.queue.notify_ready(manager)
         return None
+
+    elif(cmd_header == "BUILD_ENV_READY"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' completed 'Setup Build Environment' step.".format(job.get_jobid()))
+            job.set_status("BUILD_ENV_READY")
+
+        return "STATUS_ACK"
+
+    elif(cmd_header == "BUILD_COMPLETE"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' completed 'Compile source' step.".format(job.get_jobid()))
+            job.set_status("BUILD_COMPLETE")
+
+        return "STATUS_ACK"
+
+    elif(cmd_header == "BUILD_FAILED"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' failed 'Compile source' step.".format(job.get_jobid()))
+            job.set_status("BUILD_FAILED")
+
+        return "STATUS_ACK"
+ 
+    elif(cmd_header == "BUILD_CLEAN"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
+            job.set_status("BUILD_CLEAN")
+
+        return "STATUS_ACK"
     
     #
     # Invalid command

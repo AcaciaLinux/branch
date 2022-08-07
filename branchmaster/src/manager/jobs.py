@@ -14,7 +14,7 @@ class jobs():
         self.job_id = str(uid)
   
     def get_jobid(self):
-        return self.client_uuid
+        return self.job_id
 
     def set_status(self, status):
         self.job_status = status
