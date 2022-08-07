@@ -1,7 +1,7 @@
 BRANCH_CODENAME="Point Insertion"
 BRANCH_VERSION="0.1"
 
-B_HOST = "127.0.0.1"
+B_HOST = "192.168.1.101"
 B_PORT = 27015
 B_NAME = "debug-build"
 B_TYPE = "BUILD"
@@ -10,7 +10,10 @@ from log import blog
 from package import package
 from bsocket import connect
 from handlecommand import handleCommand
+from buildenvmanager import buildenv
+
 import argparse
+import os
 
 def main():
     print("Branch (BUILDBOT) - The AcaciaLinux package build system.")
@@ -21,30 +24,38 @@ def main():
     # TODO:
     # CONFIG FOR PORT
 
+    # check build environment
+    buildenv.check_buildenv()
+
+    # establish socket connection
     s = connect.connect(B_NAME, B_TYPE)
 
+    if(s is None):
+        blog.error("Connection refused.")
+        exit(-1)
+
     # Signal readyness to server
-    blog.info("Sending ready signal")
+    blog.info("Sending ready signal...")
     res = connect.send_msg(s, "SIG_READY")
 
     if(res == "CMD_OK"):
-        blog.info("Server accepted ready status..")
+        blog.info("Server acknowleged ready signal.")
     else:
         return
 
-    blog.info("Waiting for commands from masterserver..")
+    blog.info("Waiting for commands from masterserver...")
     # always wait for cmds from masterserver
     while True:
         cmd = connect.recv_only(s)
         
         # no data, server exited.
-        if(cmd is ""):
-            blog.warn("Connection to server lost. Exiting.")
+        if(cmd == ""):
+            blog.warn("Connection to server lost.")
             s.close()
             exit(0)
 
         blog.debug("Handling command from server.. {}".format(cmd))
-        res = handleCommand.handle_command(cmd) 
+        res = handleCommand.handle_command(s, cmd) 
         connect.send_msg(s, res) 
 
 if (__name__ == "__main__"):
@@ -53,3 +64,5 @@ if (__name__ == "__main__"):
     except KeyboardInterrupt:
         print()
         blog.info("Exiting on KeyboardInterrupt.")
+        blog.info("Cleaning up..")
+        buildenv.clean_env()

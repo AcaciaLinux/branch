@@ -1,6 +1,9 @@
 #Python cache should be ignored
 *__pycache__*
 
+# Do not track realroot 
+*realroot*
+
 #Do not track leaf package files
 *.lfpkg
 

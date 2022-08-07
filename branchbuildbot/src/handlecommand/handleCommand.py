@@ -1,10 +1,14 @@
-import os
-import json
+from buildenvmanager import buildenv
 from log import blog
 from package import build
+from bsocket import connect 
+from buildenvmanager import buildenv
+from package import leafpkg
 
+import os
+import json
 
-def handle_command(command):
+def handle_command(socket, command):
 
     # Find the first space
     cmd_header_loc = command.find(" ")
@@ -26,20 +30,46 @@ def handle_command(command):
             json_obj = json.loads(cmd_body)
 
             job_id = json_obj['job_id']
-            blog.info("Release build requested. Assigned job id: {}".format(cmd_body))
+            blog.info("Got a job from masterserver. Job ID: '{}'".format(job_id))
 
-            # create temp bild directory
-            if(not os.path.exists("/tmp/branch")):
-                os.mkdir("/tmp/branch/")
+            rootdir = buildenv.get_build_path()
             
-            build_dir = os.path.join("/tmp/branch/", job_id)
-            os.mkdir(build_dir)
+            # create temp workdir directory
+            builddir = os.path.join(rootdir, "branchbuild/")
+            if(not os.path.exists(builddir)):
+                os.mkdir(builddir)
 
-            bpb = build.parse_build_json(json_obj)
+            # parse the package build we got
+            package_build = build.parse_build_json(json_obj)
+            
+            # Write the file to /branchbuild/ inside our build environment
+            build.write_build_file(os.path.join(builddir, "package.bpb"), package_build)
 
-            build.write_build_file(os.path.join(build_dir, "package.bpb"), bpb)
+            # notify server build env is ready, about to start build
+            connect.send_msg(socket, "BUILD_ENV_READY")
+    
+            # run build step
+            res = build.build(builddir, package_build)  
+            
+            if(res == "BUILD_COMPLETE"):
+                connect.send_msg(socket, "BUILD_COMPLETE")
+            else:
+                connect.send_msg(socket, "BUILD_FAILED")
+                return "SIG_READY"
+            
+            
+            pkg_file = leafpkg.create_tar_package(builddir, package_build)
+            leafpkg.upload_package(pkg_file, package_build)
+
+
+            # Clean build environment..
+            blog.info("Cleaning up build environment..")
+            buildenv.clean_env()
+            buildenv.remount_env()
+            connect.send_msg(socket, "BUILD_CLEAN")
 
             # We completed the build job. Send SIG_READY
+            blog.info("Build job completed.")
             return "SIG_READY"
         else:
             # No json package build submitted. Tell server we failed.
