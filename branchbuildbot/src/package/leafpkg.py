@@ -145,10 +145,9 @@ def updatePkgList(pkg_target):
         prop_arr = prop.split(";")
 
         pkg_name = prop_arr[0]
-        blog.info("Updating package: {}".format(pkg_name))
 
         if(pkg_name == pkg_target.name):
-            blog.info("Updating target package in pkglist...")
+            blog.info("Updating {} in pkglist...".format(pkg_target.name))
         elif(not pkg_name == ""):
             lfpkglist_file_new.write(prop)
             lfpkglist_file_new.write("\n")

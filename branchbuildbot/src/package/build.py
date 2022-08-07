@@ -80,7 +80,7 @@ def build(directory, package_build):
    
     blog.info("Installing dependencies to temproot..")
     buildenv.install_pkgs(get_pkg_array(package_build.dependencies))
-    buildenv.install_pkgs(get_pkg_array(package_build.dependencies))
+    buildenv.install_pkgs(get_pkg_array(package_build.build_dependencies))
 
 
     print("====================================================")

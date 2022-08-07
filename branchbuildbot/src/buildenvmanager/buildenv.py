@@ -41,7 +41,7 @@ def install_pkgs(packages):
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
     leafcore = pyleafcore.Leafcore()
-    leafcore.setVerbosity(1)
+    #leafcore.setVerbosity(1)
     leafcore.setRootDir(temp_dir)
     leafcore.a_update()
 
@@ -66,6 +66,7 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 
 # first mount the overlayfs
 def setup_env(root_dir, diff_dir, overlay_dir, temp_dir):
+   
     if(not Path(temp_dir).is_mount()):
         blog.info("Mounting overlayfs..")
         os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
@@ -74,6 +75,10 @@ def setup_env(root_dir, diff_dir, overlay_dir, temp_dir):
         clean_env()
         remount_env()
 
+    # bind devfs
+    blog.info("Binding devfs...")
+    dev_fs = os.path.join(temp_dir, "dev")
+    os.system("mount --bind /dev {}".format(dev_fs))
 
 # remount overlayfs
 def remount_env():
@@ -83,6 +88,10 @@ def remount_env():
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
 
     os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
+   
+    blog.info("Remounting devfs..")
+    dev_fs = os.path.join(temp_dir, "dev")
+    os.system("mount --bind /dev {}".format(dev_fs))
 
 def clean_env():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
@@ -90,6 +99,8 @@ def clean_env():
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
+    dev_fs = os.path.join(temp_dir, "dev")
+    os.system("umount {}".format(dev_fs))
     os.system("umount {}".format(temp_dir))
     
     # recreate dirs
