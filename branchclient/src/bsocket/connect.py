@@ -3,13 +3,15 @@ import main
 from log import blog
 
 
-def connect(name, cltype):
-    host = main.B_HOST
-    port = main.B_PORT
-
+def connect(host, port, name, cltype):
     blog.info("Connecting to server..")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
+
+    try:
+        s.connect((host, port))
+    except ConnectionRefusedError:
+        blog.error("Could not connect to masterserver.")
+        exit(0)
 
     blog.info("Connection established.")
     

@@ -1,8 +1,8 @@
 import socket
 from bsocket import connect
 
-def run_shell():
-    s = connect.connect("debug-shell", "CONTROLLER")
+def run_shell(conf):
+    s = connect.connect(conf.serveraddr, conf.serverport, "debug-shell", "CONTROLLER")
 
     while True:
         print("[branch] ~> ", end = '')

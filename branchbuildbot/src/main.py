@@ -1,9 +1,6 @@
 BRANCH_CODENAME="Point Insertion"
 BRANCH_VERSION="0.1"
 
-B_HOST = "192.168.1.101"
-B_PORT = 27015
-B_NAME = "debug-build"
 B_TYPE = "BUILD"
 
 from log import blog
@@ -21,14 +18,14 @@ def main():
     print("Version: 0.1 (Point Insertion)")
     print()
 
-    # TODO:
-    # CONFIG FOR PORT
+    # load config
+    blog.info("Loading configuration file..")
+    conf = config.load_config()
 
-    # check build environment
     buildenv.check_buildenv()
 
     # establish socket connection
-    s = connect.connect(B_NAME, B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, B_TYPE)
 
     if(s is None):
         blog.error("Connection refused.")
