@@ -18,8 +18,20 @@ def checkout_package(conf, pkg_name):
     bpb = build.parse_build_json(json_bpb)
     build.create_pkg_workdir(bpb)
 
-def submit_package(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+def release_build(pkg_name):
+    s = connect.connect(main.B_NAME, main.B_TYPE)
+
+    resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
+
+    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
+        blog.info("The package build was immediately handled by a ready build bot.")
+    elif(resp == "BUILD_REQ_QUEUED"):
+        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
+    elif(resp == "INV_PKG_NAME"):
+        blog.error("Invalid package name.")
+        
+def submit_package():
+    s = connect.connect(main.B_NAME, main.B_TYPE)
     
     bpb = build.parse_build_file("package.bpb")
     if(bpb == -1):
