@@ -8,6 +8,7 @@ from package import package
 from bsocket import connect
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
+from config import config
 
 import argparse
 import os
