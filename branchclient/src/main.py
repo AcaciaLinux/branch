@@ -45,8 +45,6 @@ def main():
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
             package.release_build(args.releasebuild)
-            blog.info("Checking out package {}!".format(args.checkout))
-            package.checkout_package(conf, args.checkout) 
 
 if (__name__ == "__main__"):
     try:
