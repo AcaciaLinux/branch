@@ -25,6 +25,7 @@ def main():
     argparser.add_argument("-ds", "--debugshell", help="Runs a debugshell on the remote server.", action="store_true")
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
+    argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
     
     args = argparser.parse_args()
 
@@ -37,8 +38,11 @@ def main():
         package.submit_package()
     else:
         if(not args.checkout is None):
-            blog.info("Checking out package {}!".format(args.checkout))
-            package.checkout_package(args.checkout) 
+            blog.info("Checking out package '{}'.".format(args.checkout))
+            package.checkout_package(args.checkout)
+        elif(not args.releasebuild is None):
+            blog.info("Requesting release build for '{}'.".format(args.releasebuild))
+            package.release_build(args.releasebuild)
 
 if (__name__ == "__main__"):
     try:

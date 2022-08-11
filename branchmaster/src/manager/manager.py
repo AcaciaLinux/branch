@@ -7,6 +7,7 @@ class manager():
     queue = queue.queue()
     client_array = [ ]
     build_jobs = [ ]
+    completed_jobs = [ ]
 
     def get_queue(self):
         return self.queue
@@ -56,7 +57,11 @@ class manager():
         job = jobs.jobs()
         self.build_jobs.append(job)
         return job
-   
+
+    def move_inactive_job(self, job):
+        self.build_jobs.remove(job)
+        self.completed_jobs.append(job)
+
     def get_job_by_client(self, client):
         for job in self.build_jobs:
             if job in self.build_jobs:

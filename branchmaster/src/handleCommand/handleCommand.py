@@ -136,6 +136,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             if(not job.get_status == "FAILED"):
                 job.set_status("COMPLETED")
 
+            manager.move_inactive_job(job)
+
         blog.info("Client {} is ready for commands.".format(client.get_identifier()))
         client.is_ready = True
         client.send_command("CMD_OK")
