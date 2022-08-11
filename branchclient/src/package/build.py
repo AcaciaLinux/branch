@@ -36,6 +36,10 @@ def parse_build_json(json_obj):
     
 
 def parse_build_file(pkg_file):
+    if(not os.path.exists(pkg_file)):
+        blog.error("This does not appear to be a package directory.")
+        return -1
+
     build_file = open(pkg_file, "r")
     build_arr = build_file.read().split("\n")
 

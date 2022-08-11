@@ -1,14 +1,13 @@
 BRANCH_CODENAME = "Point Insertion"
 BRANCH_VERSION = "0.1"
 
-B_HOST = "192.168.1.101"
-B_PORT = 27015
-B_NAME = "debug-shell"
 B_TYPE = "CONTROLLER"
 
 from log import blog
 from debugshell import debugshell
 from package import package
+from config import config
+
 import argparse
 
 def main():
@@ -17,9 +16,12 @@ def main():
     print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 
-    # TODO:
-    # CONFIG FOR PORT
-    
+    # load config
+    blog.info("Loading configuration file..")
+    conf = config.load_config()
+
+    if(conf.authkey == "NONE"):
+        conf.authkey = None
 
     argparser = argparse.ArgumentParser(description="The AcaciaLinux package build system.")
     argparser.add_argument("-ds", "--debugshell", help="Runs a debugshell on the remote server.", action="store_true")
@@ -31,11 +33,11 @@ def main():
 
     if(args.debugshell):
         blog.info("Running debug shell!")
-        debugshell.run_shell()
+        debugshell.run_shell(conf)
         exit(0)
     elif(args.submit):
         blog.info("Submitting package (current workdir).")
-        package.submit_package()
+        package.submit_package(conf)
     else:
         if(not args.checkout is None):
             blog.info("Checking out package '{}'.".format(args.checkout))
@@ -43,6 +45,8 @@ def main():
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
             package.release_build(args.releasebuild)
+            blog.info("Checking out package {}!".format(args.checkout))
+            package.checkout_package(conf, args.checkout) 
 
 if (__name__ == "__main__"):
     try:

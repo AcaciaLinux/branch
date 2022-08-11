@@ -80,7 +80,7 @@ def build(directory, package_build):
    
     blog.info("Installing dependencies to temproot..")
     buildenv.install_pkgs(get_pkg_array(package_build.dependencies))
-    buildenv.install_pkgs(get_pkg_array(package_build.dependencies))
+    buildenv.install_pkgs(get_pkg_array(package_build.build_dependencies))
 
 
     print("====================================================")
@@ -89,13 +89,14 @@ def build(directory, package_build):
     
     blog.info("Writing build script to disk..")
     build_sh = open(os.path.join(build_dir, "build.sh"), "w")
-    build_sh.write("set +e\n")
+    # set -e to cause script to exit once an error occurred
+    build_sh.write("set -e\n")
 
     for line in package_build.build_script:
         build_sh.write(line)
         build_sh.write("\n")
 
-    build_sh.write("set -e\n")
+    build_sh.write("set +e\n")
     build_sh.close()
 
     temp_root = buildenv.get_build_path()
