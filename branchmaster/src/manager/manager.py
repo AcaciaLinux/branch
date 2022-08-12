@@ -62,6 +62,7 @@ class manager():
         self.build_jobs.remove(job)
         self.completed_jobs.append(job)
 
+    
     def get_job_by_client(self, client):
         for job in self.build_jobs:
             if job in self.build_jobs:
@@ -74,7 +75,12 @@ class manager():
                 return job
 
         return None
-
+     
+    def get_running_jobs(self):
+        return self.build_jobs
+   
+    def get_completed_jobs(self):
+        return self.completed_jobs
 
 static_manager = None
 static_manager = manager()

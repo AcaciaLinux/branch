@@ -99,12 +99,26 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         storage = localstorage.storage()
         if(cmd_body in storage.packages):
             blog.info("Controller client requested release build for {}".format(cmd_body))
-            res = manager.get_queue().add_to_queue(manager, cmd_body)
+            res = manager.get_queue().add_to_queue(manager, cmd_body, client)
             return res
         else:
             blog.info("Controller client requested release build for invalid package.")
             return "INV_PKG_NAME"
 
+    #
+    # Get all completed build jobs 
+    #
+    elif(cmd_header == "COMPLETED_JOBS_STATUS"):
+        completed_jobs = manager.get_completed_jobs()
+        return json.dumps([obj.get_info_dict() for obj in completed_jobs])
+ 
+    #
+    # Get all currently running build jobs 
+    #
+    elif(cmd_header == "RUNNING_JOBS_STATUS"):
+        running_jobs = manager.get_running_jobs()
+        return json.dumps([obj.get_info_dict() for obj in running_jobs])
+            
     #
     # Invalid command
     #

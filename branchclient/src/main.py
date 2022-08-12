@@ -28,6 +28,7 @@ def main():
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
     argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
+    argparser.add_argument("-st", "--status", help="Requests a list of running / completed jobs from the server.", action="store_true")
     
     args = argparser.parse_args()
 
@@ -38,13 +39,15 @@ def main():
     elif(args.submit):
         blog.info("Submitting package (current workdir).")
         package.submit_package(conf)
+    elif(args.status):
+        package.build_status(conf)
     else:
         if(not args.checkout is None):
             blog.info("Checking out package '{}'.".format(args.checkout))
-            package.checkout_package(args.checkout)
+            package.checkout_package(conf, args.checkout)
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
-            package.release_build(args.releasebuild)
+            package.release_build(conf, args.releasebuild)
 
 if (__name__ == "__main__"):
     try:

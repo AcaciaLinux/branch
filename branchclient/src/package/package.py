@@ -18,8 +18,8 @@ def checkout_package(conf, pkg_name):
     bpb = build.parse_build_json(json_bpb)
     build.create_pkg_workdir(bpb)
 
-def release_build(pkg_name):
-    s = connect.connect(main.B_NAME, main.B_TYPE)
+def release_build(conf, pkg_name):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
 
     resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
 
@@ -30,8 +30,8 @@ def release_build(pkg_name):
     elif(resp == "INV_PKG_NAME"):
         blog.error("Invalid package name.")
         
-def submit_package():
-    s = connect.connect(main.B_NAME, main.B_TYPE)
+def submit_package(conf):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
     
     bpb = build.parse_build_file("package.bpb")
     if(bpb == -1):
@@ -44,4 +44,33 @@ def submit_package():
         blog.info("Package submission accepted by server.")
     else:
         blog.error("An error occured: {}".format(resp))
+
+def build_status(conf):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+
+    resp = connect.send_msg(s, "RUNNING_JOBS_STATUS")
+    running_jobs = json.loads(resp)
+
+    resp = connect.send_msg(s, "COMPLETED_JOBS_STATUS")
+    completed_jobs = json.loads(resp)
+
+    print("\n")
+
+    if(running_jobs):
+        print("RUNNING JOBS:")
+        print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+
+        for job in running_jobs:
+            print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
     
+    print()
+
+    if(completed_jobs):
+        print("COMPLETED JOBS:")
+        print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+
+        for job in completed_jobs:
+            print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+
+    if(not completed_jobs and not running_jobs):
+        blog.info("No jobs.")
