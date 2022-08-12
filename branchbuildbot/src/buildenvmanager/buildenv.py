@@ -98,8 +98,10 @@ def clean_env():
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
-    
+  
     dev_fs = os.path.join(temp_dir, "dev")
+
+    blog.info("Unmounting overlayfs..")
     os.system("umount {}".format(dev_fs))
     os.system("umount {}".format(temp_dir))
     

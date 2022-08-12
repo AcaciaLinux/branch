@@ -55,8 +55,12 @@ def handle_command(socket, command):
                 connect.send_msg(socket, "BUILD_COMPLETE")
             else:
                 connect.send_msg(socket, "BUILD_FAILED")
+
+                # Clean build environment..
+                blog.info("Cleaning up build environment..")
+                buildenv.clean_env()
+                buildenv.remount_env()
                 return "SIG_READY"
-            
             
             pkg_file = leafpkg.create_tar_package(builddir, package_build)
             leafpkg.upload_package(pkg_file, package_build)
