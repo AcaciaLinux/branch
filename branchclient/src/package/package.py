@@ -54,23 +54,32 @@ def build_status(conf):
     resp = connect.send_msg(s, "COMPLETED_JOBS_STATUS")
     completed_jobs = json.loads(resp)
 
-    print("\n")
+    resp = connect.send_msg(s, "QUEUED_JOBS_STATUS")
+    queued_jobs = json.loads(resp)
 
     if(running_jobs):
+        print()
         print("RUNNING JOBS:")
         print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in running_jobs:
             print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
     
-    print()
 
     if(completed_jobs):
+        print()
         print("COMPLETED JOBS:")
         print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in completed_jobs:
             print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
-    if(not completed_jobs and not running_jobs):
+
+    if(queued_jobs):
+        print()
+        print("QUEUED JOBS:")
+        for job in queued_jobs:
+            print("- {}".format(job['pkg_name']))           
+
+    if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")

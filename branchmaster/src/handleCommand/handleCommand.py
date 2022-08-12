@@ -118,7 +118,11 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "RUNNING_JOBS_STATUS"):
         running_jobs = manager.get_running_jobs()
         return json.dumps([obj.get_info_dict() for obj in running_jobs])
-            
+    
+    elif(cmd_header == "QUEUED_JOBS_STATUS"):
+        queued_jobs = manager.get_queue().build_queue
+        return json.dumps([obj.get_name_json() for obj in queued_jobs])
+
     #
     # Invalid command
     #

@@ -21,6 +21,13 @@ class BPBOpts():
     def get_json(self):
         return json.dumps(self.__dict__)
 
+    def get_name_json(self):
+        return {
+            "pkg_name": self.name
+        }
+
+
+
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()
 
