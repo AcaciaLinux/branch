@@ -26,6 +26,14 @@ class manager():
             client.send_command(res)
 
     def remove_client(self, client):
+        job = self.get_job_by_client(client)
+
+        if(job is not None):
+            blog.warn("Build job '{}' failed because the build client disconnected.".format(job.get_jobid()))
+            job.set_completed = True
+            job.set_status("FAILED")
+            self.move_inactive_job(job)
+
         blog.info("Removing client '{}' from manager.".format(client.get_identifier()))
         self.client_array.remove(client)
 
@@ -68,6 +76,8 @@ class manager():
             if job in self.build_jobs:
                 if(job.client == client):
                     return job
+
+        return None
 
     def get_job_by_id(self, jid):
         for job in self.build_jobs:
