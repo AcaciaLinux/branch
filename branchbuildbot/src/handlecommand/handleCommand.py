@@ -69,6 +69,7 @@ def handle_command(socket, command):
             # Clean build environment..
             blog.info("Cleaning up build environment..")
             buildenv.clean_env()
+            
             buildenv.remount_env()
             connect.send_msg(socket, "BUILD_CLEAN")
 

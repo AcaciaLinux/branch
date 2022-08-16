@@ -29,7 +29,6 @@ class BPBOpts():
 def build(directory, package_build):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
-
     # change to packagebuild directory
     os.chdir(directory)
     

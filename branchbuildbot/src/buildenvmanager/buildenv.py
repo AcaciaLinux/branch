@@ -86,7 +86,8 @@ def remount_env():
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     overlay_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
-
+    
+    blog.info("Remounting overlayfs..")
     os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
    
     blog.info("Remounting devfs..")
@@ -98,13 +99,19 @@ def clean_env():
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
-  
     dev_fs = os.path.join(temp_dir, "dev")
 
-    blog.info("Unmounting overlayfs..")
+    blog.info("Unmount devfs..")
     os.system("umount {}".format(dev_fs))
-    os.system("umount {}".format(temp_dir))
     
+    blog.info("Unmounting overlayfs..")
+    try:
+        os.system("umount {}".format(temp_dir))
+    except OSError:
+        blog.warn("Couldn't unmount temp_root because it was busy. Retrying..")
+        os.system("umount {}".format(dev_fs))
+        os.system("umount {}".format(temp_dir))
+
     # recreate dirs
     shutil.rmtree(diff_dir)
     shutil.rmtree(work_dir)
