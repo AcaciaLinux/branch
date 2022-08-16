@@ -4,6 +4,7 @@ from pyleaf import pyleafcore
 from pathlib import Path
 import os
 import shutil
+import time
 
 LAUNCH_DIR = os.getcwd()
 
@@ -101,21 +102,57 @@ def clean_env():
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     dev_fs = os.path.join(temp_dir, "dev")
 
-    blog.info("Unmount devfs..")
-    os.system("umount {}".format(dev_fs))
     
+    blog.info("Unmounting devfs..")
+    
+    devfs_umount_failed = False
+    
+    while(os.path.ismount(dev_fs)):
+        if(devfs_umount_failed):
+            blog.warn("Unmounting devfs failed. Retrying...")
+            os.system("umount {}".format(dev_fs))
+            os.system("sync")
+            time.sleep(1)
+        else:
+            os.system("umount {}".format(dev_fs))
+            devfs_umount_failed = True
+
+    blog.info("Unmounted devfs.")
+    blog.info("Syncing filesystem..")
+    os.system("sync")
+
     blog.info("Unmounting overlayfs..")
-    try:
-        os.system("umount {}".format(temp_dir))
-    except OSError:
-        blog.warn("Couldn't unmount temp_root because it was busy. Retrying..")
-        os.system("umount {}".format(dev_fs))
-        os.system("umount {}".format(temp_dir))
+    while(os.path.ismount(temp_dir)):
+        
+        if(devfs_umount_failed):
+            blog.warn("Unmounting overlayfs failed. Retrying...")
+            os.system("umount {}".format(temp_dir))
+            os.system("sync")
+            time.sleep(1)
+        else:
+            os.system("umount {}".format(temp_dir))
+
+    blog.info("Unmounted overlayfs.")
+
+    blog.info("Syncing filesystem..")
+    os.system("sync")
 
     # recreate dirs
     shutil.rmtree(diff_dir)
     shutil.rmtree(work_dir)
-    shutil.rmtree(temp_dir)
+        
+    target_busy = True
+    while target_busy:
+        try:
+            shutil.rmtree(temp_dir)
+            target_busy = False
+        except OSError as e:
+            print(e)
+            blog.warn("Temp dir is busy..")
+            time.sleep(2)
+            pass
+
+
     os.mkdir(diff_dir)
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
