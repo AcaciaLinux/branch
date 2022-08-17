@@ -92,5 +92,24 @@ class manager():
     def get_completed_jobs(self):
         return self.completed_jobs
 
+    def get_controller_names(self):
+        res = [ ]
+
+        for client in self.client_array:
+            if(client.client_type == "CONTROLLER"):
+                res.append(client.get_identifier())
+
+        return res
+
+    def get_buildbot_names(self):
+        res = [ ]
+
+        for client in self.client_array:
+            if(client.client_type == "BUILD"):
+                res.append(client.get_identifier())
+
+        return res
+
+
 static_manager = None
 static_manager = manager()

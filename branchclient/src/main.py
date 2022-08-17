@@ -5,14 +5,12 @@ B_TYPE = "CONTROLLER"
 
 from log import blog
 from debugshell import debugshell
-from package import package
+from commands import commands
 from config import config
 
 import argparse
 
 def main():
-    print("Branch (CLIENT) - The AcaciaLinux package build system.")
-    print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
     print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 
@@ -29,7 +27,8 @@ def main():
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
     argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
     argparser.add_argument("-st", "--status", help="Requests a list of running / completed jobs from the server.", action="store_true")
-    
+    argparser.add_argument("-cs", "--clientstatus", help="Requests a list of clients connected to the server.", action="store_true")
+
     args = argparser.parse_args()
 
     if(args.debugshell):
@@ -38,16 +37,18 @@ def main():
         exit(0)
     elif(args.submit):
         blog.info("Submitting package (current workdir).")
-        package.submit_package(conf)
+        commands.submit_package(conf)
     elif(args.status):
-        package.build_status(conf)
+        commands.build_status(conf)
+    elif(args.clientstatus):
+        commands.client_status(conf)
     else:
         if(not args.checkout is None):
             blog.info("Checking out package '{}'.".format(args.checkout))
-            package.checkout_package(conf, args.checkout)
+            commands.checkout_package(conf, args.checkout)
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
-            package.release_build(conf, args.releasebuild)
+            commands.release_build(conf, args.releasebuild)
 
 if (__name__ == "__main__"):
     try:

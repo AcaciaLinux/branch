@@ -118,10 +118,28 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "RUNNING_JOBS_STATUS"):
         running_jobs = manager.get_running_jobs()
         return json.dumps([obj.get_info_dict() for obj in running_jobs])
-    
+
+    #
+    # Get queued jobs 
+    #
     elif(cmd_header == "QUEUED_JOBS_STATUS"):
         queued_jobs = manager.get_queue().build_queue
         return json.dumps([obj.get_name_json() for obj in queued_jobs])
+
+
+    #
+    # Get connected controller type clients
+    #
+    elif(cmd_header == "CONNECTED_CONTROLLERS"):
+        clients = manager.get_controller_names()
+        return json.dumps(clients)
+
+    #
+    # Get connected build type clients
+    #
+    elif(cmd_header == "CONNECTED_BUILDBOTS"):
+        buildbots = manager.get_buildbot_names()
+        return json.dumps(buildbots)
 
     #
     # Invalid command
@@ -171,6 +189,15 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         return "STATUS_ACK"
 
+    elif(cmd_header == "BUILD_CLEAN"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
+            job.set_status("BUILD_CLEAN")
+
+        return "STATUS_ACK"
+
     elif(cmd_header == "BUILD_COMPLETE"):
         job = manager.get_job_by_client(client)
 
@@ -188,16 +215,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             job.set_status("BUILD_FAILED")
 
         return "STATUS_ACK"
- 
-    elif(cmd_header == "BUILD_CLEAN"):
-        job = manager.get_job_by_client(client)
 
-        if(not job is None):
-            blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
-            job.set_status("BUILD_CLEAN")
-
-        return "STATUS_ACK"
-    
     #
     # Invalid command
     #
