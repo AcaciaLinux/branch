@@ -97,7 +97,7 @@ def upload_package(package_path, package_build):
         sftp_con = pysftp.Connection(host="s.zsxh.eu", username="root", private_key="~/.ssh/id_rsa", private_key_pass="")
     except AuthenticationException:
         blog.error("Could not connect to the SSH Server. Authentication Failure.")
-        return "AUTH_FAILURE"
+        return "SSH_AUTH_FAILURE"
 
     # TODO: config
     #blog.info("Changing remote workdir to {}..".format(options.sftp_workdir))

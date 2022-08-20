@@ -31,10 +31,33 @@ class Client():
         is_ready = False
 
     def receive_command(self, conn, mask):
-        data = conn.recv(4096)
-        if data:
-            blog.debug("Received Data from {}. Data: {}".format(self.client_uuid, data)) 
-            manager.static_manager.handle_command(self, data)
+        data = None
+
+        try:
+            data = conn.recv(8192)
+        except ConnectionResetError:
+            self.handle_disconnect()
+            return
+
+        data_str = data.decode("utf-8")
+        data_str_loc = data_str.find(" ")
+        cmd_bytes = 0
+
+        data_trimmed = data_str[data_str_loc+1:len(data_str)]
+
+        try:
+            cmd_bytes = int(data_str[0:data_str_loc])
+        except ValueError:
+            blog.warn("Byte count error from '{}'. Kicking client.".format(self.get_identifier()))
+            self.handle_disconnect()
+            return
+
+        while(len(data_trimmed) != cmd_bytes):
+            data_trimmed += conn.recv(8192).decode("utf-8")
+            
+        if data_trimmed:
+            blog.debug("Received Data from {}. Data: {}".format(self.client_uuid, data_trimmed)) 
+            manager.static_manager.handle_command(self, data_trimmed)
         else:
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
@@ -47,6 +70,8 @@ class Client():
 
 
     def send_command(self, message):
+        message = "{} {}".format(len(message), message)
+
         self.sock.send(bytes(message, "UTF-8"))
 
     def handle_disconnect(self):

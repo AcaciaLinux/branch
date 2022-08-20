@@ -47,7 +47,7 @@ def main():
         cmd = connect.recv_only(s)
         
         # no data, server exited.
-        if(cmd == ""):
+        if(cmd is None):
             blog.warn("Connection to server lost.")
             s.close()
             exit(0)

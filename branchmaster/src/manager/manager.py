@@ -6,8 +6,10 @@ from manager import jobs
 class manager():
     queue = queue.queue()
     client_array = [ ]
+    
     build_jobs = [ ]
     completed_jobs = [ ]
+    queued_jobs = [ ]
 
     def get_queue(self):
         return self.queue
@@ -63,7 +65,7 @@ class manager():
     
     def new_job(self):
         job = jobs.jobs()
-        self.build_jobs.append(job)
+        self.queued_jobs.append(job)
         return job
 
     def move_inactive_job(self, job):
@@ -80,17 +82,46 @@ class manager():
         return None
 
     def get_job_by_id(self, jid):
+        
         for job in self.build_jobs:
             if(job.job_id == jid):
                 return job
+        for job in self.queued_jobs:
+            if(job.job_id == jid):
+                return job
 
+        for job in self.completed_jobs:
+            if(job.job_id == jid):
+                return job
         return None
-     
+    
+    def get_queued_jobs(self):
+        return self.queued_jobs
+
     def get_running_jobs(self):
         return self.build_jobs
    
     def get_completed_jobs(self):
         return self.completed_jobs
+
+    def get_controller_names(self):
+        res = [ ]
+
+        for client in self.client_array:
+            if(client.client_type == "CONTROLLER"):
+                res.append(client.get_identifier())
+
+        return res
+
+    def get_buildbot_names(self):
+        res = [ ]
+
+        for client in self.client_array:
+            if(client.client_type == "BUILD"):
+                res.append(client.get_identifier())
+
+        return res
+
 
 static_manager = None
 static_manager = manager()

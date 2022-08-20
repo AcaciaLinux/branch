@@ -60,26 +60,52 @@ def build_status(conf):
     if(running_jobs):
         print()
         print("RUNNING JOBS:")
-        print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in running_jobs:
-            print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
     
 
     if(completed_jobs):
         print()
         print("COMPLETED JOBS:")
-        print ("{:<8} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in completed_jobs:
-            print ("{:<8} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
 
     if(queued_jobs):
         print()
         print("QUEUED JOBS:")
+        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+
         for job in queued_jobs:
-            print("- {}".format(job['pkg_name']))           
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+
 
     if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")
+
+def client_status(conf):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+
+    resp = connect.send_msg(s, "CONNECTED_CONTROLLERS")
+    controllers = json.loads(resp)
+
+    resp = connect.send_msg(s, "CONNECTED_BUILDBOTS")
+    buildbots = json.loads(resp)
+    print()
+
+    print("CONTROLLER CLIENTS:")
+    for name in controllers:
+        print(name, end=' ')
+    print()
+
+    print()
+    print()
+
+    print("BUILDBOT CLIENTS:")
+    for name in buildbots:
+        print(name, end=' ')
+    print()
