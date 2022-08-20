@@ -78,8 +78,11 @@ def build_status(conf):
     if(queued_jobs):
         print()
         print("QUEUED JOBS:")
+        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+
         for job in queued_jobs:
-            print("- {}".format(job['pkg_name']))           
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+
 
     if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")

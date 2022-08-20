@@ -90,7 +90,10 @@ def remount_env():
     
     blog.info("Remounting overlayfs..")
     os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
-   
+  
+    blog.info("Syncing filesystem..")
+    os.system("sync")
+
     blog.info("Remounting devfs..")
     dev_fs = os.path.join(temp_dir, "dev")
     os.system("mount --bind /dev {}".format(dev_fs))
@@ -147,7 +150,6 @@ def clean_env():
             shutil.rmtree(temp_dir)
             target_busy = False
         except OSError as e:
-            print(e)
             blog.warn("Temp dir is busy..")
             time.sleep(2)
             pass

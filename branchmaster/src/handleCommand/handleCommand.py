@@ -1,14 +1,16 @@
 import json
 import os
+import time
+
 import main
 from log import blog
 from localstorage import localstorage
 from package import build
 from manager import queue
+from manager import jobs
+from dependency import dependency
 
 def handle_command(manager, client, command):
-    command = command.decode("utf-8")
-
     cmd_header_loc = command.find(" ")
     cmd_header = ""
     cmd_body = ""
@@ -33,7 +35,8 @@ def handle_command(manager, client, command):
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
 
     # TODO: Login system
-    #blog.info("Machine validation failed, but untrusted clients are permitted.")
+
+    #blog.info("Machine validation skipped. Untrusted clients are permitted.")
 
     #
     # Used by a client to set it's type
@@ -99,8 +102,48 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         storage = localstorage.storage()
         if(cmd_body in storage.packages):
             blog.info("Controller client requested release build for {}".format(cmd_body))
-            res = manager.get_queue().add_to_queue(manager, cmd_body, client)
+            
+            pkg = storage.get_bpb_obj(cmd_body)
+
+            # get a job obj
+            job = manager.new_job()
+
+            # TODO: remove seperate build_pkg_name, because pkg contains it.
+            job.build_pkg_name = pkg.name
+            job.pkg_payload = pkg
+            job.requesting_client = client.get_identifier()
+            job.set_status("WAITING")
+
+            res = manager.get_queue().add_to_queue(manager, job)
             return res
+        else:
+            blog.info("Controller client requested release build for invalid package.")
+            return "INV_PKG_NAME"
+    
+    #
+    # Rebuild specified package plus all
+    # packages that depend on it
+    #
+    elif(cmd_header == "REBUILD_DEPENDERS"):
+        storage = localstorage.storage()
+
+        if(cmd_body in storage.packages):
+            blog.info("Controller client requested rebuild including dependers for {}".format(cmd_body))
+            # add
+            
+            res = dependency.get_dependency_tree(cmd_body)
+            res.print_tree()
+
+            #TODO: refactor needed
+            dependency_array = res.get_deps_array()
+            jobs = dependency.get_job_array(manager, client, dependency_array)
+            
+            res.calc_blockers(jobs)
+            
+            for job in jobs:
+                manager.get_queue().add_to_queue(manager, job)
+            
+            return "BATCH_QUEUED"
         else:
             blog.info("Controller client requested release build for invalid package.")
             return "INV_PKG_NAME"
@@ -123,8 +166,8 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     # Get queued jobs 
     #
     elif(cmd_header == "QUEUED_JOBS_STATUS"):
-        queued_jobs = manager.get_queue().build_queue
-        return json.dumps([obj.get_name_json() for obj in queued_jobs])
+        queued_jobs = manager.get_queued_jobs()
+        return json.dumps([obj.get_info_dict() for obj in queued_jobs])
 
 
     #
@@ -169,7 +212,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed.".format(job.get_jobid()))
             job.set_completed = True
-            if(not job.get_status == "FAILED"):
+            if(job.get_status == "BUILD_FAILED"):
+                job.set_status("FAILED")
+            else:
                 job.set_status("COMPLETED")
 
             manager.move_inactive_job(job)
@@ -177,6 +222,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         blog.info("Client {} is ready for commands.".format(client.get_identifier()))
         client.is_ready = True
         client.send_command("CMD_OK")
+
+        time.sleep(2)
+
         manager.queue.notify_ready(manager)
         return None
 

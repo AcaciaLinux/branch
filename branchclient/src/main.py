@@ -11,6 +11,8 @@ from config import config
 import argparse
 
 def main():
+    print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
+    print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
     print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 

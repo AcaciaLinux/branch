@@ -2,15 +2,21 @@ from log import blog
 import uuid
 
 class jobs():
-
-    job_completed = False
-    job_id = ""
-    build_pkg_name = ""
-    requesting_client = ""
-    client = None
-    job_status = ""
-    
     def __init__(self):
+
+        # class members
+        self.job_completed = False
+        self.job_id = ""
+        
+        self.pkg_payload = None
+        
+        self.build_pkg_name = ""
+
+        self.requesting_client = ""
+        self.client = None
+        self.job_status = ""
+        self.blocked_by = [ ] 
+
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
@@ -34,4 +40,11 @@ class jobs():
 
     def set_completed(self):
         self.job_completed = True
+    
+    #
+    # returns True if the job is blocked by another not yet
+    # completed job
+    #
+    def is_blocked(self, manager):
+        print()
 

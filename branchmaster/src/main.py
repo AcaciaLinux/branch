@@ -19,10 +19,7 @@ def main():
     print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
     print("Version: "+ BRANCH_VERSION +" (" + BRANCH_CODENAME +")")
     print()
-    
-    res = dependency.get_node_tree("glib")
-    print(res) 
-
+    print()
 
     blog.info("Masterserver initializing..")
     localstorage.check_storage()
