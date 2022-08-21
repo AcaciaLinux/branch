@@ -11,8 +11,8 @@ def run_shell(conf):
         if(line is ""):
             continue
 
-        s.sendall(bytes(line, "utf-8"))
-        data = s.recv(4096)
-        print("Response: " + data.decode("utf-8"))
+        connect.send_msg(s, line)
+        data = connect.recv_only(s)
+        print("Response: {}".format(data))
 
 
