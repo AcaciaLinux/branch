@@ -129,17 +129,22 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
         if(cmd_body in storage.packages):
             blog.info("Controller client requested rebuild including dependers for {}".format(cmd_body))
-            # add
-            
+
+            # get dependency tree
             res = dependency.get_dependency_tree(cmd_body)
-            res.print_tree()
 
             #TODO: refactor needed
+            
+            # calculate deps array
             dependency_array = res.get_deps_array()
+            
+            # get array of job objects
             jobs = dependency.get_job_array(manager, client, dependency_array)
             
+            # calculate blockers on tree
             res.calc_blockers(jobs)
             
+            # queue every job
             for job in jobs:
                 manager.get_queue().add_to_queue(manager, job)
             
