@@ -5,6 +5,7 @@ import shutil
 import requests
 import tarfile
 import json
+import datetime
 
 from buildenvmanager import buildenv
 from log import blog
@@ -49,7 +50,8 @@ def build(directory, package_build):
    
     # change to build directory
     os.chdir(build_dir)
-    
+    print("====================================================")
+
     if(package_build.source):
         try:
             source_request = requests.get(package_build.source, stream=True)
@@ -88,6 +90,7 @@ def build(directory, package_build):
     
     blog.info("Writing build script to disk..")
     build_sh = open(os.path.join(build_dir, "build.sh"), "w")
+
     # set -e to cause script to exit once an error occurred
     build_sh.write("set -e\n")
 
@@ -114,7 +117,7 @@ def build(directory, package_build):
     os.system("chmod +x {}".format(entry_sh_path))
 
     blog.info("Chrooting to build environment...")
-    blog.info("Build started on ..")
+    blog.info("Build started on {}".format(datetime.datetime.now()))
 
 
     proc = subprocess.run(["chroot", temp_root, "bash", "/entry.sh"])

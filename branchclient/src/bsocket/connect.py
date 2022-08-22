@@ -1,8 +1,11 @@
 import socket
 import main
+
 from log import blog
 
-
+#
+# connect to server, send type and name..
+#
 def connect(host, port, name, cltype):
     blog.info("Connecting to server...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,6 +43,9 @@ def connect(host, port, name, cltype):
 
     return s
 
+#
+# recv data from socket, read BYTES
+#
 def recv_only(socket):
     data = None
 
@@ -65,7 +71,9 @@ def recv_only(socket):
 
     return data_trimmed
 
-
+#
+# send msg to server and read response
+#
 def send_msg(socket, cmd):
     cmd = "{} {}".format(len(bytes(cmd, "utf-8")), cmd)
     socket.sendall(bytes(cmd, "utf-8"))

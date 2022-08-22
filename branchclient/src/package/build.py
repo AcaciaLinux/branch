@@ -4,8 +4,9 @@ import subprocess
 import shutil
 import requests
 import tarfile
-from log import blog
 import json
+
+from log import blog
 
 class BPBOpts():
     def __init__(self):

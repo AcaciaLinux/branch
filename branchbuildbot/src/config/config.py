@@ -1,6 +1,7 @@
 CONFIG_FILE = "/etc/branch/buildbot.conf"
 
 import os
+
 from log import blog
 
 class branchOpts():

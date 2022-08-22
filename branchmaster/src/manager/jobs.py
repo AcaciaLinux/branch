@@ -1,11 +1,11 @@
-from log import blog
 import uuid
+
+from log import blog
 
 class jobs():
     def __init__(self):
 
         # class members
-        self.job_completed = False
         self.job_id = ""
         
         self.pkg_payload = None
@@ -21,6 +21,10 @@ class jobs():
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
 
+    #
+    # get dict of class variables
+    # that are interesting
+    #
     def get_info_dict(self):
         return {
             "job_id": self.job_id,
@@ -29,22 +33,21 @@ class jobs():
             "requesting_client": self.requesting_client
         }
 
+    #
+    # get current job's id
+    #
     def get_jobid(self):
         return self.job_id
 
+    #
+    #  set job_status
+    #
     def set_status(self, status):
         self.job_status = status
 
-    def get_status(self, status):
+    #
+    # get job status
+    #
+    def get_status(self):
         return self.job_status
-
-    def set_completed(self):
-        self.job_completed = True
-    
-    #
-    # returns True if the job is blocked by another not yet
-    # completed job
-    #
-    def is_blocked(self, manager):
-        print()
 

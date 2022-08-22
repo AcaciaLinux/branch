@@ -1,10 +1,11 @@
-from log import blog
-
-from pyleaf import pyleafcore
-from pathlib import Path
 import os
 import shutil
 import time
+
+from log import blog
+from pyleaf import pyleafcore
+from pathlib import Path
+
 
 LAUNCH_DIR = os.getcwd()
 
@@ -42,7 +43,7 @@ def install_pkgs(packages):
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
     leafcore = pyleafcore.Leafcore()
-    #leafcore.setVerbosity(1)
+    leafcore.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(temp_dir)
     leafcore.a_update()
 
@@ -53,7 +54,7 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 
     # pyleaf stub
     leafcore = pyleafcore.Leafcore()
-    leafcore.setVerbosity(1)
+    leafcore.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(root_dir)
     leafcore.a_update()
     

@@ -1,14 +1,15 @@
 BRANCH_CODENAME = "Point Insertion"
 BRANCH_VERSION = "0.1"
-
 B_TYPE = "CONTROLLER"
+
+import argparse
 
 from log import blog
 from debugshell import debugshell
 from commands import commands
 from config import config
 
-import argparse
+
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
@@ -23,6 +24,7 @@ def main():
     if(conf.authkey == "NONE"):
         conf.authkey = None
 
+    # init argparser
     argparser = argparse.ArgumentParser(description="The AcaciaLinux package build system.")
     argparser.add_argument("-ds", "--debugshell", help="Runs a debugshell on the remote server.", action="store_true")
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
@@ -31,8 +33,10 @@ def main():
     argparser.add_argument("-st", "--status", help="Requests a list of running / completed jobs from the server.", action="store_true")
     argparser.add_argument("-cs", "--clientstatus", help="Requests a list of clients connected to the server.", action="store_true")
 
+    # parse arguments
     args = argparser.parse_args()
 
+    # check arguments
     if(args.debugshell):
         blog.info("Running debug shell!")
         debugshell.run_shell(conf)

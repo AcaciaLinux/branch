@@ -1,6 +1,7 @@
 CONFIG_FILE = "/etc/branch/master.conf"
 
 import os
+
 from log import blog
 
 class branchOpts():
@@ -12,10 +13,10 @@ class branchOpts():
     def __init__(self):
         self.port = 0
 
-# loads CONFIG_FILE from disk
+# loads CONFIG_FILE from disk and parses it
 # returns: 
-# |  0, parsing succesful
-# | -1, parsing failed.
+#  0, parsing succesful
+# -1, parsing failed.
 def load_config():
     check_config()
     

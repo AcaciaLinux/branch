@@ -7,27 +7,17 @@ from dependency import dependency
 
 class queue():
 
-    # We need to have our JOBS object 
-    # always accessible.
-    # think about tmrw
-    # ````
-    #TODO: fixed by requesting all jobs from manager
-
+    #
+    # Check if job is blocked
+    #
     def job_is_blocked(self, manager, job):
         for blocker in job.blocked_by:
-            #job = dependency.get_job_by_id(blocker)
             sjob = manager.get_job_by_id(blocker)
             if(not sjob in manager.completed_jobs):
-                print("Job is !blocked!: ", job.build_pkg_name)
-                print("Blocked by: ")
-                
-                for b in job.blocked_by:
-                    asdf = manager.get_job_by_id(b)
-                    print(asdf.build_pkg_name)
-
+                blog.debug("Job is currently blocked: {}".format(job.build_pkg_name))
                 return True
             else:
-                print("HERE: job is not blocked.")
+
                 return False
 
     #
@@ -43,7 +33,11 @@ class queue():
             # get first ready build client, and submit
             cli = clients[0]
             self.submit_build_cmd(manager, cli, job)
-            
+ 
+            manager.queued_jobs.remove(job)
+            manager.build_jobs.append(job)
+
+
             return "BUILD_REQ_SUBMIT_IMMEDIATELY"
         # We dont have a build server ready, we need to queue..
         else:
@@ -54,53 +48,47 @@ class queue():
     # Called when we get SIG_READY from buildbot
     #
     def notify_ready(self, manager):
+
+        # TODO: Fix!
+
+        # If all jobs are blocked, but a new client is ready, it 
+        # will not get a job assigned even after one became available.
+        # implement a function which checks if there is a job available
+        # for a waiting client
+        
+        #recheck_for_ready() ..?
+
         if(not manager.queued_jobs):
             blog.debug("A build client is ready, but is currently not needed.")
             return
 
         blog.debug("A build client is ready to accept build jobs. Submitting immediately.")
-       
-        # iterate through queued_jobs, find one that is not blocked.
-        # if it's blocked client waits.
-        # how do we get back to this client and tell it that
-        # after a job from a different client completes
-        # we have new jobs unlocked
-
-        #IDEA: find all jobs that were blocked by the job that just finished up
-        #submit all unlocked jobs to waiting clients.
-    
-        #recheck_for_ready() ..?
-
-        # Do we wait unecassarily with this approuch..?
 
         job = None
-        d_unblocked_jobs = [ ]
+        unblocked_jobs = [ ]
 
         # find a not blocked package
         for sjob in manager.queued_jobs:
             if(not self.job_is_blocked(manager, sjob)):
-                d_unblocked_jobs.append(sjob)
-                blog.info("Found not blocked job: {}")
+                unblocked_jobs.append(sjob)
        
-
-        print("All currently not blocked jobs:")
-        for a in d_unblocked_jobs:
-            print(a.build_pkg_name)
-
-
-        # STUB? (IDEA)
-        if(not d_unblocked_jobs):
+        # Notify that there are no jobs available
+        if(not unblocked_jobs):
             blog.info("No job available for client. All jobs are blocked or none is waiting.")
             return
 
-        job = d_unblocked_jobs[0]
+        # get the first unblocked job
+        job = unblocked_jobs[0]
         
+        # remove job from queued, add to building
         manager.queued_jobs.remove(job)
         manager.build_jobs.append(job)
 
+        # get a ready build client from the manager
         clients = manager.get_ready_build_clients()
         cli = clients[0]
 
+        # submit the build command to the client
         self.submit_build_cmd(manager, cli, job)
 
 

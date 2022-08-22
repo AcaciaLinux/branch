@@ -35,7 +35,6 @@ def handle_command(manager, client, command):
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
 
     # TODO: Login system
-
     #blog.info("Machine validation skipped. Untrusted clients are permitted.")
 
     #
@@ -216,8 +215,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         job = manager.get_job_by_client(client)
         if(not job is None):
             blog.info("Build job '{}' completed.".format(job.get_jobid()))
-            job.set_completed = True
-            if(job.get_status == "BUILD_FAILED"):
+            if(job.get_status() == "BUILD_FAILED"):
                 job.set_status("FAILED")
             else:
                 job.set_status("COMPLETED")
@@ -228,11 +226,16 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         client.is_ready = True
         client.send_command("CMD_OK")
 
-        time.sleep(2)
+        # TODO:
+        # - Regenerate Package build, if the build job succeeded.
+        # - How to transfer leaf package..?
 
         manager.queue.notify_ready(manager)
         return None
 
+    #
+    # Status update from assigned job: Build environment is ready
+    #
     elif(cmd_header == "BUILD_ENV_READY"):
         job = manager.get_job_by_client(client)
 
@@ -242,15 +245,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         return "STATUS_ACK"
 
-    elif(cmd_header == "BUILD_CLEAN"):
-        job = manager.get_job_by_client(client)
-
-        if(not job is None):
-            blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
-            job.set_status("BUILD_CLEAN")
-
-        return "STATUS_ACK"
-
+    #
+    # Status update from assigned job: Build job completed.
+    #
     elif(cmd_header == "BUILD_COMPLETE"):
         job = manager.get_job_by_client(client)
 
@@ -260,6 +257,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         return "STATUS_ACK"
 
+    #
+    # Status update from assigned job: Build failed.
+    #
     elif(cmd_header == "BUILD_FAILED"):
         job = manager.get_job_by_client(client)
 
@@ -270,11 +270,20 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         return "STATUS_ACK"
 
     #
+    # Status update from assigned job: Build environment clean up completed.
+    #
+    elif(cmd_header == "BUILD_CLEAN"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
+            job.set_status("BUILD_CLEAN")
+
+        return "STATUS_ACK"
+
+    #
     # Invalid command
     #
     else:
         blog.debug("Received a malformed command from client {}".format(client.client_uuid))
         return "INV_CMD"
-
-
-

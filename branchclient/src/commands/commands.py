@@ -1,9 +1,13 @@
 import main
 import json
+
 from log import blog
 from bsocket import connect 
 from package import build 
 
+#
+# checkout package
+#
 def checkout_package(conf, pkg_name):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
     
@@ -18,18 +22,9 @@ def checkout_package(conf, pkg_name):
     bpb = build.parse_build_json(json_bpb)
     build.create_pkg_workdir(bpb)
 
-def release_build(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
-
-    resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
-
-    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
-        blog.info("The package build was immediately handled by a ready build bot.")
-    elif(resp == "BUILD_REQ_QUEUED"):
-        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
-    elif(resp == "INV_PKG_NAME"):
-        blog.error("Invalid package name.")
-        
+#
+# Submit a package build from cwd to server
+#
 def submit_package(conf):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
     
@@ -45,6 +40,27 @@ def submit_package(conf):
     else:
         blog.error("An error occured: {}".format(resp))
 
+
+#
+# Request a release build from a specified package
+#
+def release_build(conf, pkg_name):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+
+    resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
+
+    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
+        blog.info("The package build was immediately handled by a ready build bot.")
+    elif(resp == "BUILD_REQ_QUEUED"):
+        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
+    elif(resp == "INV_PKG_NAME"):
+        blog.error("Invalid package name.")
+        
+
+
+#
+# get job status from server
+#
 def build_status(conf):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
 
@@ -87,6 +103,9 @@ def build_status(conf):
     if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")
 
+#
+# Get connected buildbots / controllers
+#
 def client_status(conf):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
 

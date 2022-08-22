@@ -1,12 +1,12 @@
+import os
+import json
+
 from buildenvmanager import buildenv
 from log import blog
 from package import build
 from bsocket import connect 
 from buildenvmanager import buildenv
 from package import leafpkg
-
-import os
-import json
 
 def handle_command(socket, command):
 

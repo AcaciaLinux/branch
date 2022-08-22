@@ -4,8 +4,9 @@ import subprocess
 import shutil
 import requests
 import tarfile
-from log import blog
 import json
+
+from log import blog
 
 class BPBOpts():
     def __init__(self):
@@ -26,8 +27,9 @@ class BPBOpts():
             "pkg_name": self.name
         }
 
-
-
+#
+# get BPBopts object from json_object
+#
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()
 
@@ -44,8 +46,10 @@ def parse_build_json(json_obj):
         return None
 
     return BPBopts
-    
 
+#    
+# parse build file from disk to BPBopts
+#
 def parse_build_file(pkg_file):
     build_file = open(pkg_file, "r")
     build_arr = build_file.read().split("\n")
@@ -98,17 +102,9 @@ def parse_build_file(pkg_file):
    
     return BPBopts
 
-
-def create_pkg_workdir(pkg_opts):
-    if(os.path.exists(pkg_opts.name)):
-        blog.warn("Fetching latest version of pkgbuild..")
-        shutil.rmtree(pkg_opts.name)
-
-    os.mkdir(pkg_opts.name)
-    wkdir = os.path.join(os.getcwd(), pkg_opts.name)
-    pkg_file = os.path.join(wkdir, "package.bpb")
-    write_build_file(pkg_file, pkg_opts)
-
+#
+# Create a storage directory for specified package in ./pkgs
+#
 def create_stor_directory(pkg_name):
     pkgs_dir = os.path.join(os.getcwd(), "./pkgs")
     pkg_dir = os.path.join(pkgs_dir, pkg_name)
@@ -118,7 +114,9 @@ def create_stor_directory(pkg_name):
 
     return pkg_dir
 
-
+#
+# Write build file from BPPopts to disk
+#
 def write_build_file(file, pkg_opts):
     bpb_file = open(file, "w")
     bpb_file.write("name={}\n".format(pkg_opts.name))
@@ -135,4 +133,4 @@ def write_build_file(file, pkg_opts):
         bpb_file.write("\n")
 
     bpb_file.write("}")
-    blog.info("package.bpb file written!")
+    blog.debug("package.bpb file written to disk.")

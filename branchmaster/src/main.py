@@ -7,11 +7,6 @@ from bsocket import server
 from manager import manager
 from localstorage import localstorage
 
-
-# REMOVE::
-from dependency import dependency
-
-
 BRANCH_OPTIONS = config.load_config()
 
 def main():
@@ -27,7 +22,6 @@ def main():
     blog.info("Serving on {} port {}".format(BRANCH_OPTIONS.listenaddr, BRANCH_OPTIONS.port))
     server.init_server(BRANCH_OPTIONS.listenaddr, int(BRANCH_OPTIONS.port)) 
  
-
 if (__name__ == "__main__"):
     try:
         main()

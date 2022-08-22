@@ -1,6 +1,7 @@
+import uuid
+
 from log import blog
 from manager import manager
-import uuid
 
 class Client():
     # uuid
@@ -30,6 +31,9 @@ class Client():
         manager.static_manager.register_client(self)
         is_ready = False
 
+    #
+    # receive_command from self on socket
+    #
     def receive_command(self, conn, mask):
         data = None
 
@@ -62,18 +66,26 @@ class Client():
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
     
+    #
+    # Get the clients identifier
+    # UUID by default, can be changed by command
+    #
     def get_identifier(self):
         if(self.client_name == None):
             return self.client_uuid
         else:
             return self.client_name
 
-
+    #
+    # send_command to self
+    #
     def send_command(self, message):
         message = "{} {}".format(len(message), message)
-
         self.sock.send(bytes(message, "UTF-8"))
 
+    #
+    # handle a clients disconnect.
+    #
     def handle_disconnect(self):
         blog.info("Client {} has disconnected.".format(self.get_identifier()))
         manager.static_manager.remove_client(self)

@@ -55,7 +55,6 @@ def calculate_tree(storage, calculated, masternode):
             continue
 
 #
-# remove?
 # Returns dependers as list
 #
 def calculate_list(storage, pkg_name, calculated, deps):
@@ -120,14 +119,16 @@ def get_job_array(manager, client, dependencies):
     return job_array
 
 #
-# 
+# Find a job by name in a jobs array
 #
 def get_job_by_name(jobs, name):
     for job in jobs:
         if(job.build_pkg_name == name):
             return job
 
-
+#
+# Find a job by job id in a jobs array
+#
 def get_job_by_id(jobs, jid):
     for job in jobs:
         if(job.job_id == jid):
