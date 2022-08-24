@@ -65,7 +65,26 @@ class Client():
         else:
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
+   
     
+    def receive_file(self, conn, mask):
+        data = b""
+        
+        blog.info("File transfer started from {}. Receiving {} bytes from buildbot.")
+        job = manager.get_job_by_client(self)
+       
+        
+        print("Receiving file...")
+        while(len(data) != job.file_size):
+            data += conn.recv(8192).decode("utf-8")
+
+        # TODO: move this code to some kind of package file manager
+        blog.info("Writing file to disk...")
+        out_file = open(job.file_name, "wb")
+        out_file.write(data)
+        
+        self.sel.register(conn, selectors.EVENT_READ, client.receive_command)
+
     #
     # Get the clients identifier
     # UUID by default, can be changed by command

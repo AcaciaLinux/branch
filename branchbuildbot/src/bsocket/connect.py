@@ -84,3 +84,17 @@ def send_msg(socket, cmd):
     data = recv_only(socket)
     return data
 
+#
+# send file
+#
+def send_file(socket, filename):
+    file = open(filename, "rb")
+
+    while True:
+        bytes_read = file.read(8192)
+        
+        # we are done reading
+        if(not bytes_read):
+            break
+
+        socket.sendall(bytes_read)

@@ -281,6 +281,24 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         return "STATUS_ACK"
 
+    elif(cmd_header == "FILE_TRANSFER_MODE"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            job.filesize = int(cmd_body)
+            
+            # TOOD: some kind of directory structure
+            job.filename = "bla.fpkg"
+
+            #reregister socket receive handler to file transfer func
+            client.sel.register(conn, selectors.EVENT_READ, client.receive_file)
+
+            # ack
+            return "ACK_FILE_TRANSFER"
+
+        else:
+            return "NO_JOB"
+
     #
     # Invalid command
     #
