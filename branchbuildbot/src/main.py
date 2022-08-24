@@ -4,7 +4,7 @@ BRANCH_VERSION="0.1"
 B_TYPE = "BUILD"
 
 from log import blog
-from package import package
+from package import build
 from bsocket import connect
 from handlecommand import handleCommand
 from buildenvmanager import buildenv

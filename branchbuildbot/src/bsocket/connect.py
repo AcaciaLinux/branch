@@ -1,5 +1,6 @@
 import socket
 import main
+import os
 
 from log import blog
 
@@ -9,6 +10,8 @@ from log import blog
 def connect(host, port, name, cltype):
     blog.info("Connecting to server...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setblocking(True)
+
     try:
         s.connect((host, port))
     except ConnectionRefusedError:
@@ -50,7 +53,7 @@ def recv_only(socket):
     data = None
 
     try:
-        data = socket.recv(8192)
+        data = socket.recv(4096)
     except ConnectionResetError:
         return None
 
@@ -71,7 +74,7 @@ def recv_only(socket):
         return None
 
     while(len(data_trimmed) != cmd_bytes):
-        data_trimmed += socket.recv(8192).decode("utf-8")
+        data_trimmed += socket.recv(4096).decode("utf-8")
 
     return data_trimmed
 
@@ -90,11 +93,26 @@ def send_msg(socket, cmd):
 def send_file(socket, filename):
     file = open(filename, "rb")
 
+    print("Uploading file to masterserver...")
+    print("[..........]\r", end='')
+
+    send_calls = int(os.path.getsize(filename) / 4096)
+    print_ht = int(10 / send_calls)
+    ht_str = '#' * print_ht
+    
+    print("[", end='')
+
     while True:
-        bytes_read = file.read(8192)
+        print(ht_str, end='')
+        bytes_read = file.read(4096)
         
         # we are done reading
         if(not bytes_read):
             break
 
         socket.sendall(bytes_read)
+   
+    print("]")
+    res = recv_only(socket)
+    return res
+
