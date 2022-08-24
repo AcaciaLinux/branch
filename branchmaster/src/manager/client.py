@@ -17,6 +17,10 @@ class Client():
     sock = None
     sel = None
 
+    # file transfer mode
+    file_transfer_mode = False
+
+
     # ready boolean for build clients
     is_ready = None
 
@@ -35,13 +39,20 @@ class Client():
     # receive_command from self on socket
     #
     def receive_command(self, conn, mask):
+        if(self.file_transfer_mode):
+            self.receive_file(conn, mask)
+            return
+
         data = None
 
         try:
-            data = conn.recv(8192)
+            data = conn.recv(4096)
         except ConnectionResetError:
             self.handle_disconnect()
             return
+
+        if(not data):
+            self.handle_disconnect()
 
         data_str = data.decode("utf-8")
         data_str_loc = data_str.find(" ")
@@ -52,12 +63,10 @@ class Client():
         try:
             cmd_bytes = int(data_str[0:data_str_loc])
         except ValueError:
-            blog.warn("Byte count error from '{}'. Kicking client.".format(self.get_identifier()))
-            self.handle_disconnect()
             return
 
         while(len(data_trimmed) != cmd_bytes):
-            data_trimmed += conn.recv(8192).decode("utf-8")
+            data_trimmed += conn.recv(4096).decode("utf-8")
             
         if data_trimmed:
             blog.debug("Received Data from {}. Data: {}".format(self.client_uuid, data_trimmed)) 
@@ -71,19 +80,26 @@ class Client():
         data = b""
         
         blog.info("File transfer started from {}. Receiving {} bytes from buildbot.")
-        job = manager.get_job_by_client(self)
+        job = manager.static_manager.get_job_by_client(self)
        
-        
+
+        print("need to get: {}".format(job.file_size))
+
+
         print("Receiving file...")
-        while(len(data) != job.file_size):
-            data += conn.recv(8192).decode("utf-8")
+
+        while(job.file_size != len(data)):
+            data += conn.recv(4096)
+
 
         # TODO: move this code to some kind of package file manager
         blog.info("Writing file to disk...")
         out_file = open(job.file_name, "wb")
         out_file.write(data)
         
-        self.sel.register(conn, selectors.EVENT_READ, client.receive_command)
+        self.send_command("UPLOAD_ACK")
+        self.file_transfer_mode = False
+
 
     #
     # Get the clients identifier

@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import selectors
 
 import main
 from log import blog
@@ -285,13 +286,15 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         job = manager.get_job_by_client(client)
 
         if(not job is None):
-            job.filesize = int(cmd_body)
+            job.set_status("UPLOADING")
+
+            job.file_size = int(cmd_body)
             
             # TOOD: some kind of directory structure
-            job.filename = "bla.fpkg"
+            job.file_name = "{}.fpkg".format(job.build_pkg_name)
 
             #reregister socket receive handler to file transfer func
-            client.sel.register(conn, selectors.EVENT_READ, client.receive_file)
+            client.file_transfer_mode = True
 
             # ack
             return "ACK_FILE_TRANSFER"
