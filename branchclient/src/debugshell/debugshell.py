@@ -12,11 +12,10 @@ def run_shell(conf):
         print("[branch] ~> ", end = '')
         line = input()
         
-        if(line is ""):
+        if(line == ""):
             continue
 
-        connect.send_msg(s, line)
-        data = connect.recv_only(s)
+        data = connect.send_msg(s, line)
         print("Response: {}".format(data))
 
 
