@@ -74,31 +74,27 @@ class Client():
         else:
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
-   
     
+    #
+    # Receive a file from buildbot
+    #
     def receive_file(self, conn, mask):
         data = b""
         
-        blog.info("File transfer started from {}. Receiving {} bytes from buildbot.")
         job = manager.static_manager.get_job_by_client(self)
-       
-
-        print("need to get: {}".format(job.file_size))
-
-
-        print("Receiving file...")
-
+        blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(self.get_identifier(), job.file_size))
+        
         while(job.file_size != len(data)):
             data += conn.recv(4096)
 
-
-        # TODO: move this code to some kind of package file manager
+        blog.info("Received {} bytes.".format(job.file_size))
         blog.info("Writing file to disk...")
         out_file = open(job.file_name, "wb")
         out_file.write(data)
-        
-        self.send_command("UPLOAD_ACK")
+        out_file.close()
+
         self.file_transfer_mode = False
+        self.send_command("UPLOAD_ACK")
 
 
     #

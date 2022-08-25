@@ -12,6 +12,7 @@ class BPBOpts():
     def __init__(self):
         self.name = ""
         self.version = ""
+        self.real_version = ""
         self.dependencies = ""
         self.description = ""
         self.build_dependencies = ""
@@ -35,6 +36,7 @@ def parse_build_json(json_obj):
 
     try:
         BPBopts.name = json_obj['name']
+        BPBopts.real_version = json_obj['real_version']
         BPBopts.version = json_obj['version']
         BPBopts.source = json_obj['source']
         BPBopts.description = json_obj['description']
@@ -89,6 +91,8 @@ def parse_build_file(pkg_file):
                 BPBopts.name = val
             elif(key == "version"):
                 BPBopts.version = val
+            elif(key == "real_version"):
+                BPBopts.real_version = val
             elif(key == "source"):
                 BPBopts.source = val
             elif(key == "dependencies"):
@@ -103,24 +107,13 @@ def parse_build_file(pkg_file):
     return BPBopts
 
 #
-# Create a storage directory for specified package in ./pkgs
-#
-def create_stor_directory(pkg_name):
-    pkgs_dir = os.path.join(os.getcwd(), "./pkgs")
-    pkg_dir = os.path.join(pkgs_dir, pkg_name)
-
-    if(not os.path.exists(pkg_dir)):
-        os.mkdir(pkg_dir)
-
-    return pkg_dir
-
-#
 # Write build file from BPPopts to disk
 #
 def write_build_file(file, pkg_opts):
     bpb_file = open(file, "w")
     bpb_file.write("name={}\n".format(pkg_opts.name))
     bpb_file.write("version={}\n".format(pkg_opts.version))
+    bpb_file.write("real_version={}\n".format(pkg_opts.real_version))
     bpb_file.write("source={}\n".format(pkg_opts.source))
     bpb_file.write("dependencies={}\n".format(pkg_opts.dependencies))
     bpb_file.write("builddeps={}\n".format(pkg_opts.build_dependencies))

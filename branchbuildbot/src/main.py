@@ -1,5 +1,5 @@
-BRANCH_CODENAME="Point Insertion"
-BRANCH_VERSION="0.1"
+BRANCH_CODENAME = "A Red Letter Day"
+BRANCH_VERSION = "0.2"
 
 B_TYPE = "BUILD"
 
