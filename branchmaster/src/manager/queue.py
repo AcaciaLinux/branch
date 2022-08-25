@@ -2,7 +2,6 @@ import json
 
 from log import blog
 from package import build
-from localstorage import localstorage
 from dependency import dependency
 
 class queue():
@@ -17,7 +16,6 @@ class queue():
                 blog.debug("Job is currently blocked: {}".format(job.build_pkg_name))
                 return True
             else:
-
                 return False
 
     #
@@ -50,7 +48,6 @@ class queue():
     def notify_ready(self, manager):
 
         # TODO: Fix!
-
         # If all jobs are blocked, but a new client is ready, it 
         # will not get a job assigned even after one became available.
         # implement a function which checks if there is a job available

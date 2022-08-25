@@ -1,5 +1,5 @@
 from log import blog
-from localstorage import localstorage
+from localstorage import pkgbuildstorage
 from dependency import node
 from manager import jobs
 
@@ -7,7 +7,7 @@ from manager import jobs
 # Get all dependencies in a list
 #
 def get_all_deps(pkg_name):
-    storage = localstorage.storage()
+    storage = pkgbuildstorage.storage()
     
     calculated = [ ]
     deps = [ ]
@@ -18,7 +18,7 @@ def get_all_deps(pkg_name):
 # Calculates a dependency tree and return its masternode object 
 #
 def get_dependency_tree(pkg_name):
-    storage = localstorage.storage()
+    storage = pkgbuildstorage.storage()
 
     masternode = node.node(pkg_name)
     calculated = [ ]
@@ -101,7 +101,7 @@ def calculate_list(storage, pkg_name, calculated, deps):
 #
 def get_job_array(manager, client, dependencies):
     job_array = [ ]
-    stor = localstorage.storage()
+    stor = pkgbuildstorage.storage()
     
     if(dependencies is None):
         return None

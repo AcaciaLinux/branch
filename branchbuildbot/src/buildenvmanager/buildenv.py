@@ -43,7 +43,7 @@ def install_pkgs(packages):
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
     leafcore = pyleafcore.Leafcore()
-    leafcore.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(temp_dir)
     leafcore.a_update()
 

@@ -63,8 +63,40 @@ def handle_command(socket, command):
                 return "SIG_READY"
             
             pkg_file = leafpkg.create_tar_package(builddir, package_build)
-            leafpkg.upload_package(pkg_file, package_build)
+            #leafpkg.upload_package(pkg_file, package_build)
+            
+            file_size = os.path.getsize(pkg_file)
+            blog.info("Package file size is {} bytes".format(file_size))
+            
+            # ask the server to switch into file_transfer_mode
+            res = connect.send_msg(socket, "FILE_TRANSFER_MODE {}".format(file_size))
+            
+            # if we got any other response, we couldn't switch mode
+            if(not res == "ACK_FILE_TRANSFER"):
+                blog.error("Server did not switch to upload mode: {}".format(res))
+                blog.error("Returning to ready-state.")
+                connect.send_msg(socket, "BUILD_FAILED")
 
+                # Clean build environment..
+                blog.info("Cleaning up build environment..")
+                buildenv.clean_env()
+                buildenv.remount_env()
+                return "SIG_READY"
+            
+            # send file over socket
+            res = connect.send_file(socket, pkg_file)            
+
+            if(not res == "UPLOAD_ACK"):
+                blog.error("Uploading the package file failed.")
+                blog.error("Returning to ready-state")
+
+                # Clean build environment..
+                blog.info("Cleaning up build environment..")
+                buildenv.clean_env()
+                buildenv.remount_env()
+                return "SIG_READY"
+            else:
+                blog.info("File upload completed!")
 
             # Clean build environment..
             blog.info("Cleaning up build environment..")

@@ -30,9 +30,6 @@ def accept(sock, mask):
     conn, addr = sock.accept()
     blog.info("Accepted client connection from {}".format(conn.getpeername()))
 
-    # set new conn obj to not block
-    conn.setblocking(False)
-
     # create a new client object
     cl = client.Client(conn, sel)
 

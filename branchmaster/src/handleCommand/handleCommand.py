@@ -1,10 +1,12 @@
 import json
 import os
 import time
+import selectors
 
 import main
 from log import blog
-from localstorage import localstorage
+from localstorage import packagestorage 
+from localstorage import pkgbuildstorage
 from package import build
 from manager import queue
 from manager import jobs
@@ -71,7 +73,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     # checkout a package build file
     #
     elif(cmd_header == "CHECKOUT_PACKAGE"):
-        storage = localstorage.storage()
+        storage = pkgbuildstorage.storage()
 
         if(cmd_body in storage.packages):
             blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
@@ -83,9 +85,14 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     # submit a package build file
     #
     elif(cmd_header == "SUBMIT_PACKAGE"):
+        storage = pkgbuildstorage.storage()
+
         json_bpb = json.loads(cmd_body)
+        if(json_bpb is None):
+            return "INV_PKG_BUILD"
+
         bpb = build.parse_build_json(json_bpb)
-        tdir = build.create_stor_directory(bpb.name)
+        tdir = storage.create_stor_directory(bpb.name)
         
         bpb_file = os.path.join(tdir, "package.bpb")
         if(os.path.exists(bpb_file)):
@@ -98,7 +105,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     # Controller client requested clean release build
     #
     elif(cmd_header == "RELEASE_BUILD"):
-        storage = localstorage.storage()
+        storage = pkgbuildstorage.storage()
         if(cmd_body in storage.packages):
             blog.info("Controller client requested release build for {}".format(cmd_body))
             
@@ -124,7 +131,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     # packages that depend on it
     #
     elif(cmd_header == "REBUILD_DEPENDERS"):
-        storage = localstorage.storage()
+        storage = pkgbuildstorage.storage()
 
         if(cmd_body in storage.packages):
             blog.info("Controller client requested rebuild including dependers for {}".format(cmd_body))
@@ -187,6 +194,26 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "CONNECTED_BUILDBOTS"):
         buildbots = manager.get_buildbot_names()
         return json.dumps(buildbots)
+
+    #
+    # Get a list of all managed packages
+    #
+    elif(cmd_header == "MANAGED_PACKAGES"):
+        stor = packagestorage.storage()
+        return json.dumps(stor.packages)
+
+    #
+    # test
+    #
+    elif(cmd_header == "TEST"):
+        stor = packagestorage.storage()
+        meta_inf = stor.get_all_package_meta()
+
+        for meta in meta_inf:
+            real_version = meta.get_latest_real_version()
+            print("{};{};{};{};{}".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version)))
+
+        return "BLA"
 
     #
     # Invalid command
@@ -280,6 +307,25 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             job.set_status("BUILD_CLEAN")
 
         return "STATUS_ACK"
+
+    elif(cmd_header == "FILE_TRANSFER_MODE"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            job.set_status("UPLOADING")
+
+            job.file_size = int(cmd_body)
+            
+            stor = packagestorage.storage()
+            job.file_name = stor.add_package(job.pkg_payload)
+
+            client.file_transfer_mode = True
+
+            # ack
+            return "ACK_FILE_TRANSFER"
+
+        else:
+            return "NO_JOB"
 
     #
     # Invalid command
