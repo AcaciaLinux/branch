@@ -12,12 +12,13 @@ def register_endpoints():
     webserver.register_endpoint(endpoint("", root_endpoint))
     webserver.register_endpoint(endpoint("test", test_endpoint))
 
-
 def get_endpoint(httphandler, form_data):
     if(form_data["get"] == "packagelist"):
         get_endpoint_pkglist(httphandler)
     elif(form_data["get"] == "package"):
         get_endpoint_package(httphandler, form_data)
+    elif(form_data["get"] == "versions"):
+        get_endpoint_versions(httphandler, form_data)
     else:
         httputils.generic_malformed_request(httphandler)
 
@@ -36,10 +37,6 @@ def get_endpoint_pkglist(httphandler):
         httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
 
 def get_endpoint_package(httphandler, form_data):
-    httphandler.send_response(200)
-    httphandler.send_header("Content-type", "text/plain")
-    httphandler.end_headers()
-
     stor = packagestorage.storage()
     
     package_file = None
@@ -56,7 +53,8 @@ def get_endpoint_package(httphandler, form_data):
                 
                 # Could not find specified version, notify failure.
                 if(package_file is None):
-                    pass
+                    httputils.send_error_response(httphandler, 404, "E_VERSION")
+                    return
 
 
             # No version tag, get latest
@@ -68,24 +66,50 @@ def get_endpoint_package(httphandler, form_data):
     
                 # Could not find latest version (Shouldn't happen..?), notify failure.
                 if(package_file is None):
-                    pass
-                
+                    httputils.send_error_response(httphandler, 404, "E_VERSION")
+                    return 
 
 
         # Package doesn't exist, notify failure
         else:
-            pass
-    
+            httputils.send_error_response(httphandler, 404, "E_PACKAGE")
+            return
+
     # No package name specified, notify failure
     else:
-        pass
-
-    if(package_file is None):
+        httputils.send_error_response(httphandler, 400, "E_PKGNAME")
         return
-
+    
+    # Couldn't find package file..
+    if(package_file is None):
+        httputils.send_error_response(httphandler, 404, "E_PACKAGE")
+        return
 
     pfile = open(package_file, "rb")
     httputils.send_file(httphandler, pfile)
+
+
+def get_endpoint_versions(httphandler, form_data):
+    stor = packagestorage.storage()
+    form_keys = form_data.keys()
+    
+    if(not "pkgname" in form_keys):
+        httputils.send_error_response(httphandler, 400, "E_PKGNAME")
+        return
+
+    if(not form_data["pkgname"] in stor.packages):
+        httputils.send_error_response(httphandler, 404, "E_PACKAGE")
+        return
+
+    meta = stor.get_meta_by_name(form_data["pkgname"])
+    versions = meta.get_version_dict()
+
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    for key in versions:
+        httphandler.wfile.write(bytes("{};{}\n".format(key, versions[key]), "utf-8")) 
 
 
 

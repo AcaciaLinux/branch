@@ -44,6 +44,8 @@ class branch_meta():
     def get_dependencies(self, real_version):
         return self.version_dependencies[real_version]
 
+    def get_version_dict(self):
+        return self.versions
 
 class storage():
 

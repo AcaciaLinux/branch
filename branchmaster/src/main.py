@@ -28,7 +28,7 @@ def main():
     
     # TODO!! config for httpport
 
-    thread = threading.Thread(target=webserver.start_web_server, args=(BRANCH_OPTIONS.listenaddr, 8080))
+    thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(BRANCH_OPTIONS.listenaddr, 8080))
     thread.start()
 
     blog.info("Launching branchmaster...")
