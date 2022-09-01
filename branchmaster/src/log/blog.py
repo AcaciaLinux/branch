@@ -1,4 +1,4 @@
-import main
+from config import config
 
 HEADER = '\033[95m'
 NORMAL = '\033[94m'
@@ -20,5 +20,6 @@ def info(log):
     print(OKGREEN + "==> " + ENDC + log)
 
 def debug(log):
-    if(main.BRANCH_OPTIONS.debuglog):
+    print(config.BRANCH_OPTIONS)
+    if(config.BRANCH_OPTIONS.debuglog):
         print(OKGREEN + "==> [DEBUG] " + ENDC + log)
