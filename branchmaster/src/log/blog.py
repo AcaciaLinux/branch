@@ -20,6 +20,5 @@ def info(log):
     print(OKGREEN + "==> " + ENDC + log)
 
 def debug(log):
-    print(config.BRANCH_OPTIONS)
     if(config.BRANCH_OPTIONS.debuglog):
         print(OKGREEN + "==> [DEBUG] " + ENDC + log)
