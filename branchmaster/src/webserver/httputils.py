@@ -1,3 +1,9 @@
+def send_error_response(httphandler, http_status, error_msg):
+    httphandler.send_response(http_status)
+    httphandler.send_header("Content-type", "text/html")
+    httphandler.end_headers()
+    httphandler.write_answer_encoded(error_msg)
+
 def generic_malformed_request(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/html")
