@@ -2,9 +2,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from log import blog
 
-hostName = "localhost"
-serverPort = 8080
-
 #
 # Registered HTTP endpoints
 #
@@ -40,6 +37,8 @@ class web_server(BaseHTTPRequestHandler):
     # handle the get request
     #
     def do_GET(self):
+        blog.web_log("Handling API request from {}..".format(self.client_address))
+
         # strip /
         self.path = self.path[1:len(self.path)]        
 

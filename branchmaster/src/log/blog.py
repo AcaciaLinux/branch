@@ -19,6 +19,9 @@ def error(log):
 def info(log):
     print(OKGREEN + "==> " + ENDC + log)
 
+def web_log(log):
+    print(OKCYAN + " -> " + ENDC + log)
+
 def debug(log):
-    if(config.BRANCH_OPTIONS.debuglog):
+    if(config.branch_options().debuglog):
         print(OKGREEN + "==> [DEBUG] " + ENDC + log)

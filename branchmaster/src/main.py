@@ -1,7 +1,6 @@
 BRANCH_CODENAME = "A Red Letter Day"
 BRANCH_VERSION = "0.2"
 
-
 import threading
 
 from log import blog
@@ -21,22 +20,21 @@ def main():
     print()
 
     blog.info("Masterserver initializing..")
-    
-    blog.info("Loading master configuration..")
 
-    blog.info("Launching webserver...")
+    blog.info("Loading masterserver configuration..")
+    conf = config.branch_options()
+    conf.load_config()
+
+    blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
     endpoints.register_endpoints()
-    
-    # TODO!! config for httpport
-
-    thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(config.BRANCH_OPTIONS.listenaddr, 8080))
+    thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
 
     thread.start()
 
-    blog.info("Launching branchmaster...")
-    blog.info("Serving on {} port {}".format(config.BRANCH_OPTIONS.listenaddr, config.BRANCH_OPTIONS.port))
-    server.init_server(config.BRANCH_OPTIONS.listenaddr, int(config.BRANCH_OPTIONS.port)) 
- 
+    blog.info("Launching branchmaster..")
+    blog.info("Serving on {} port {}".format(conf.listenaddr, conf.port))
+    server.init_server(conf.listenaddr, int(conf.port)) 
+
 if (__name__ == "__main__"):
     try:
         main()

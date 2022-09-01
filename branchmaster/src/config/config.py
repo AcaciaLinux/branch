@@ -4,102 +4,86 @@ import os
 
 from log import blog
 
-class branchOpts():
-    port = None
-    listenaddr = None
-    debuglog = None
+class branch_options():
+    # static class vars
+    port = 27015
+    httpport = 8080
+    listenaddr = "127.0.0.1"
+    debuglog = False
     untrustedclients = None
 
-    def __init__(self):
-        self.port = 0
 
-# loads CONFIG_FILE from disk and parses it
-# returns: 
-#  0, parsing succesful
-# -1, parsing failed.
-def load_config():
-    check_config()
-    
-    home = os.environ['HOME'];
-    conf_file = open(CONFIG_FILE, "r")
-    conf_arr = conf_file.read().split("\n")
-
-    options = branchOpts()
-
-    for prop in conf_arr:
-        if(len(prop) == 0):
-            continue
-
-        # skip comments
-        if(prop[0] == '#'):
-            continue
+    # Loads the configuration file from disk and
+    # sets the static class variables
+    def load_config(self):
+        self.check_config()
         
-        prop_arr = prop.split("=")
-        key = prop_arr[0]
+        conf_file = open(CONFIG_FILE, "r")
+        conf_arr = conf_file.read().split("\n")
 
-        if(len(prop_arr) != 2):
-            blog.error("Cannot continue with broken configuration file.")
-            blog.error("Failed property: {}".format(prop))
-            return -1
+        for prop in conf_arr:
+            if(len(prop) == 0):
+                continue
 
-        val = prop_arr[1]
-        if(key == "listenaddr"):
-            options.listenaddr = val
-        elif(key == "port"):
-            options.port = val
-        elif(key == "debuglog"):
-            if(val == "False"):
-                options.debuglog = False
+            # skip comments
+            if(prop[0] == '#'):
+                continue
+            
+            prop_arr = prop.split("=")
+            key = prop_arr[0]
+
+            if(len(prop_arr) != 2):
+                blog.error("Cannot continue with broken configuration file.")
+                blog.error("Failed property: {}".format(prop))
+                return -1
+
+            val = prop_arr[1]
+            if(key == "listenaddr"):
+                self.listenaddr = val
+            elif(key == "port"):
+                self.port = val
+            elif(key == "httpport"):
+                self.httpport = val
+            elif(key == "debuglog"):
+                if(val == "False"):
+                    self.debuglog = False
+                else:
+                    self.debuglog = True
+            elif(key == "untrustedclients"):
+                if(val == "False"):
+                    self.untrustedclients = False
+                else:
+                    self.untrustedclients = True
             else:
-                options.debuglog = True
-        elif(key == "untrustedclients"):
-            if(val == "False"):
-                options.untrustedclients = False
-            else:
-                options.untrustedclients = True
-        else:
-            blog.warn("Skipping unknown configuration key: {}".format(key)) 
+                blog.warn("Skipping unknown configuration key: {}".format(key)) 
 
-    return options
 
-def create_config():
-    home = os.environ['HOME'];
+    def create_config(self):
+        try:
+            os.makedirs(os.path.dirname(CONFIG_FILE))
+        except FileExistsError:
+            pass
 
-    try:
-        os.makedirs(os.path.dirname(CONFIG_FILE))
-    except FileExistsError:
-        pass
+        branch_cfg = open(CONFIG_FILE, "w")
+        
+        # defaults
+        branch_cfg.write("# IP address and port the server should listen on:\n")
+        branch_cfg.write("listenaddr=127.0.0.1\n")
+        branch_cfg.write("port=27015\n")
+        branch_cfg.write("# Port the http server should listen on:\n")
+        branch_cfg.write("httpport=8080\n")
+        branch_cfg.write("# Print Debug log messages:\n")
+        branch_cfg.write("debuglog=False\n")
+        branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:\n")
+        branch_cfg.write("untrustedclients=False\n")
 
-    branch_cfg = open(CONFIG_FILE, "w")
-    
-    # defaults
-    branch_cfg.write("# IP address and port the server should listen on:\n")
-    branch_cfg.write("listenaddr=127.0.0.1\n")
-    branch_cfg.write("port=27015\n")
-    branch_cfg.write("# Print Debug log messages:\n")
-    branch_cfg.write("debuglog=False\n")
-    branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:\n")
-    branch_cfg.write("untrustedclients=False\n")
-
-def check_config():
-    config_exists = False
-
-    try:
-        config_exists = "master.conf" in os.listdir(os.path.dirname(CONFIG_FILE))
-    except FileNotFoundError:
+    def check_config(self):
         config_exists = False
 
-    if(not config_exists):
-        blog.info("First run detected. Continuing with default options.")
-        create_config()
+        try:
+            config_exists = "master.conf" in os.listdir(os.path.dirname(CONFIG_FILE))
+        except FileNotFoundError:
+            config_exists = False
 
-def load_config_file():
-    check_config()
-    conf_file = load_config()
-
-    if(conf_file == -1):
-        exit(-1)
-
-    return conf_file
-
-BRANCH_OPTIONS = load_config_file()
+        if(not config_exists):
+            create_config()

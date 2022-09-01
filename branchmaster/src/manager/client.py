@@ -32,7 +32,7 @@ class Client():
         self.sel = sel
         self.sock = sock
 
-        manager.static_manager.register_client(self)
+        manager.manager().register_client(self)
         is_ready = False
 
     #
@@ -70,7 +70,7 @@ class Client():
             
         if data_trimmed:
             blog.debug("Received Data from {}. Data: {}".format(self.client_uuid, data_trimmed)) 
-            manager.static_manager.handle_command(self, data_trimmed)
+            manager.manager().handle_command(self, data_trimmed)
         else:
             # we got no data, handle a client disconnect.
             self.handle_disconnect()
@@ -81,7 +81,7 @@ class Client():
     def receive_file(self, conn, mask):
         data = b""
         
-        job = manager.static_manager.get_job_by_client(self)
+        job = manager.manager().get_job_by_client(self)
         blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(self.get_identifier(), job.file_size))
         
         while(job.file_size != len(data)):
@@ -119,7 +119,7 @@ class Client():
     #
     def handle_disconnect(self):
         blog.info("Client {} has disconnected.".format(self.get_identifier()))
-        manager.static_manager.remove_client(self)
+        manager.manager().remove_client(self)
         self.sel.unregister(self.sock)
         self.sock.close()
 

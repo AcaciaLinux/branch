@@ -4,6 +4,8 @@ from manager import queue
 from manager import jobs
 
 class manager():
+    
+    # static class objects
     queue = queue.queue()
     client_array = [ ]
     
@@ -121,7 +123,3 @@ class manager():
                 res.append(client.get_identifier())
 
         return res
-
-
-static_manager = None
-static_manager = manager()
