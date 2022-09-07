@@ -86,4 +86,4 @@ class branch_options():
             config_exists = False
 
         if(not config_exists):
-            create_config()
+            self.create_config()
