@@ -13,6 +13,7 @@ LAUNCH_DIR = os.getcwd()
 def check_buildenv():
     # 3 directories required for overlayFS
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
@@ -20,6 +21,9 @@ def check_buildenv():
     # check if paths exist..
     if(not os.path.exists(root_dir)):
         os.mkdir(root_dir)
+
+    if(not os.path.exists(cross_dir)):
+        os.mkdir(cross_dir)
 
     if(not os.path.exists(diff_dir)):
         os.mkdir(diff_dir)
@@ -33,10 +37,16 @@ def check_buildenv():
     # control file exists if installed
     control_file = os.path.join(root_dir, "installed")
 
-    if(os.path.exists(control_file)):
-        setup_env(root_dir, diff_dir, work_dir, temp_dir)
-    else:
+    if(not os.path.exists(control_file)):
         deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir)
+
+    control_file = os.path.join(cross_dir, "installed")
+
+    if(not os.path.exists(control_file)):
+        deploy_crossenv(root_dir, diff_dir, work_dir, temp_dir)
+
+
+    blog.info("Build environment setup completed.")
 
 # installs packages to overlayfs temproot
 def install_pkgs(packages):
@@ -51,10 +61,8 @@ def install_pkgs(packages):
         leafcore.a_install(packages)
 
 def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
-
-    # pyleaf stub
     leafcore = pyleafcore.Leafcore()
-    leafcore.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(root_dir)
     leafcore.a_update()
     
@@ -63,15 +71,39 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
     leafcore.a_install(pkgs)
     Path(os.path.join(root_dir, "installed")).touch()
 
-    blog.info("Deployment completed.")
-    setup_env(root_dir, diff_dir, work_dir, temp_dir)
+    blog.info("Realroot deployment completed.")
+
+def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
+    leafcore = pyleafcore.Leafcore()
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setRootDir(root_dir)
+    leafcore.a_update()
+    
+    pkgs = ["crosstools"]
+
+    leafcore.a_install(pkgs)
+    Path(os.path.join(root_dir, "installed")).touch()
+
+    blog.info("Crossroot deployment completed.")
+
 
 # first mount the overlayfs
-def setup_env(root_dir, diff_dir, overlay_dir, temp_dir):
-   
+def setup_env(use_crossroot):
+    # 3 directories required for overlayFS
+    root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
+    diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
+    work_dir = os.path.join(LAUNCH_DIR, "overlay")
+    temp_dir = os.path.join(LAUNCH_DIR, "temproot")
+
     if(not Path(temp_dir).is_mount()):
         blog.info("Mounting overlayfs..")
-        os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
+     
+        if(use_crossroot):
+            blog.info("Build requested using crosstools..")
+            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(cross_dir, diff_dir, overlay_dir, temp_dir))
+        else:
+            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
     else:
         # unclean shutdown, cleanup and remount
         clean_env()
@@ -82,15 +114,20 @@ def setup_env(root_dir, diff_dir, overlay_dir, temp_dir):
     dev_fs = os.path.join(temp_dir, "dev")
     os.system("mount --bind /dev {}".format(dev_fs))
 
+
 # remount overlayfs
-def remount_env():
+def remount_env(use_crossroot):
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     overlay_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
     blog.info("Remounting overlayfs..")
-    os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
+    if(use_crossroot):
+        os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(cross_dir, diff_dir, overlay_dir, temp_dir))
+    else:
+        os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
   
     blog.info("Syncing filesystem..")
     os.system("sync")
@@ -100,13 +137,11 @@ def remount_env():
     os.system("mount --bind /dev {}".format(dev_fs))
 
 def clean_env():
-    root_dir = os.path.join(LAUNCH_DIR, "realroot")
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     dev_fs = os.path.join(temp_dir, "dev")
 
-    
     blog.info("Unmounting devfs..")
     
     devfs_umount_failed = False
@@ -154,7 +189,6 @@ def clean_env():
             blog.warn("Temp dir is busy..")
             time.sleep(2)
             pass
-
 
     os.mkdir(diff_dir)
     os.mkdir(work_dir)

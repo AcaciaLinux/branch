@@ -32,6 +32,7 @@ def handle_command(socket, command):
             job_id = json_obj['job_id']
             blog.info("Got a job from masterserver. Job ID: '{}'".format(job_id))
 
+            buildenv.setup_env(False) 
             rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
@@ -59,11 +60,9 @@ def handle_command(socket, command):
                 # Clean build environment..
                 blog.info("Cleaning up build environment..")
                 buildenv.clean_env()
-                buildenv.remount_env()
                 return "SIG_READY"
             
             pkg_file = leafpkg.create_tar_package(builddir, package_build)
-            #leafpkg.upload_package(pkg_file, package_build)
             
             file_size = os.path.getsize(pkg_file)
             blog.info("Package file size is {} bytes".format(file_size))
@@ -80,7 +79,6 @@ def handle_command(socket, command):
                 # Clean build environment..
                 blog.info("Cleaning up build environment..")
                 buildenv.clean_env()
-                buildenv.remount_env()
                 return "SIG_READY"
             
             # send file over socket
@@ -90,10 +88,12 @@ def handle_command(socket, command):
                 blog.error("Uploading the package file failed.")
                 blog.error("Returning to ready-state")
 
+                # notify build failure
+                connect.send_msg(socket, "BUILD_FAILED")
+                
                 # Clean build environment..
                 blog.info("Cleaning up build environment..")
                 buildenv.clean_env()
-                buildenv.remount_env()
                 return "SIG_READY"
             else:
                 blog.info("File upload completed!")
@@ -102,7 +102,6 @@ def handle_command(socket, command):
             blog.info("Cleaning up build environment..")
             buildenv.clean_env()
             
-            buildenv.remount_env()
             connect.send_msg(socket, "BUILD_CLEAN")
 
             # We completed the build job. Send SIG_READY
