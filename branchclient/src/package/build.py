@@ -1,9 +1,5 @@
-import tarfile
 import os
-import subprocess
 import shutil
-import requests
-import tarfile
 import json
 
 from log import blog
@@ -96,7 +92,6 @@ def parse_build_file(pkg_file):
    
     return BPBopts
 
-
 def create_pkg_workdir(pkg_opts):
     if(os.path.exists(pkg_opts.name)):
         blog.warn("Fetching latest version of pkgbuild..")
@@ -115,7 +110,6 @@ def create_stor_directory(pkg_name):
         os.mkdir(pkg_dir)
 
     return pkg_dir
-
 
 def write_build_file(file, pkg_opts):
     bpb_file = open(file, "w")
