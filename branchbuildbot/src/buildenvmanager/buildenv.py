@@ -43,7 +43,7 @@ def check_buildenv():
     control_file = os.path.join(cross_dir, "installed")
 
     if(not os.path.exists(control_file)):
-        deploy_crossenv(root_dir, diff_dir, work_dir, temp_dir)
+        deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir)
 
 
     blog.info("Build environment setup completed.")
@@ -76,13 +76,13 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
     leafcore = pyleafcore.Leafcore()
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore.setRootDir(root_dir)
+    leafcore.setRootDir(cross_dir)
     leafcore.a_update()
     
     pkgs = ["crosstools"]
 
     leafcore.a_install(pkgs)
-    Path(os.path.join(root_dir, "installed")).touch()
+    Path(os.path.join(cross_dir, "installed")).touch()
 
     blog.info("Crossroot deployment completed.")
 
@@ -185,14 +185,16 @@ def clean_env():
         try:
             shutil.rmtree(temp_dir)
             target_busy = False
-        except OSError as e:
+        except OSError:
             blog.warn("Temp dir is busy..")
             time.sleep(2)
-            pass
 
     os.mkdir(diff_dir)
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
 
-def get_build_path():
-    return os.path.join(LAUNCH_DIR, "temproot")
+def get_build_path(use_crosstools):
+    if(use_crosstools):
+        return os.path.join(LAUNCH_DIR, "crossroot")
+    else:
+        return os.path.join(LAUNCH_DIR, "temproot")
