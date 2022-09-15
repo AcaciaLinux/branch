@@ -31,6 +31,7 @@ def main():
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
     argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
+    argparser.add_argument("-cb", "--crossbuild", help="Requests a release package build from the build server.")
     argparser.add_argument("-st", "--status", help="Requests a list of running / completed jobs from the server.", action="store_true")
     argparser.add_argument("-cs", "--clientstatus", help="Requests a list of clients connected to the server.", action="store_true")
 
@@ -56,6 +57,11 @@ def main():
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
             commands.release_build(conf, args.releasebuild)
+
+        elif(not args.crossbuild is None):
+            blog.info("Requesting cross build for '{}'.".format(args.releasebuild))
+            commands.cross_build(conf, args.crossbuild)
+
 
 if (__name__ == "__main__"):
     try:

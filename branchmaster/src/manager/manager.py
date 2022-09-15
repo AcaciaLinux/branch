@@ -65,8 +65,8 @@ class manager():
         return res
 
     
-    def new_job(self):
-        job = jobs.jobs()
+    def new_job(self, use_crosstools):
+        job = jobs.jobs(use_crosstools)
         self.queued_jobs.append(job)
         return job
 

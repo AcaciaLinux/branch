@@ -100,7 +100,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
        
         build.write_build_file(bpb_file, bpb)
         return "CMD_OK"
-    
+ 
     #
     # Controller client requested clean release build
     #
@@ -111,8 +111,35 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             
             pkg = storage.get_bpb_obj(cmd_body)
 
-            # get a job obj
-            job = manager.new_job()
+            # get a job obj, crosstools = False
+            job = manager.new_job(False)
+
+            # TODO: remove seperate build_pkg_name, because pkg contains it.
+            job.build_pkg_name = pkg.name
+            job.pkg_payload = pkg
+            job.requesting_client = client.get_identifier()
+            job.set_status("WAITING")
+
+            res = manager.get_queue().add_to_queue(manager, job)
+            return res
+        else:
+            blog.info("Controller client requested release build for invalid package.")
+            return "INV_PKG_NAME"
+
+
+
+    #
+    # Controller client requested clean cross build
+    #
+    elif(cmd_header == "CROSS_BUILD"):
+        storage = pkgbuildstorage.storage()
+        if(cmd_body in storage.packages):
+            blog.info("Controller client requested cross build for {}".format(cmd_body))
+            
+            pkg = storage.get_bpb_obj(cmd_body)
+
+            # get a job obj, use_crosstools = True
+            job = manager.new_job(True)
 
             # TODO: remove seperate build_pkg_name, because pkg contains it.
             job.build_pkg_name = pkg.name
