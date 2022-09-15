@@ -33,7 +33,7 @@ def handle_command(socket, command):
             blog.info("Got a job from masterserver. Job ID: '{}'. Using realroot".format(job_id))
 
             buildenv.setup_env(False) 
-            rootdir = buildenv.get_build_path(False)
+            rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
             builddir = os.path.join(rootdir, "branchbuild/")
@@ -120,7 +120,7 @@ def handle_command(socket, command):
             blog.info("Got a job from masterserver. Job ID: '{}'. Using crosstools.".format(job_id))
 
             buildenv.setup_env(True) 
-            rootdir = buildenv.get_build_path(True)
+            rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
             builddir = os.path.join(rootdir, "branchbuild/")

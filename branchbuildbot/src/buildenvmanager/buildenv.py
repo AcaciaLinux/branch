@@ -101,13 +101,13 @@ def setup_env(use_crossroot):
      
         if(use_crossroot):
             blog.info("Build requested using crosstools..")
-            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(cross_dir, diff_dir, overlay_dir, temp_dir))
+            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(cross_dir, diff_dir, work_dir, temp_dir))
         else:
-            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, overlay_dir, temp_dir))
+            os.system("mount -t overlay overlay -o lowerdir={},upperdir={},workdir={} {}".format(root_dir, diff_dir, work_dir, temp_dir))
     else:
         # unclean shutdown, cleanup and remount
         clean_env()
-        remount_env()
+        remount_env(use_crossroot)
 
     # bind devfs
     blog.info("Binding devfs...")
@@ -193,8 +193,5 @@ def clean_env():
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
 
-def get_build_path(use_crosstools):
-    if(use_crosstools):
-        return os.path.join(LAUNCH_DIR, "crossroot")
-    else:
-        return os.path.join(LAUNCH_DIR, "temproot")
+def get_build_path():
+    return os.path.join(LAUNCH_DIR, "temproot")
