@@ -1,3 +1,4 @@
 [submodule "branchbuildbot/src/pyleaf"]
 	path = branchbuildbot/src/pyleaf
-	url = git@github.com:AcaciaLinux/pyleaf.git
+	url = https://github.com/AcaciaLinux/pyleaf.git
+	shallow = true

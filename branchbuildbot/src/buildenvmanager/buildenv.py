@@ -52,7 +52,13 @@ def check_buildenv():
 def install_pkgs(packages):
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
-    leafcore = pyleafcore.Leafcore()
+    leafcore = None
+    try:
+        leafcore = pyleafcore.Leafcore()
+    except Exception:
+        blog.error("cleaf not found. Exiting.")
+        exit(-1)
+
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(temp_dir)
     leafcore.a_update()
@@ -61,8 +67,15 @@ def install_pkgs(packages):
         leafcore.a_install(packages)
 
 def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
-    leafcore = pyleafcore.Leafcore()
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    # pyleaf stub
+    leafcore = None
+    try:
+        leafcore = pyleafcore.Leafcore()
+    except Exception:
+        blog.error("cleaf not found. Exiting.")
+        exit(-1)
+
+    leafcore.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(root_dir)
     leafcore.a_update()
     

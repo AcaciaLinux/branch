@@ -13,6 +13,7 @@ def connect(host, port, name, cltype):
         s.connect((host, port))
     except ConnectionRefusedError:
         return None
+
     blog.info("Connection established!")
     
     blog.info("Sending machine type..")
