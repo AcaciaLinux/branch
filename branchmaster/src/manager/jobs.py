@@ -3,7 +3,7 @@ import uuid
 from log import blog
 
 class jobs():
-    def __init__(self):
+    def __init__(self, use_crosstools):
 
         # class members
         self.job_id = ""
@@ -24,6 +24,8 @@ class jobs():
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
+
+        self.use_crosstools = use_crosstools
 
     #
     # get dict of class variables

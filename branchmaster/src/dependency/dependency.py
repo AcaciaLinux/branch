@@ -107,7 +107,8 @@ def get_job_array(manager, client, dependencies):
         return None
 
     for dependency in dependencies:
-        job = manager.new_job()
+        # do not use crosstools
+        job = manager.new_job(False)
         job.build_pkg_name = dependency
         job.pkg_payload = stor.get_bpb_obj(dependency)
         

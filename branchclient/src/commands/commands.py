@@ -57,6 +57,20 @@ def release_build(conf, pkg_name):
         blog.error("Invalid package name.")
         
 
+def cross_build(conf, pkg_name):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+
+    resp = connect.send_msg(s, "CROSS_BUILD {}".format(pkg_name))
+
+    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
+        blog.info("The package build was immediately handled by a ready build bot.")
+    elif(resp == "BUILD_REQ_QUEUED"):
+        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
+    elif(resp == "INV_PKG_NAME"):
+        blog.error("Invalid package name.")
+        
+
+
 
 #
 # get job status from server
