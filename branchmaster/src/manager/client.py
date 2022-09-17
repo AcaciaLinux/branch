@@ -79,18 +79,19 @@ class Client():
     # Receive a file from buildbot
     #
     def receive_file(self, conn, mask):
-        data = b""
-        
         job = manager.manager().get_job_by_client(self)
+
+        out_file = open(job.file_name, "wb")
+        data_len = 0
+
         blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(self.get_identifier(), job.file_size))
         
-        while(job.file_size != len(data)):
-            data += conn.recv(4096)
+        while(job.file_size != data_len):
+            data = conn.recv(4096)
+            data_len += len(data)
+            out_file.write(data)
 
         blog.info("Received {} bytes.".format(job.file_size))
-        blog.info("Writing file to disk...")
-        out_file = open(job.file_name, "wb")
-        out_file.write(data)
         out_file.close()
 
         self.file_transfer_mode = False

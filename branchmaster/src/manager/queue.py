@@ -106,7 +106,7 @@ class queue():
         # assign pkg_name and our client name to the job
         client.is_ready = False
 
-        if(job.use_crosstools):
+        if(job_obj.use_crosstools):
             client.send_command("BUILD_PKG_CROSS {}".format(pkg_json))
         else:    
             client.send_command("BUILD_PKG {}".format(pkg_json))
