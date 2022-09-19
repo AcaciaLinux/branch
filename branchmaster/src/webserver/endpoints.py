@@ -1,6 +1,7 @@
 from webserver import webserver
 from webserver import httputils
 from localstorage import packagestorage
+from config import config
 
 class endpoint():
     def __init__(self, path, handler):
@@ -29,10 +30,12 @@ def get_endpoint_pkglist(httphandler):
     
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
+    conf = config.branch_options()
+    conf.load_config()
 
     for meta in meta_inf:
         real_version = meta.get_latest_real_version()
-        url = "http://localhost:8080/?get=package&pkgname={}".format(meta.get_name())
+        url = "http://{}:{}/?get=package&pkgname={}".format(conf.listenaddr, conf.httpport, meta.get_name())
 
         httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
 
