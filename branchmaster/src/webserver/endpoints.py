@@ -52,7 +52,7 @@ def get_endpoint_package(httphandler, form_data):
         
             # We have a version tag, get specific version.
             if("version" in form_keys):
-                package_file = stor.get_pkg_path(form_data["pkgname"], int(form_data["version"]))
+                package_file = stor.get_pkg_path(form_data["pkgname"], form_data["version"])
                 
                 # Could not find specified version, notify failure.
                 if(package_file is None):
