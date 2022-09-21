@@ -120,7 +120,7 @@ def build(directory, package_build):
     blog.info("Build started on {}".format(datetime.datetime.now()))
 
 
-    proc = subprocess.run(["chroot", temp_root, "bash", "/entry.sh"])
+    proc = subprocess.run(["chroot", temp_root, "/usr/bin/bash", "/entry.sh"])
 
     print("====================================================")
     if(proc.returncode != 0):
