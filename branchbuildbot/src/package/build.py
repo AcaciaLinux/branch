@@ -74,8 +74,8 @@ def build(directory, package_build):
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
 
             blog.info("Source fetched")
-        except Exception:
-            blog.error("Broken link in packagebuild. Not fetching source.")
+        except Exception as ex:
+            blog.error("Exception thrown while unpacking: {}".format(ex))
     else:
         blog.warn("No source specified. Not fetching source.") 
    
