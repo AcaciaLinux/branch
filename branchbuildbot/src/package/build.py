@@ -1,8 +1,8 @@
 import tarfile
+import pycurl
 import os
 import subprocess
 import shutil
-import requests
 import tarfile
 import json
 import datetime
@@ -53,13 +53,29 @@ def build(directory, package_build):
     print("====================================================")
 
     if(package_build.source):
-        try:
-            source_request = requests.get(package_build.source, stream=True)
-            source_file = package_build.source.split("/")[-1]
+        #source_file = package_build.source.split("/")[-1]
+        out_file = open(source_file, "wb")
 
+        blog.info("Setting up pycurl..")
+        curl = pycurl.Curl()
+        curl.setopt(pycurl.URL, package_build.source)
+        curl.setopt(pycurl.FOLLOWLOCATION, 1)
+        curl.setopt(pycurl.MAXREDIRS, 5)
+        curl.setopt(pycurl.CONNECTTIMEOUT, 30)
+        curl.setopt(pycurl.TIMEOUT, 300)
+        curl.setopt(pycurl.NOSIGNAL, 1)
+        curl.setopt(pycurl.WRITEDATA, out_file)
+
+        blog.info("Fetching source..")
+        try:
+            curl.perform()
+        except Exception as ex:
+            blog.error("Fetching source failed. {}".format(ex))
+            return "BUILD_FAILED"
+        
+        try:
             # fetch sources
             blog.info("Fetching source: " + source_file)
-            out_file = open(source_file, "wb")
             shutil.copyfileobj(source_request.raw, out_file)
 
             # check if file is tarfile and extract if it is
@@ -76,6 +92,7 @@ def build(directory, package_build):
             blog.info("Source fetched")
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
+            return "BUILD_FAILED"
     else:
         blog.warn("No source specified. Not fetching source.") 
    
