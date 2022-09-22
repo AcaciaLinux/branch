@@ -38,12 +38,16 @@ def check_buildenv():
     control_file = os.path.join(root_dir, "installed")
 
     if(not os.path.exists(control_file)):
-        deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir)
+        if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir) != 0):
+            blog.error("Real root deployment failed.")
+            exit(-1)
 
     control_file = os.path.join(cross_dir, "installed")
 
     if(not os.path.exists(control_file)):
-        deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir)
+        if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
+            blog.error("Crosstools deployment failed.")
+            exit(-1)
 
 
     blog.info("Build environment setup completed.")
@@ -60,11 +64,22 @@ def install_pkgs(packages):
         exit(-1)
 
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
     leafcore.setRootDir(temp_dir)
-    leafcore.a_update()
+
+    leaf_error = leafcore.a_update()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        return -1
 
     if(not packages is None):
-        leafcore.a_install(packages)
+        leaf_error = leafcore.a_install(packages)
+        if(leaf_error != 0):
+            blog.error("Leaf error code: {}".format(leaf_error))
+            return -1
+
+    blog.info("Package install completed.")
+    return 0
 
 def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
     leafcore = None
@@ -76,14 +91,22 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(root_dir)
-    leafcore.a_update()
-    
+
+    leaf_error = leafcore.a_update()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        return -1
+
     pkgs = ["base", "base-packages", "util-linux", "gcc"]
 
-    leafcore.a_install(pkgs)
-    Path(os.path.join(root_dir, "installed")).touch()
+    leaf_error = leafcore.a_install(pkgs)
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        return -1
 
+    Path(os.path.join(root_dir, "installed")).touch()
     blog.info("Realroot deployment completed.")
+    return 0
 
 def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
     leafcore = None
@@ -95,15 +118,22 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
 
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore.setRootDir(cross_dir)
-    leafcore.a_update()
-    
+
+    leaf_error = leafcore.a_update()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        return -1
+
     pkgs = ["crosstools"]
 
-    leafcore.a_install(pkgs)
+    leaf_error = leafcore.a_install(pkgs)
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        return -1
+
     Path(os.path.join(cross_dir, "installed")).touch()
-
     blog.info("Crossroot deployment completed.")
-
+    return 0
 
 # first mount the overlayfs
 def setup_env(use_crossroot):
