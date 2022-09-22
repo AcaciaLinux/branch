@@ -1,8 +1,8 @@
 import tarfile
+import pycurl
 import os
 import subprocess
 import shutil
-import requests
 import tarfile
 import json
 import datetime
@@ -53,29 +53,48 @@ def build(directory, package_build):
     print("====================================================")
 
     if(package_build.source):
+        source_file = package_build.source.split("/")[-1]
+        
+        blog.debug("Source file is: {}".format(source_file))
+
+        out_file = open(source_file, "wb")
+
+        blog.info("Setting up pycurl..")
+        curl = pycurl.Curl()
+        curl.setopt(pycurl.URL, package_build.source)
+        curl.setopt(pycurl.FOLLOWLOCATION, 1)
+        curl.setopt(pycurl.MAXREDIRS, 5)
+        curl.setopt(pycurl.CONNECTTIMEOUT, 30)
+        curl.setopt(pycurl.TIMEOUT, 300)
+        curl.setopt(pycurl.NOSIGNAL, 1)
+        curl.setopt(pycurl.WRITEDATA, out_file)
+
+        blog.info("Fetching source..")
         try:
-            source_request = requests.get(package_build.source, stream=True)
-            source_file = package_build.source.split("/")[-1]
+            curl.perform()
+        except Exception as ex:
+            blog.error("Fetching source failed. {}".format(ex))
+            return "BUILD_FAILED"
 
-            # fetch sources
-            blog.info("Fetching source: " + source_file)
-            out_file = open(source_file, "wb")
-            shutil.copyfileobj(source_request.raw, out_file)
+        
+        blog.info("Pycurl file size: {}".format(curl.getinfo(curl.CONTENT_LENGTH_DOWNLOAD)))
+        blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
 
+        out_file.close()
+        curl.close()
+
+        try:
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
                 blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
                 tar_obj = tar_file.extractall(".")
-            
-            # TODO: check for zip
-
             else:
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
 
-            blog.info("Source fetched")
-        except Exception:
-            blog.error("Broken link in packagebuild. Not fetching source.")
+        except Exception as ex:
+            blog.error("Exception thrown while unpacking: {}".format(ex))
+            return "BUILD_FAILED"
     else:
         blog.warn("No source specified. Not fetching source.") 
    
