@@ -75,10 +75,12 @@ def build(directory, package_build):
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
             return "BUILD_FAILED"
-        
-        curl.close()
-        blog.info("Source fetched. File size: {}".format(os.path.getsize(source_file)))
 
+        
+        blog.info("Pycurl file size: {}".format(curl.getinfo(curl.CONTENT_LENGTH_DOWNLOAD)))
+        blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
+
+        curl.close()
         try:
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
