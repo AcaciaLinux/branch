@@ -76,6 +76,7 @@ def build(directory, package_build):
             blog.error("Fetching source failed. {}".format(ex))
             return "BUILD_FAILED"
         
+        curl.close()
         blog.info("Source fetched. File size: {}".format(os.path.getsize(source_file)))
 
         try:
@@ -84,7 +85,6 @@ def build(directory, package_build):
                 blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
                 tar_obj = tar_file.extractall(".")
-            
             else:
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
 
