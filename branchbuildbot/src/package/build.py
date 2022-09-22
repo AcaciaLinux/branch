@@ -99,8 +99,11 @@ def build(directory, package_build):
         blog.warn("No source specified. Not fetching source.") 
    
     blog.info("Installing dependencies to temproot..")
-    buildenv.install_pkgs(get_pkg_array(package_build.dependencies))
-    buildenv.install_pkgs(get_pkg_array(package_build.build_dependencies))
+    if(buildenv.install_pkgs(get_pkg_array(package_build.dependencies)) != 0):
+        return "BUILD_FAILED"
+
+    if(buildenv.install_pkgs(get_pkg_array(package_build.build_dependencies)) != 0):
+        return "BUILD_FAILED"
 
 
     print("====================================================")
