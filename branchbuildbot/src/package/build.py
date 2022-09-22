@@ -80,7 +80,9 @@ def build(directory, package_build):
         blog.info("Pycurl file size: {}".format(curl.getinfo(curl.CONTENT_LENGTH_DOWNLOAD)))
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
 
+        out_file.close()
         curl.close()
+
         try:
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
