@@ -53,7 +53,7 @@ def build(directory, package_build):
     print("====================================================")
 
     if(package_build.source):
-        #source_file = package_build.source.split("/")[-1]
+        source_file = package_build.source.split("/")[-1]
         out_file = open(source_file, "wb")
 
         blog.info("Setting up pycurl..")
