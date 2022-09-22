@@ -64,6 +64,7 @@ def install_pkgs(packages):
         exit(-1)
 
     leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
     leafcore.setRootDir(temp_dir)
 
     leaf_error = leafcore.a_update()
