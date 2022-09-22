@@ -54,6 +54,9 @@ def build(directory, package_build):
 
     if(package_build.source):
         source_file = package_build.source.split("/")[-1]
+        
+        blog.debug("Source file is: {}".format(source_file))
+
         out_file = open(source_file, "wb")
 
         blog.info("Setting up pycurl..")
@@ -73,20 +76,18 @@ def build(directory, package_build):
             blog.error("Fetching source failed. {}".format(ex))
             return "BUILD_FAILED"
         
-        try:
+        blog.info("Source fetched. File size: {}".format(os.path.getsize(source_file)))
 
+        try:
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
                 blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
                 tar_obj = tar_file.extractall(".")
             
-            # TODO: check for zip
-
             else:
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
 
-            blog.info("Source fetched")
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
             return "BUILD_FAILED"
