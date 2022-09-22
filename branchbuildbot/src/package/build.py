@@ -74,9 +74,6 @@ def build(directory, package_build):
             return "BUILD_FAILED"
         
         try:
-            # fetch sources
-            blog.info("Fetching source: " + source_file)
-            shutil.copyfileobj(source_request.raw, out_file)
 
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
