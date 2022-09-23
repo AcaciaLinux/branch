@@ -43,9 +43,6 @@ def handle_command(socket, command):
             # parse the package build we got
             package_build = build.parse_build_json(json_obj)
             
-            # Write the file to /branchbuild/ inside our build environment
-            build.write_build_file(os.path.join(builddir, "package.bpb"), package_build)
-
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")
     
@@ -130,9 +127,6 @@ def handle_command(socket, command):
             # parse the package build we got
             package_build = build.parse_build_json(json_obj)
             
-            # Write the file to /branchbuild/ inside our build environment
-            build.write_build_file(os.path.join(builddir, "package.bpb"), package_build)
-
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")
     
