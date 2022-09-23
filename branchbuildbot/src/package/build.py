@@ -77,16 +77,15 @@ def build(directory, package_build):
             blog.error("Fetching source failed. {}".format(ex))
             return "BUILD_FAILED"
 
-        
-        blog.info("Pycurl file size: {}".format(curl.getinfo(curl.CONTENT_LENGTH_DOWNLOAD)))
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
 
         out_file.close()
         curl.close()
 
         for extra_src in package_build.extra_sources:
-            blog.info("Fetching extra source: {}".format(package_build.extra_sources))
-            print("STUB")
+            blog.info("Fetching extra source: {}".format(extra_src))
+            if(fetch_file(extra_src) != 0):
+                return "BUILD_FAILED"
 
         try:
             # check if file is tarfile and extract if it is
@@ -159,6 +158,39 @@ def build(directory, package_build):
     # change back to call_dir
     os.chdir(call_dir)
     return "BUILD_COMPLETE"
+
+#
+# download a file from web
+# 0 success
+# -1 failure
+#
+def fetch_file(url):
+    source_file = url.split("/")[-1]
+    out_file = open(source_file, "wb")
+
+    blog.info("Setting up pycurl..")
+    curl = pycurl.Curl()
+    curl.setopt(pycurl.URL, url)
+    curl.setopt(pycurl.FOLLOWLOCATION, 1)
+    curl.setopt(pycurl.MAXREDIRS, 5)
+    curl.setopt(pycurl.CONNECTTIMEOUT, 30)
+    curl.setopt(pycurl.TIMEOUT, 300)
+    curl.setopt(pycurl.NOSIGNAL, 1)
+    curl.setopt(pycurl.WRITEDATA, out_file)
+
+    blog.info("Downloading file..")
+    try:
+        curl.perform()
+    except Exception as ex:
+        blog.error("Fetching source failed. {}".format(ex))
+        return -1
+
+    blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
+
+    out_file.close()
+    curl.close()
+    return 0
+    
 
 def parse_build_json(json):
     BPBopts = BPBOpts()
