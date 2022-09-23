@@ -6,7 +6,6 @@ from log import blog
 from pyleaf import pyleafcore
 from pathlib import Path
 
-
 LAUNCH_DIR = os.getcwd()
 
 # checks if the build environment is setup

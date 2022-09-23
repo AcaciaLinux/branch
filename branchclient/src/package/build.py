@@ -10,6 +10,8 @@ class BPBOpts():
         self.version = ""
         self.real_version = ""
         self.dependencies = ""
+        self.source = ""
+        self.extra_sources = [ ]
         self.description = ""
         self.build_dependencies = ""
         self.build_script = [ ]
@@ -26,11 +28,11 @@ def parse_build_json(json_obj):
     BPBopts.real_version = json_obj['real_version']
     BPBopts.version = json_obj['version']
     BPBopts.source = json_obj['source']
+    BPBopts.extra_sources = json_obj['extra_sources']
     BPBopts.description = json_obj['description']
     BPBopts.dependencies = json_obj['dependencies']
     BPBopts.build_dependencies = json_obj['build_dependencies']
     BPBopts.build_script = json_obj['build_script']
-
     return BPBopts
     
 
@@ -81,6 +83,8 @@ def parse_build_file(pkg_file):
                 BPBopts.real_version = val
             elif(key == "source"):
                 BPBopts.source = val
+            elif(key == "extra_sources"):
+                BPBopts.extra_sources = parse_bpb_str_array(val) 
             elif(key == "dependencies"):
                 BPBopts.dependencies = val
             elif(key == "description"):
@@ -92,9 +96,27 @@ def parse_build_file(pkg_file):
    
     return BPBopts
 
+#
+# Parses branchpackagebuild array formay:
+# [a][b][c]
+#
+def parse_bpb_str_array(string):
+    vals = [ ]
+    buff = ""
+
+    for c in string:
+        if(c == ']'):
+            vals.append(buff)
+            buff = ""
+        elif(not c == '['):
+            buff = buff + c
+    
+    blog.debug("Parsed values: {}".format(vals))
+    return vals
+
 def create_pkg_workdir(pkg_opts):
     if(os.path.exists(pkg_opts.name)):
-        blog.warn("Fetching latest version of pkgbuild..")
+        blog.warn("Overwriting local version of package build with checked out version..")
         shutil.rmtree(pkg_opts.name)
 
     os.mkdir(pkg_opts.name)
@@ -102,21 +124,21 @@ def create_pkg_workdir(pkg_opts):
     pkg_file = os.path.join(wkdir, "package.bpb")
     write_build_file(pkg_file, pkg_opts)
 
-def create_stor_directory(pkg_name):
-    pkgs_dir = os.path.join(os.getcwd(), "./pkgs")
-    pkg_dir = os.path.join(pkgs_dir, pkg_name)
-
-    if(not os.path.exists(pkg_dir)):
-        os.mkdir(pkg_dir)
-
-    return pkg_dir
-
 def write_build_file(file, pkg_opts):
     bpb_file = open(file, "w")
     bpb_file.write("name={}\n".format(pkg_opts.name))
     bpb_file.write("version={}\n".format(pkg_opts.version))
     bpb_file.write("real_version={}\n".format(pkg_opts.real_version))
     bpb_file.write("source={}\n".format(pkg_opts.source))
+
+    # write extra_sources array in bpb format
+    bpb_file.write("extra_sources=")
+    
+    for exs in pkg_opts.extra_sources:
+        bpb_file.write("[{}]".format(exs))
+
+    bpb_file.write("\n")
+
     bpb_file.write("dependencies={}\n".format(pkg_opts.dependencies))
     bpb_file.write("builddeps={}\n".format(pkg_opts.build_dependencies))
     bpb_file.write("description={}\n".format(pkg_opts.description))
@@ -128,4 +150,3 @@ def write_build_file(file, pkg_opts):
         bpb_file.write("\n")
 
     bpb_file.write("}")
-    blog.info("package.bpb file written!")

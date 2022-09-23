@@ -12,7 +12,8 @@ def connect(host, port, name, cltype):
     try:
         s.connect((host, port))
     except ConnectionRefusedError:
-        return None
+        blog.error("Connection refused.")
+        exit(-1)
 
     blog.info("Connection established!")
     

@@ -17,3 +17,6 @@ def error(log):
 
 def info(log):
     print(OKGREEN + "==> " + ENDC + log)
+
+def debug(log):
+    print(OKGREEN + "==> [DEBUG] " + ENDC + log)

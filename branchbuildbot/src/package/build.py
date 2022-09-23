@@ -17,6 +17,8 @@ class BPBOpts():
         self.version = ""
         self.real_version = ""
         self.dependencies = ""
+        self.source = ""
+        self.extra_sources = [ ]
         self.description = ""
         self.build_dependencies = ""
         self.build_script = [ ]
@@ -25,7 +27,6 @@ class BPBOpts():
 
     def get_json(self):
         return json.dumps(self.__dict__)
-
 
 def build(directory, package_build):
     # directory we were called in, return after func returns
@@ -76,12 +77,15 @@ def build(directory, package_build):
             blog.error("Fetching source failed. {}".format(ex))
             return "BUILD_FAILED"
 
-        
-        blog.info("Pycurl file size: {}".format(curl.getinfo(curl.CONTENT_LENGTH_DOWNLOAD)))
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
 
         out_file.close()
         curl.close()
+
+        for extra_src in package_build.extra_sources:
+            blog.info("Fetching extra source: {}".format(extra_src))
+            if(fetch_file(extra_src) != 0):
+                return "BUILD_FAILED"
 
         try:
             # check if file is tarfile and extract if it is
@@ -99,10 +103,10 @@ def build(directory, package_build):
         blog.warn("No source specified. Not fetching source.") 
    
     blog.info("Installing dependencies to temproot..")
-    if(buildenv.install_pkgs(get_pkg_array(package_build.dependencies)) != 0):
+    if(buildenv.install_pkgs(parse_bpb_str_array(package_build.dependencies)) != 0):
         return "BUILD_FAILED"
 
-    if(buildenv.install_pkgs(get_pkg_array(package_build.build_dependencies)) != 0):
+    if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
         return "BUILD_FAILED"
 
 
@@ -139,8 +143,7 @@ def build(directory, package_build):
     os.system("chmod +x {}".format(entry_sh_path))
 
     blog.info("Chrooting to build environment...")
-    blog.info("Build started on {}".format(datetime.datetime.now()))
-
+    blog.info("Build started on {}.".format(datetime.datetime.now()))
 
     proc = subprocess.run(["chroot", temp_root, "/usr/bin/bash", "/entry.sh"])
 
@@ -154,27 +157,40 @@ def build(directory, package_build):
 
     # change back to call_dir
     os.chdir(call_dir)
-
     return "BUILD_COMPLETE"
 
-def get_pkg_array(string):
-    deps = [ ]
-    buff = ""
+#
+# download a file from web
+# 0 success
+# -1 failure
+#
+def fetch_file(url):
+    source_file = url.split("/")[-1]
+    out_file = open(source_file, "wb")
 
-    for c in string:
-        if(c == ']'):
-            deps.append(buff)
-            buff = ""
-        elif(not c == '['):
-            buff = buff + c
+    blog.info("Setting up pycurl..")
+    curl = pycurl.Curl()
+    curl.setopt(pycurl.URL, url)
+    curl.setopt(pycurl.FOLLOWLOCATION, 1)
+    curl.setopt(pycurl.MAXREDIRS, 5)
+    curl.setopt(pycurl.CONNECTTIMEOUT, 30)
+    curl.setopt(pycurl.TIMEOUT, 300)
+    curl.setopt(pycurl.NOSIGNAL, 1)
+    curl.setopt(pycurl.WRITEDATA, out_file)
 
-    return deps
-
-def json_get_key(json_obj, key):
+    blog.info("Downloading file..")
     try:
-        return json_obj[key]
-    except KeyError:
-        return "UNSET"
+        curl.perform()
+    except Exception as ex:
+        blog.error("Fetching source failed. {}".format(ex))
+        return -1
+
+    blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
+
+    out_file.close()
+    curl.close()
+    return 0
+    
 
 def parse_build_json(json):
     BPBopts = BPBOpts()
@@ -183,113 +199,33 @@ def parse_build_json(json):
     BPBopts.real_version = json_get_key(json, "real_version")
     BPBopts.version = json_get_key(json, "version")
     BPBopts.source = json_get_key(json, "source")
+    BPBopts.extra_sources = json_get_key(json, "extra_sources")
     BPBopts.description = json_get_key(json, "description")
     BPBopts.dependencies = json_get_key(json, "dependencies")
     BPBopts.build_dependencies = json_get_key(json, "build_dependencies")
     BPBopts.build_script = json_get_key(json, "build_script")
-
-    return BPBopts
-    
-
-def parse_build_file(pkg_file):
-    build_file = open(pkg_file, "r")
-    build_arr = build_file.read().split("\n")
-
-    BPBopts = BPBOpts()
-
-    BPBopts.name = "UNSET"
-    BPBopts.version = "UNSET"
-    BPBopts.real_version = "UNSET"
-    BPBopts.source = "UNSET"
-    BPBopts.dependencies = "UNSET"
-    BPBopts.description =  "UNSET"
-    BPBopts.build_dependencies = "UNSET"
-
-    build_opts = False
-    command = ""
-    for prop in build_arr:
-        if(build_opts):
-            if(prop == "}"):
-                build_opts = False
-                continue
-            
-            # remove tab indentation
-            prop = prop.replace("\t", "")
-            
-            # skip empty lines
-            if(len(prop) == 0):
-                continue;
-
-            BPBopts.build_script.append(prop)
-        else:
-            prop_arr = prop.split("=")
-            key = prop_arr[0]
-
-            if(len(key) == 0):
-                continue
-
-            if(len(prop_arr) != 2):
-                blog.error("Broken package build file. Failed property of key: ", key)
-                return -1
-
-            val = prop_arr[1]
-
-            if(key == "name"):
-                BPBopts.name = val
-            elif(key == "version"):
-                BPBopts.version = val
-            elif(key == "real_version"):
-                BPBopts.real_version = val
-            elif(key == "source"):
-                BPBopts.source = val
-            elif(key == "dependencies"):
-                BPBopts.dependencies = val
-            elif(key == "description"):
-                BPBopts.description = val
-            elif(key == "builddeps"):
-                BPBopts.build_dependencies = val
-            elif(key == "build"):
-                build_opts = True
-   
     return BPBopts
 
+#
+# Parses branchpackagebuild array formay:
+# [a][b][c]
+#
+def parse_bpb_str_array(string):
+    vals = [ ]
+    buff = ""
 
-def create_pkg_workdir(pkg_opts):
-    if(os.path.exists(pkg_opts.name)):
-        blog.warn("Fetching latest version of pkgbuild..")
-        shutil.rmtree(pkg_opts.name)
+    for c in string:
+        if(c == ']'):
+            vals.append(buff)
+            buff = ""
+        elif(not c == '['):
+            buff = buff + c
 
-    os.mkdir(pkg_opts.name)
-    wkdir = os.path.join(os.getcwd(), pkg_opts.name)
-    pkg_file = os.path.join(wkdir, "package.bpb")
-    write_build_file(pkg_file, pkg_opts)
+    return vals
 
-def create_stor_directory(pkg_name):
-    pkgs_dir = os.path.join(os.getcwd(), "./pkgs")
-    pkg_dir = os.path.join(pkgs_dir, pkg_name)
-
-    if(not os.path.exists(pkg_dir)):
-        os.mkdir(pkg_dir)
-
-    return pkg_dir
-
-
-def write_build_file(file, pkg_opts):
-    bpb_file = open(file, "w")
-    bpb_file.write("name={}\n".format(pkg_opts.name))
-    bpb_file.write("version={}\n".format(pkg_opts.version))
-    bpb_file.write("real_version={}\n".format(pkg_opts.real_version))
-    bpb_file.write("source={}\n".format(pkg_opts.source))
-    bpb_file.write("dependencies={}\n".format(pkg_opts.dependencies))
-    bpb_file.write("builddeps={}\n".format(pkg_opts.build_dependencies))
-    bpb_file.write("description={}\n".format(pkg_opts.description))
-    bpb_file.write("build={\n")
-    
-    for line in pkg_opts.build_script:
-        bpb_file.write("\t")
-        bpb_file.write(line)
-        bpb_file.write("\n")
-
-    bpb_file.write("}")
-    blog.info("package.bpb file written!")
+def json_get_key(json_obj, key):
+    try:
+        return json_obj[key]
+    except KeyError:
+        return "UNSET"
 
