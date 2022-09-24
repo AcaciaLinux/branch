@@ -71,7 +71,7 @@ def install_pkgs(packages):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
 
-    if(not packages is None):
+    if(packages):
         leaf_error = leafcore.a_install(packages)
         if(leaf_error != 0):
             blog.error("Leaf error code: {}".format(leaf_error))

@@ -75,6 +75,7 @@ def build(directory, package_build):
             curl.perform()
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
+            os.chdir(call_dir)
             return "BUILD_FAILED"
 
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
@@ -85,6 +86,7 @@ def build(directory, package_build):
         for extra_src in package_build.extra_sources:
             blog.info("Fetching extra source: {}".format(extra_src))
             if(fetch_file(extra_src) != 0):
+                os.chdir(call_dir)
                 return "BUILD_FAILED"
 
         try:
@@ -98,15 +100,18 @@ def build(directory, package_build):
 
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
+            os.chdir(call_dir)
             return "BUILD_FAILED"
     else:
         blog.warn("No source specified. Not fetching source.") 
    
     blog.info("Installing dependencies to temproot..")
     if(buildenv.install_pkgs(parse_bpb_str_array(package_build.dependencies)) != 0):
+        os.chdir(call_dir)
         return "BUILD_FAILED"
 
     if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
+        os.chdir(call_dir)
         return "BUILD_FAILED"
 
 
