@@ -4,6 +4,8 @@ import os
 
 from log import blog
 
+#TODO: refactor to use class methods
+
 class branchOpts():
     serverport = None
     serveraddr = None
@@ -54,7 +56,10 @@ def load_config():
             else:
                 options.debuglog = True
         elif(key == "authkey"):
-            options.authkey = val
+            if(val == "NONE"):
+                options.authkey = None
+            else:
+                options.authkey = val
 
         elif(key == "identifier"):
             options.identifier = val

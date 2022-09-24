@@ -54,7 +54,10 @@ def load_config():
             else:
                 options.debuglog = True
         elif(key == "authkey"):
-            options.authkey = val
+            if(val == "NONE"):
+                options.authkey = None
+            else:
+                options.authkey = val
 
         elif(key == "identifier"):
             options.identifier = val

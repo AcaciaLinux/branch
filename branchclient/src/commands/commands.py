@@ -9,8 +9,12 @@ from package import build
 # checkout package
 #
 def checkout_package(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
-    
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+
+    if(s is None):
+        blog.error("Connection refused.")
+        exit(-1)
+
     bpb_resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkg_name))
     
     # check if package is valid
@@ -26,8 +30,12 @@ def checkout_package(conf, pkg_name):
 # Submit a package build from cwd to server
 #
 def submit_package(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
-    
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+
+    if(s is None):
+        blog.error("Connection refused.")
+        exit(-1)
+
     bpb = build.parse_build_file("package.bpb")
     if(bpb == -1):
         return -1
@@ -45,7 +53,11 @@ def submit_package(conf):
 # Request a release build from a specified package
 #
 def release_build(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+
+    if(s is None):
+        blog.error("Connection refused.")
+        exit(-1)
 
     resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
 
@@ -58,7 +70,11 @@ def release_build(conf, pkg_name):
         
 
 def cross_build(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+
+    if(s is None):
+        blog.error("Connection refused.")
+        exit(-1)
 
     resp = connect.send_msg(s, "CROSS_BUILD {}".format(pkg_name))
 
@@ -76,7 +92,7 @@ def cross_build(conf, pkg_name):
 # get job status from server
 #
 def build_status(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
 
     resp = connect.send_msg(s, "RUNNING_JOBS_STATUS")
     running_jobs = json.loads(resp)
@@ -121,7 +137,7 @@ def build_status(conf):
 # Get connected buildbots / controllers
 #
 def client_status(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, main.B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
 
     resp = connect.send_msg(s, "CONNECTED_CONTROLLERS")
     controllers = json.loads(resp)

@@ -4,27 +4,23 @@ from log import blog
 from manager import manager
 
 class Client():
-    # uuid
-    client_uuid = None
-
-    # controller or build
-    client_type = None
-
-    # clear name to identify in log
-    client_name = None
-
-    # socket and selector
-    sock = None
-    sel = None
-
-    # file transfer mode
-    file_transfer_mode = False
-
-
-    # ready boolean for build clients
-    is_ready = None
 
     def __init__(self, sock, sel):
+        # uuid
+        self.client_uuid = None
+
+        # controller or build
+        self.client_type = None
+
+        # clear name to identify in log
+        self.client_name = None
+
+        # file transfer mode
+        self.file_transfer_mode = False
+
+        # is authenticated
+        self.is_authenticated = False
+
         uid = uuid.uuid4();
         blog.debug("Initializing new client with UUID: {}".format(str(uid)))
         self.client_uuid = uid
@@ -54,7 +50,14 @@ class Client():
         if(not data):
             self.handle_disconnect()
 
-        data_str = data.decode("utf-8")
+        data_str = ""
+
+        try:
+            data_str = data.decode("utf-8")
+        except UnicodeDecodeError:
+            self.handle_disconnect()
+            return
+
         data_str_loc = data_str.find(" ")
         cmd_bytes = 0
 
