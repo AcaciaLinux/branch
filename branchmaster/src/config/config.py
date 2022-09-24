@@ -10,8 +10,8 @@ class branch_options():
     httpport = 8080
     listenaddr = "127.0.0.1"
     debuglog = False
-    untrustedclients = None
-
+    untrustedclients = "bla"
+    authkeys = [ ]
 
     # Loads the configuration file from disk and
     # sets the static class variables
@@ -39,24 +39,39 @@ class branch_options():
 
             val = prop_arr[1]
             if(key == "listenaddr"):
-                self.listenaddr = val
+                branch_options.listenaddr = val
             elif(key == "port"):
-                self.port = val
+                branch_options.port = val
             elif(key == "httpport"):
-                self.httpport = val
+                branch_options.httpport = val
             elif(key == "debuglog"):
                 if(val == "False"):
-                    self.debuglog = False
+                    branch_options.debuglog = False
                 else:
-                    self.debuglog = True
+                    branch_options.debuglog = True
             elif(key == "untrustedclients"):
                 if(val == "False"):
-                    self.untrustedclients = False
+                    branch_options.untrustedclients = False
                 else:
-                    self.untrustedclients = True
+                    branch_options.untrustedclients = True
+            elif(key == "authkeys"):
+                branch_options.authkeys = self.parse_str_array(val)
             else:
                 blog.warn("Skipping unknown configuration key: {}".format(key)) 
 
+    def parse_str_array(self, string):
+        vals = [ ]
+        buff = ""
+
+        for c in string:
+            if(c == ']'):
+                vals.append(buff)
+                buff = ""
+            elif(not c == '['):
+                buff = buff + c
+        
+        blog.debug("Parsed values: {}".format(vals))
+        return vals
 
     def create_config(self):
         try:
@@ -76,6 +91,8 @@ class branch_options():
         branch_cfg.write("debuglog=False\n")
         branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:\n")
         branch_cfg.write("untrustedclients=False\n")
+        branch_cfg.write("# List of auth keys: [a][b][c]\n")
+        branch_cfg.write("authkeys=\n")
 
     def check_config(self):
         config_exists = False

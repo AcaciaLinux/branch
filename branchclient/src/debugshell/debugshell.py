@@ -7,7 +7,7 @@ from log import blog
 # Connect to server and run debug shell
 #
 def run_shell(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, "debug-shell", "CONTROLLER")
+    s = connect.connect(conf.serveraddr, conf.serverport, "debug-shell", conf.authkey, "CONTROLLER")
 
     if(s is None):
         blog.error("Connection refused.")

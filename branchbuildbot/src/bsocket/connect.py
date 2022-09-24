@@ -5,19 +5,35 @@ import os
 from log import blog
 
 #
-# connect to server, send type and name..
+# connect to server, send type, authkey and name..
 #
-def connect(host, port, name, cltype):
+def connect(host, port, name, authkey, cltype):
     blog.info("Connecting to server...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setblocking(True)
-
     try:
         s.connect((host, port))
     except ConnectionRefusedError:
-        return None
+        blog.error("Connection refused.")
+        exit(-1)
+
     blog.info("Connection established!")
-    
+   
+    if(authkey is not None):
+        blog.info("Sending auth key..")
+            
+        cmd = "AUTH " + authkey
+        cmd = "{} {}".format(len(cmd), cmd)
+
+        s.sendall(bytes(cmd, "utf-8"))
+        
+        data = recv_only(s)
+        
+        if(data == "AUTH_OK"):
+            blog.info("Authkey accepted.")
+        else:
+            blog.error("An error occured: {}".format(data))
+            return None
+
     blog.info("Sending machine type..")
     cmd = "SET_MACHINE_TYPE " + cltype
     cmd = "{} {}".format(len(cmd), cmd)

@@ -4,6 +4,7 @@ import time
 import selectors
 
 import main
+from config import config
 from log import blog
 from localstorage import packagestorage 
 from localstorage import pkgbuildstorage
@@ -35,26 +36,47 @@ def handle_command(manager, client, command):
         return None
   
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
-
-    # TODO: Login system
-    #blog.info("Machine validation skipped. Untrusted clients are permitted.")
+    bconf = config.branch_options()
 
     #
-    # Used by a client to set it's type
+    # Used by a client to send it's auth key
+    #
+    if(cmd_header == "AUTH"):
+        if(client.is_authenticated):
+            return "ALREADY_AUTHENTICATED"
+        else:
+            blog.debug("Client '{}' authenticating with key: {}".format(client.get_identifier(), cmd_body))
+            if(cmd_body in bconf.authkeys):
+                client.is_authenticated = True
+                blog.info("Client authentication completed.")
+                return "AUTH_OK"
+            else:
+                return "INV_AUTH_KEY"
+    #
+    # Used by a client to set it's machine type
     # SET_MACHINE_TYPE <TYPE>
     # (controller, build)
     #
-    if(cmd_header == "SET_MACHINE_TYPE"):
-        if(cmd_body == "CONTROLLER"):
-            blog.info("Machine type assigned. Client '{}' is authenticated as controller client type.".format(client.get_identifier()))
-            client.client_type = "CONTROLLER"
-        elif(cmd_body == "BUILD"):
-            blog.info("Machine type assigned. Client '{}' is authenticated as build client type.".format(client.get_identifier()))
-            client.client_type = "BUILD"
-        else:
-            return "INV_MACHINE_TYPE"
+    elif(cmd_header == "SET_MACHINE_TYPE"):
+        
+        #
+        # Check if the server allows untrusted clients
+        # or the client is authenticated
+        #
+        if(client.is_authenticated or bconf.untrustedclients):
+            if(cmd_body == "CONTROLLER"):
+                blog.info("Machine type assigned. Client '{}' is authenticated as controller client type.".format(client.get_identifier()))
+                client.client_type = "CONTROLLER"
+            elif(cmd_body == "BUILD"):
+                blog.info("Machine type assigned. Client '{}' is authenticated as build client type.".format(client.get_identifier()))
+                client.client_type = "BUILD"
+            else:
+                return "INV_MACHINE_TYPE"
 
-        return "CMD_OK"
+            return "CMD_OK"
+        else:
+            return "AUTH_REQUIRED"
+
     else:
         blog.debug("Received a malformed command from client {}".format(client.client_uuid))
         return "INV_CMD"
@@ -228,20 +250,13 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "MANAGED_PACKAGES"):
         stor = packagestorage.storage()
         return json.dumps(stor.packages)
-
+    
     #
-    # test
+    # Get a list of all managed packagebuilds
     #
-    elif(cmd_header == "TEST"):
-        stor = packagestorage.storage()
-        meta_inf = stor.get_all_package_meta()
-
-        for meta in meta_inf:
-            real_version = meta.get_latest_real_version()
-            print("{};{};{};{};{}".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version)))
-
-        return "BLA"
-
+    elif(cmd_header == "MANAGED_PKGBUILDS"):
+        stor = pkgbuildstorage.storage()
+        return json.dumps(stor.packages)
     #
     # Invalid command
     #

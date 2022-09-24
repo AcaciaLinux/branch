@@ -26,7 +26,7 @@ def main():
     buildenv.check_buildenv()
 
     # establish socket connection
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, B_TYPE)
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
 
     if(s is None):
         blog.error("Connection refused.")
