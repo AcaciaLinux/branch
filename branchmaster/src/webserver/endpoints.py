@@ -1,3 +1,5 @@
+import json
+
 from webserver import webserver
 from webserver import httputils
 from localstorage import packagestorage
@@ -16,6 +18,8 @@ def register_endpoints():
 def get_endpoint(httphandler, form_data):
     if(form_data["get"] == "packagelist"):
         get_endpoint_pkglist(httphandler)
+    if(form_data["get"] == "jsonpackagelist"):
+        get_endpoint_json_pkglist(httphandler)
     elif(form_data["get"] == "package"):
         get_endpoint_package(httphandler, form_data)
     elif(form_data["get"] == "versions"):
@@ -31,13 +35,42 @@ def get_endpoint_pkglist(httphandler):
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
     conf = config.branch_options()
-    conf.load_config()
 
     for meta in meta_inf:
         real_version = meta.get_latest_real_version()
         url = "http://{}:{}/?get=package&pkgname={}".format(conf.listenaddr, conf.httpport, meta.get_name())
 
         httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
+
+
+def get_endpoint_json_pkglist(httphandler):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+    
+    stor = packagestorage.storage()
+    meta_inf = stor.get_all_package_meta()
+    conf = config.branch_options()
+
+    dict_arr = [ ]
+
+    for meta in meta_inf:
+        real_version = meta.get_latest_real_version()
+        url = "http://{}:{}/?get=package&pkgname={}".format(conf.listenaddr, conf.httpport, meta.get_name())
+
+        _dict = {
+            "name" : meta.get_name(),
+            "real_version": real_version,
+            "version": meta.get_version(real_version),
+            "description": meta.get_description(),
+            "dependencies": meta.get_dependencies(real_version),
+            "url": url
+        }
+
+        dict_arr.append(_dict)
+
+    httphandler.wfile.write(bytes(json.dumps(dict_arr), "utf-8"))
+
 
 def get_endpoint_package(httphandler, form_data):
     stor = packagestorage.storage()
