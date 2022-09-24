@@ -18,7 +18,7 @@ def register_endpoints():
 def get_endpoint(httphandler, form_data):
     if(form_data["get"] == "packagelist"):
         get_endpoint_pkglist(httphandler)
-    if(form_data["get"] == "jsonpackagelist"):
+    elif(form_data["get"] == "jsonpackagelist"):
         get_endpoint_json_pkglist(httphandler)
     elif(form_data["get"] == "package"):
         get_endpoint_package(httphandler, form_data)

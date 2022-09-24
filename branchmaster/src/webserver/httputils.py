@@ -10,7 +10,6 @@ def generic_malformed_request(httphandler):
     httphandler.end_headers()
     httphandler.write_answer_encoded("E_REQUEST")
 
-
 def send_file(httphandler, file):
     httphandler.send_response(200)
 

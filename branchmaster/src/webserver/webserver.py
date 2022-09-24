@@ -56,7 +56,6 @@ class web_server(BaseHTTPRequestHandler):
         else:
             real_path = self.path
 
-
         for endpoint in endpoint_register:
             if(endpoint.path == real_path):
                 # handle
@@ -68,7 +67,7 @@ class web_server(BaseHTTPRequestHandler):
                     blog.warn("Errors from the webserver are not fatal to the masterserver.")
                     blog.warn("Connection reset.")
                     return
-
+        
         self.send_response(400)
         self.send_header("Content-type", "text/html")
         self.end_headers()
@@ -105,5 +104,3 @@ def start_web_server(hostname, serverport):
         pass
 
     web_serv.server_close()
-
-
