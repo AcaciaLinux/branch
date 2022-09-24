@@ -49,7 +49,8 @@ class web_server(BaseHTTPRequestHandler):
             # if char 0 is ? we have form data to parse
             if(self.path[0] == '?' and len(self.path) > 1):
                 form_dict = parse_form_data(self.path[1:len(self.path)])
-                real_path = list(form_dict.keys())[0]
+                if(not form_dict is None):
+                    real_path = list(form_dict.keys())[0]
             else:
                 real_path = self.path
         else:
@@ -68,20 +69,19 @@ class web_server(BaseHTTPRequestHandler):
                     blog.warn("Connection reset.")
                     return
 
-        self.send_response(200)
+        self.send_response(400)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-
-        self.write_answer_encoded("<html>")
-        self.write_answer_encoded("<h1> Request failed. </h1>")
-        self.write_answer_encoded("<p> You requested an invalid  or currently disabled API endpoint. </p>")
-        self.write_answer_encoded("<p> Request: {} </p>".format(self.path))
-        self.write_answer_encoded("</html>")
+    
+        self.write_answer_encoded("E_REQUEST")
         return
 
 
 def parse_form_data(str_form):
     form_val = str_form.split("&")
+
+    if(not "=" in str_form):
+        return None
 
     _dict = { }
 

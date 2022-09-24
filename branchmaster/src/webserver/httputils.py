@@ -5,14 +5,11 @@ def send_error_response(httphandler, http_status, error_msg):
     httphandler.write_answer_encoded(error_msg)
 
 def generic_malformed_request(httphandler):
-    httphandler.send_response(200)
+    httphandler.send_response(400)
     httphandler.send_header("Content-type", "text/html")
     httphandler.end_headers()
+    httphandler.write_answer_encoded("E_REQUEST")
 
-    httphandler.write_answer_encoded("<html>")
-    httphandler.write_answer_encoded("<h1> Request failed. </h1>")
-    httphandler.write_answer_encoded("<p> The server received a malformed request. </p>")
-    httphandler.write_answer_encoded("</html>")
 
 def send_file(httphandler, file):
     httphandler.send_response(200)

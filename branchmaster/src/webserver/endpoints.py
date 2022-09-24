@@ -42,7 +42,6 @@ def get_endpoint_pkglist(httphandler):
 
         httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
 
-
 def get_endpoint_json_pkglist(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
