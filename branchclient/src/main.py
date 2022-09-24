@@ -59,7 +59,7 @@ def main():
             commands.release_build(conf, args.releasebuild)
 
         elif(not args.crossbuild is None):
-            blog.info("Requesting cross build for '{}'.".format(args.releasebuild))
+            blog.info("Requesting cross build for '{}'.".format(args.crossbuild))
             commands.cross_build(conf, args.crossbuild)
 
 
