@@ -1,4 +1,4 @@
-BBRANCH_CODENAME = "Route Kanal"
+BRANCH_CODENAME = "Route Kanal"
 BRANCH_VERSION = "0.3"
 
 import threading
