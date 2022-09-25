@@ -165,6 +165,11 @@ def get_buildlog(conf, job_id):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
     
     resp = connect.send_msg(s, "VIEW_LOG {}".format(job_id))
+    
+    if(resp == "INV_JOB_ID" or resp == "NO_LOG"):
+        blog.error("No build log available for specified job id. Is it still running?")
+        return
+
     log = json.loads(resp)
 
     print("\nBUILD LOG FOR '{}':\n".format(job_id))
