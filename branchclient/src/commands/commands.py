@@ -68,7 +68,9 @@ def release_build(conf, pkg_name):
     elif(resp == "INV_PKG_NAME"):
         blog.error("Invalid package name.")
         
-
+#
+# Request a cross build from a specified package
+#
 def cross_build(conf, pkg_name):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
 
@@ -85,9 +87,6 @@ def cross_build(conf, pkg_name):
     elif(resp == "INV_PKG_NAME"):
         blog.error("Invalid package name.")
         
-
-
-
 #
 # get job status from server
 #
@@ -158,3 +157,16 @@ def client_status(conf):
     for name in buildbots:
         print(name, end=' ')
     print()
+
+#
+# get build log
+#
+def get_buildlog(conf, job_id):
+    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+    
+    resp = connect.send_msg(s, "VIEW_LOG {}".format(job_id))
+    log = json.loads(resp)
+
+    print("\nBUILD LOG FOR '{}':\n".format(job_id))
+    for line in log:
+        print(line)

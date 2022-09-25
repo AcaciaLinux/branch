@@ -1,5 +1,5 @@
-BRANCH_CODENAME = "A Red Letter Day"
-BRANCH_VERSION = "0.2"
+BRANCH_CODENAME = "Route Kanal"
+BRANCH_VERSION = "0.3"
 
 B_TYPE = "CONTROLLER"
 
@@ -32,6 +32,7 @@ def main():
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
     argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
     argparser.add_argument("-cb", "--crossbuild", help="Requests a release package build from the build server.")
+    argparser.add_argument("-vl", "--viewlog", help="Requests build log of a completed job")
     argparser.add_argument("-st", "--status", help="Requests a list of running / completed jobs from the server.", action="store_true")
     argparser.add_argument("-cs", "--clientstatus", help="Requests a list of clients connected to the server.", action="store_true")
 
@@ -57,11 +58,12 @@ def main():
         elif(not args.releasebuild is None):
             blog.info("Requesting release build for '{}'.".format(args.releasebuild))
             commands.release_build(conf, args.releasebuild)
-
         elif(not args.crossbuild is None):
             blog.info("Requesting cross build for '{}'.".format(args.crossbuild))
             commands.cross_build(conf, args.crossbuild)
-
+        elif(not args.viewlog is None):
+            blog.info("Requesting log for job id '{}'".format(args.viewlog))
+            commands.get_buildlog(conf, args.viewlog)
 
 if (__name__ == "__main__"):
     try:

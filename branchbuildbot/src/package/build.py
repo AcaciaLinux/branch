@@ -10,6 +10,7 @@ import datetime
 from buildenvmanager import buildenv
 from log import blog
 from package import leafpkg
+from bsocket import connect
 
 class BPBOpts():
     def __init__(self):
@@ -28,7 +29,7 @@ class BPBOpts():
     def get_json(self):
         return json.dumps(self.__dict__)
 
-def build(directory, package_build):
+def build(directory, package_build, socket):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
     # change to packagebuild directory
@@ -51,7 +52,6 @@ def build(directory, package_build):
    
     # change to build directory
     os.chdir(build_dir)
-    print("====================================================")
 
     if(package_build.source):
         source_file = package_build.source.split("/")[-1]
@@ -114,8 +114,6 @@ def build(directory, package_build):
         os.chdir(call_dir)
         return "BUILD_FAILED"
 
-
-    print("====================================================")
     blog.info("Package build will run in: {}".format(build_dir))
     blog.info("Package destination is: {}".format(destdir))
     
@@ -150,9 +148,29 @@ def build(directory, package_build):
     blog.info("Chrooting to build environment...")
     blog.info("Build started on {}.".format(datetime.datetime.now()))
 
-    proc = subprocess.run(["chroot", temp_root, "/usr/bin/bash", "/entry.sh"])
+    blog.info("Building package...")
+    proc = subprocess.run(["chroot", temp_root, "/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
-    print("====================================================")
+    std_out_str = proc.stdout
+    std_out = std_out_str.split("\n")
+    
+    last_lines = [ ]
+
+    for x in range(100):
+        if(not std_out):
+            break
+
+        last_lines.append(std_out.pop())
+
+    jlog = json.dumps(last_lines)
+
+    res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+    if(res == "LOG_OK"):
+        blog.info("Log upload completed.")
+    else:
+        blog.warn("Log upload failed.")
+    
+
     if(proc.returncode != 0):
         blog.error("Package build script failed.")
         os.chdir(call_dir)
@@ -212,7 +230,7 @@ def parse_build_json(json):
     return BPBopts
 
 #
-# Parses branchpackagebuild array formay:
+# Parses branchpackagebuild array format:
 # [a][b][c]
 #
 def parse_bpb_str_array(string):

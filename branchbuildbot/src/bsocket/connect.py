@@ -110,25 +110,22 @@ def send_file(socket, filename):
     file = open(filename, "rb")
 
     print("Uploading file to masterserver...")
-    print("[..........]\r", end='')
 
-    send_calls = int(os.path.getsize(filename) / 4096)
-    print_ht = int(10 / send_calls)
-    ht_str = '#' * print_ht
-    
-    print("[", end='')
+    bytes_sent = 0
+    file_size = os.path.getsize(filename)
 
     while True:
-        print(ht_str, end='')
+        print("{} bytes / {} bytes".format(bytes_sent, file_size))
         bytes_read = file.read(4096)
-        
+        bytes_sent += len(bytes_read)
+
         # we are done reading
         if(not bytes_read):
             break
 
         socket.sendall(bytes_read)
    
-    print("]")
+    print()
     res = recv_only(socket)
     return res
 

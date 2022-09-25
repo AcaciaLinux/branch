@@ -27,6 +27,8 @@ class jobs():
 
         self.use_crosstools = use_crosstools
 
+        self.build_log = None
+
     #
     # get dict of class variables
     # that are interesting
@@ -56,4 +58,11 @@ class jobs():
     #
     def get_status(self):
         return self.job_status
+    
+
+    #
+    # set buildlog to job
+    #
+    def set_buildlog(self, log):
+        self.build_log = log
 

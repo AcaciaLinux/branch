@@ -174,7 +174,24 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         else:
             blog.info("Controller client requested release build for invalid package.")
             return "INV_PKG_NAME"
-    
+  
+    #
+    # Requests log for a package build
+    #
+    elif(cmd_header == "VIEW_LOG"):
+        if(cmd_body == ""):
+            return "INV_JOB_ID"
+        
+        job = manager.get_job_by_id(cmd_body)
+        
+        if(job is None):
+            return "INV_JOB_ID"
+        
+        if(job.build_log is None):
+            return "NO_LOG"
+
+        return json.dumps(job.build_log)
+
     #
     # Rebuild specified package plus all
     # packages that depend on it
@@ -188,8 +205,6 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             # get dependency tree
             res = dependency.get_dependency_tree(cmd_body)
 
-            #TODO: refactor needed
-            
             # calculate deps array
             dependency_array = res.get_deps_array()
             
@@ -295,10 +310,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         client.is_ready = True
         client.send_command("CMD_OK")
 
-        # TODO:
-        # - Regenerate Package build, if the build job succeeded.
-        # - How to transfer leaf package..?
-
         manager.queue.notify_ready(manager)
         return None
 
@@ -311,8 +322,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Setup Build Environment' step.".format(job.get_jobid()))
             job.set_status("BUILD_ENV_READY")
+            return "STATUS_ACK"
 
-        return "STATUS_ACK"
+        return "NO_JOB"
 
     #
     # Status update from assigned job: Build job completed.
@@ -323,8 +335,26 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Compile source' step.".format(job.get_jobid()))
             job.set_status("BUILD_COMPLETE")
+            return "STATUS_ACK"
 
-        return "STATUS_ACK"
+        return "NO_JOB"
+
+    elif(cmd_header == "SUBMIT_LOG"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' log received.".format(job.get_jobid()))
+                
+            json_array = json.loads(cmd_body)
+            log_array = [ ]
+
+            while json_array:
+                log_array.append(json_array.pop())
+
+            job.set_buildlog(log_array)
+            return "LOG_OK"
+
+        return "NO_JOB"
 
     #
     # Status update from assigned job: Build failed.
@@ -362,8 +392,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             job.file_name = stor.add_package(job.pkg_payload)
 
             client.file_transfer_mode = True
-
-            # ack
             return "ACK_FILE_TRANSFER"
 
         else:

@@ -1,5 +1,5 @@
-BRANCH_CODENAME = "A Red Letter Day"
-BRANCH_VERSION = "0.2"
+BBRANCH_CODENAME = "Route Kanal"
+BRANCH_VERSION = "0.3"
 
 import threading
 
