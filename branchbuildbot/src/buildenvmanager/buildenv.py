@@ -158,6 +158,7 @@ def setup_env(use_crossroot):
     setup_kfs()
 
 def setup_kfs():
+    temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     blog.info("Mounting virtual kernel file systems..")
     
     # bind devfs
