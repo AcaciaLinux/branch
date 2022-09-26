@@ -48,7 +48,6 @@ def check_buildenv():
             blog.error("Crosstools deployment failed.")
             exit(-1)
 
-
     blog.info("Build environment setup completed.")
 
 # installs packages to overlayfs temproot
@@ -155,7 +154,10 @@ def setup_env(use_crossroot):
         # unclean shutdown, cleanup and remount
         clean_env()
         remount_env(use_crossroot)
+    
+    setup_kfs()
 
+def setup_kfs():
     blog.info("Mounting virtual kernel file systems..")
     
     # bind devfs
@@ -179,6 +181,7 @@ def setup_env(use_crossroot):
     tmp_fs = os.path.join(temp_dir, "run")
     os.system("mount -vt tmpfs tmpfs {}".format(tmp_fs))
 
+
 # remount overlayfs
 def remount_env(use_crossroot):
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
@@ -195,10 +198,8 @@ def remount_env(use_crossroot):
   
     blog.info("Syncing filesystem..")
     os.system("sync")
-
-    blog.info("Remounting devfs..")
-    dev_fs = os.path.join(temp_dir, "dev")
-    os.system("mount --bind /dev {}".format(dev_fs))
+    
+    setup_kfs()
 
 def clean_env():
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
