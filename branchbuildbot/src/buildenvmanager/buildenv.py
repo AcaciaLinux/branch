@@ -109,11 +109,28 @@ def setup_env(use_crossroot):
         clean_env()
         remount_env(use_crossroot)
 
+    blog.info("Mounting virtual kernel file systems..")
+    
     # bind devfs
     blog.info("Binding devfs...")
     dev_fs = os.path.join(temp_dir, "dev")
-    os.system("mount --bind /dev {}".format(dev_fs))
+    os.system("mount -v --bind /dev {}".format(dev_fs))
 
+    blog.info("Binding pts..") 
+    dev_pts = os.path.join(dev_fs, "pts")
+    os.system("mount -v --bind /dev/pts {}".format(dev_pts))
+
+    blog.info("Mounting proc..")
+    proc_fs = os.path.join(temp_dir, "proc")
+    os.system("mount -vt proc proc {}".format(proc_fs))
+
+    blog.info("Mounting sysfs..")
+    sys_fs = os.path.join(temp_dir, "sys")
+    os.system("mount -vt sysfs sysfs {}".format(sys_fs))
+
+    blog.info("Mounting tmpfs..")
+    tmp_fs = os.path.join(temp_dir, "run")
+    os.system("mount -vt tmpfs tmpfs {}".format(tmp_fs))
 
 # remount overlayfs
 def remount_env(use_crossroot):
@@ -140,38 +157,24 @@ def clean_env():
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
+    
     dev_fs = os.path.join(temp_dir, "dev")
+    dev_pts = os.path.join(dev_fs, "pts")
 
-    blog.info("Unmounting devfs..")
-    
-    devfs_umount_failed = False
-    
-    while(os.path.ismount(dev_fs)):
-        if(devfs_umount_failed):
-            blog.warn("Unmounting devfs failed. Retrying...")
-            os.system("umount {}".format(dev_fs))
-            os.system("sync")
-            time.sleep(1)
-        else:
-            os.system("umount {}".format(dev_fs))
-            devfs_umount_failed = True
+    sys_fs = os.path.join(temp_dir, "sys")
+    proc_fs = os.path.join(temp_dir, "proc")
+    run_fs = os.path.join(temp_dir, "run")
 
-    blog.info("Unmounted devfs.")
+    umount_busy_wait(dev_fs)
+    umount_busy_wait(dev_pts)
+    umount_busy_wait(sys_fs)
+    umount_busy_wait(proc_fs)
+    umount_busy_wait(run_fs)
+
     blog.info("Syncing filesystem..")
     os.system("sync")
 
-    blog.info("Unmounting overlayfs..")
-    while(os.path.ismount(temp_dir)):
-        
-        if(devfs_umount_failed):
-            blog.warn("Unmounting overlayfs failed. Retrying...")
-            os.system("umount {}".format(temp_dir))
-            os.system("sync")
-            time.sleep(1)
-        else:
-            os.system("umount {}".format(temp_dir))
-
-    blog.info("Unmounted overlayfs.")
+    umount_busy_wait(temp_dir)
 
     blog.info("Syncing filesystem..")
     os.system("sync")
@@ -179,19 +182,27 @@ def clean_env():
     # recreate dirs
     shutil.rmtree(diff_dir)
     shutil.rmtree(work_dir)
-        
-    target_busy = True
-    while target_busy:
-        try:
-            shutil.rmtree(temp_dir)
-            target_busy = False
-        except OSError:
-            blog.warn("Temp dir is busy..")
-            time.sleep(2)
+    shutil.rmtree(temp_dir)
 
     os.mkdir(diff_dir)
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
+
+def umount_busy_wait(path):
+    blog.info("Unmounting {}".format(path))
+    umount_failed = False
+    
+    while(os.path.ismount(path)):
+        if(umount_failed):
+            blog.warn("Unmounting failed. Retrying...")
+            os.system("umount {}".format(path))
+            os.system("sync")
+            time.sleep(2)
+        else:
+            os.system("umount {}".format(path))
+            umount_failed = True
+    
+    blog.info("Unmounted.")
 
 def get_build_path():
     return os.path.join(LAUNCH_DIR, "temproot")
