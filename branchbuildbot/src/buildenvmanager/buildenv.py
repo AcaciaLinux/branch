@@ -214,8 +214,9 @@ def clean_env():
     proc_fs = os.path.join(temp_dir, "proc")
     run_fs = os.path.join(temp_dir, "run")
 
-    umount_busy_wait(dev_fs)
     umount_busy_wait(dev_pts)
+    umount_busy_wait(dev_fs)
+    
     umount_busy_wait(sys_fs)
     umount_busy_wait(proc_fs)
     umount_busy_wait(run_fs)
