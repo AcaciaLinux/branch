@@ -14,15 +14,15 @@ from bsocket import connect
 
 class BPBOpts():
     def __init__(self):
-        self.name = None
-        self.version = None
-        self.real_version = None
-        self.dependencies = None
-        self.build_dependencies = None
-        self.cross_dependencies = None
-        self.source = None
+        self.name = ""
+        self.version = ""
+        self.real_version = ""
+        self.dependencies = ""
+        self.build_dependencies = ""
+        self.cross_dependencies = ""
+        self.source = ""
         self.extra_sources = [ ]
-        self.description = None
+        self.description = ""
         self.build_script = [ ]
 
         self.job_id = "job"
@@ -111,7 +111,7 @@ def build(directory, package_build, socket, use_crosstools):
    
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
-        if(package_build.crosstools is None):
+        if(package_build.cross_dependencies is None):
             blog.info("Installing 'build' dependencies..")
             if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
                 os.chdir(call_dir)

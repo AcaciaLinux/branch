@@ -6,15 +6,15 @@ from log import blog
 
 class BPBOpts():
     def __init__(self):
-        self.name = None
-        self.version = None
-        self.real_version = None
-        self.dependencies = None
-        self.build_dependencies = None
-        self.cross_dependencies = None
-        self.source = None
+        self.name = ""
+        self.version = ""
+        self.real_version = ""
+        self.dependencies = ""
+        self.build_dependencies = ""
+        self.cross_dependencies = ""
+        self.source = ""
         self.extra_sources = [ ]
-        self.description = None
+        self.description = ""
         self.build_script = [ ]
 
         self.job_id = "job"
