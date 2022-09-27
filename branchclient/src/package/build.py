@@ -6,14 +6,15 @@ from log import blog
 
 class BPBOpts():
     def __init__(self):
-        self.name = ""
-        self.version = ""
-        self.real_version = ""
-        self.dependencies = ""
-        self.source = ""
+        self.name = None
+        self.version = None
+        self.real_version = None
+        self.dependencies = None
+        self.build_dependencies = None
+        self.cross_dependencies = None
+        self.source = None
         self.extra_sources = [ ]
-        self.description = ""
-        self.build_dependencies = ""
+        self.description = None
         self.build_script = [ ]
 
         self.job_id = "job"
@@ -32,6 +33,7 @@ def parse_build_json(json_obj):
     BPBopts.description = json_obj['description']
     BPBopts.dependencies = json_obj['dependencies']
     BPBopts.build_dependencies = json_obj['build_dependencies']
+    BPBopts.cross_dependencies = json_obj['cross_dependencies']
     BPBopts.build_script = json_obj['build_script']
     return BPBopts
     
@@ -91,6 +93,8 @@ def parse_build_file(pkg_file):
                 BPBopts.description = val
             elif(key == "builddeps"):
                 BPBopts.build_dependencies = val
+            elif(key == "crossdeps"):
+                BPBopts.cross_dependencies = val
             elif(key == "build"):
                 build_opts = True
    
@@ -141,6 +145,7 @@ def write_build_file(file, pkg_opts):
 
     bpb_file.write("dependencies={}\n".format(pkg_opts.dependencies))
     bpb_file.write("builddeps={}\n".format(pkg_opts.build_dependencies))
+    bpb_file.write("crossdeps={}\n".format(pkg_opts.cross_dependencies))
     bpb_file.write("description={}\n".format(pkg_opts.description))
     bpb_file.write("build={\n")
     

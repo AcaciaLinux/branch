@@ -14,14 +14,15 @@ from bsocket import connect
 
 class BPBOpts():
     def __init__(self):
-        self.name = ""
-        self.version = ""
-        self.real_version = ""
-        self.dependencies = ""
-        self.source = ""
+        self.name = None
+        self.version = None
+        self.real_version = None
+        self.dependencies = None
+        self.build_dependencies = None
+        self.cross_dependencies = None
+        self.source = None
         self.extra_sources = [ ]
-        self.description = ""
-        self.build_dependencies = ""
+        self.description = None
         self.build_script = [ ]
 
         self.job_id = "job"
@@ -29,7 +30,7 @@ class BPBOpts():
     def get_json(self):
         return json.dumps(self.__dict__)
 
-def build(directory, package_build, socket):
+def build(directory, package_build, socket, use_crosstools):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
     # change to packagebuild directory
@@ -103,16 +104,28 @@ def build(directory, package_build, socket):
             os.chdir(call_dir)
             return "BUILD_FAILED"
     else:
-        blog.warn("No source specified. Not fetching source.") 
+        blog.warn("No source specified. Not fetching source.")
+
+    print("CROSSdeps: {}".format(package_build.cross_dependencies))
+    print("BUILDdeps: {}".format(package_build.build_dependencies))
    
     blog.info("Installing dependencies to temproot..")
-    if(buildenv.install_pkgs(parse_bpb_str_array(package_build.dependencies)) != 0):
-        os.chdir(call_dir)
-        return "BUILD_FAILED"
-
-    if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
-        os.chdir(call_dir)
-        return "BUILD_FAILED"
+    if(use_crosstools):
+        if(package_build.crosstools is None):
+            blog.info("Installing 'build' dependencies..")
+            if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
+                os.chdir(call_dir)
+                return "BUILD_FAILED"
+        else:
+            blog.info("Installing 'cross' dependencies..")
+            if(buildenv.install_pkgs(parse_bpb_str_array(package_build.cross_dependencies)) != 0):
+                os.chdir(call_dir)
+                return "BUILD_FAILED"
+    else:
+        blog.info("Installing 'build' dependencies..")
+        if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
+            os.chdir(call_dir)
+            return "BUILD_FAILED"
 
     blog.info("Package build will run in: {}".format(build_dir))
     blog.info("Package destination is: {}".format(destdir))
@@ -232,6 +245,7 @@ def parse_build_json(json):
     BPBopts.description = json_get_key(json, "description")
     BPBopts.dependencies = json_get_key(json, "dependencies")
     BPBopts.build_dependencies = json_get_key(json, "build_dependencies")
+    BPBOpts.cross_dependencies = json_get_key(json, "cross_dependencies")
     BPBopts.build_script = json_get_key(json, "build_script")
     return BPBopts
 
