@@ -16,7 +16,7 @@ import os
 def main():
     print("Branch (BUILDBOT) - The AcaciaLinux package build system.")
     print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
-    print("Version: 0.1 (Point Insertion)")
+    print("Version: "+ BRANCH_VERSION +" (" + BRANCH_CODENAME +")")
     print()
 
     # load config
