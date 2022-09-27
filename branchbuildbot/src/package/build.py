@@ -111,7 +111,7 @@ def build(directory, package_build, socket, use_crosstools):
    
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
-        if(package_build.cross_dependencies is None):
+        if(package_build.cross_dependencies == ""):
             blog.info("Installing 'build' dependencies..")
             if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
                 os.chdir(call_dir)
