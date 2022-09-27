@@ -15,8 +15,10 @@ name=doas
 version=6.8.1
 real_version=0
 source=https://github.com/Duncaen/OpenDoas/releases/download/v6.8.1/opendoas-6.8.1.tar.xz
+extra_sources=[https://bla.de][https://bla.de]
 dependencies=[linux-pam]
 builddeps=[linux-pam]
+crossdeps=[linux-pam]
 description=Doas allows a normal user to gain root privileges
 build={
 	cd opendoas-6.8.1
@@ -28,10 +30,18 @@ build={
 Branch Package build files contain a build script and other necassary information. 
 
 ## Usage: masterserver
-The masterserver can be configured in its configuration file located at `/etc/branch/master.conf`. By default, the server will listen for incoming client connections on port `27105` on `127.0.0.1`. The webserver will run on port `8080`.
+The masterserver can be configured in its configuration file located at `/etc/branch/master.conf`. By default, the server will listen for incoming client connections on port `27105` on `127.0.0.1`. The webserver will run on port `8080`. Authentication can be enabled in the configuration file and will require and authkey to be set.
 
 ## Usage: buildbot
 The buildbot can be configured in its configuration file located at `/etc/branch/buildbot.conf`. The buildbot will setup it's base chroot install on first-run.
+
+The buildbot exposes the following environment variables to the container:
+```
+$PKG_INSTALL_DIR
+$PKG_NAME
+$PKG_VERSION
+$PKG_REAL_VERSION
+```
 
 ## Usage: client
 The controller can be configured in its configuration file located at `/etc/branch/client.conf`. Use `branch -h` to list available commands.
