@@ -156,7 +156,7 @@ def build(directory, package_build, socket):
     
     last_lines = [ ]
 
-    for x in range(100):
+    for x in range(500):
         if(not std_out):
             break
 
