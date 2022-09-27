@@ -235,19 +235,19 @@ def fetch_file(url):
     
 
 def parse_build_json(json):
-    BPBopts = BPBOpts()
+    package_build = BPBOpts()
 
-    BPBopts.name = json_get_key(json, "name")
-    BPBopts.real_version = json_get_key(json, "real_version")
-    BPBopts.version = json_get_key(json, "version")
-    BPBopts.source = json_get_key(json, "source")
-    BPBopts.extra_sources = json_get_key(json, "extra_sources")
-    BPBopts.description = json_get_key(json, "description")
-    BPBopts.dependencies = json_get_key(json, "dependencies")
-    BPBopts.build_dependencies = json_get_key(json, "build_dependencies")
-    BPBOpts.cross_dependencies = json_get_key(json, "cross_dependencies")
-    BPBopts.build_script = json_get_key(json, "build_script")
-    return BPBopts
+    package_build.name = json_get_key(json, "name")
+    package_build.real_version = json_get_key(json, "real_version")
+    package_build.version = json_get_key(json, "version")
+    package_build.source = json_get_key(json, "source")
+    package_build.extra_sources = json_get_key(json, "extra_sources")
+    package_build.description = json_get_key(json, "description")
+    package_build.dependencies = json_get_key(json, "dependencies")
+    package_build.build_dependencies = json_get_key(json, "build_dependencies")
+    package_build.cross_dependencies = json_get_key(json, "cross_dependencies")
+    package_build.build_script = json_get_key(json, "build_script")
+    return package_build
 
 #
 # Parses branchpackagebuild array format:
