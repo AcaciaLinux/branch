@@ -138,7 +138,13 @@ def build(directory, package_build, socket):
     entry_sh_path = os.path.join(temp_root, "entry.sh")
     entry_sh = open(entry_sh_path, "w")
 
-    entry_sh.write("cd /branchbuild/build && PKG_INSTALL_DIR={} ./build.sh\n".format(chroot_destdir))
+    # export PKG_NAME, PKG_VERSION, PKG_REAL_VERSION and PKG_INSTALL_DIR
+    entry_sh.write("cd /branchbuild/build/\n")
+    entry_sh.write("export PKG_NAME={}\n".format(package_build.name))
+    entry_sh.write("export PKG_VERSION={}\n".format(package_build.version))
+    entry_sh.write("export PKG_REAL_VERSION={}\n".format(package_build.real_version))
+    entry_sh.write("export PKG_INSTALL_DIR={}\n".format(chroot_destdir))
+    entry_sh.write("./build.sh\n")
     entry_sh.close()
 
     # set executable bit on scripts
