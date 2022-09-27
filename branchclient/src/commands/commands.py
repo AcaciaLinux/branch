@@ -34,7 +34,7 @@ def submit_package(conf):
 
     if(s is None):
         blog.error("Connection refused.")
-        exit(-1)
+        return
 
     bpb = build.parse_build_file("package.bpb")
     if(bpb == -1):
@@ -57,7 +57,7 @@ def release_build(conf, pkg_name):
 
     if(s is None):
         blog.error("Connection refused.")
-        exit(-1)
+        return
 
     resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
 
@@ -76,7 +76,7 @@ def cross_build(conf, pkg_name):
 
     if(s is None):
         blog.error("Connection refused.")
-        exit(-1)
+        return
 
     resp = connect.send_msg(s, "CROSS_BUILD {}".format(pkg_name))
 
@@ -92,6 +92,9 @@ def cross_build(conf, pkg_name):
 #
 def build_status(conf):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
+
+    if(s is None):
+        return
 
     resp = connect.send_msg(s, "RUNNING_JOBS_STATUS")
     running_jobs = json.loads(resp)
@@ -138,6 +141,9 @@ def build_status(conf):
 def client_status(conf):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
 
+    if(s is None):
+        return
+
     resp = connect.send_msg(s, "CONNECTED_CONTROLLERS")
     controllers = json.loads(resp)
 
@@ -163,7 +169,10 @@ def client_status(conf):
 #
 def get_buildlog(conf, job_id):
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-    
+
+    if(s is None):
+        return
+
     resp = connect.send_msg(s, "VIEW_LOG {}".format(job_id))
     
     if(resp == "INV_JOB_ID" or resp == "NO_LOG"):
