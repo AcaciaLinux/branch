@@ -47,7 +47,7 @@ def handle_command(socket, command):
             connect.send_msg(socket, "BUILD_ENV_READY")
     
             # run build step
-            res = build.build(builddir, package_build, socket)  
+            res = build.build(builddir, package_build, socket, False)  
             
             if(res == "BUILD_COMPLETE"):
                 connect.send_msg(socket, "BUILD_COMPLETE")
@@ -131,7 +131,7 @@ def handle_command(socket, command):
             connect.send_msg(socket, "BUILD_ENV_READY")
     
             # run build step
-            res = build.build(builddir, package_build, socket)  
+            res = build.build(builddir, package_build, socket, True)  
             
             if(res == "BUILD_COMPLETE"):
                 connect.send_msg(socket, "BUILD_COMPLETE")
