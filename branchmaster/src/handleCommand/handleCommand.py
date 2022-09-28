@@ -272,6 +272,14 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "MANAGED_PKGBUILDS"):
         stor = pkgbuildstorage.storage()
         return json.dumps(stor.packages)
+
+    #
+    # Clear completed jobs
+    #
+    elif(cmd_header == "CLEAR_COMPLETED_JOBS"):
+        manager.clear_completed_jobs()  
+        return "JOBS_CLEARED"
+
     #
     # Invalid command
     #

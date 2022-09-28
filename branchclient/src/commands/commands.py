@@ -8,13 +8,7 @@ from package import build
 #
 # checkout package
 #
-def checkout_package(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        blog.error("Connection refused.")
-        exit(-1)
-
+def checkout_package(s, pkg_name):
     bpb_resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkg_name))
     
     # check if package is valid
@@ -29,13 +23,7 @@ def checkout_package(conf, pkg_name):
 #
 # Submit a package build from cwd to server
 #
-def submit_package(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        blog.error("Connection refused.")
-        return
-
+def submit_package(s):
     bpb = build.parse_build_file("package.bpb")
     if(bpb == -1):
         return -1
@@ -48,17 +36,10 @@ def submit_package(conf):
     else:
         blog.error("An error occured: {}".format(resp))
 
-
 #
 # Request a release build from a specified package
 #
-def release_build(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        blog.error("Connection refused.")
-        return
-
+def release_build(s, pkg_name):
     resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
 
     if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
@@ -71,9 +52,7 @@ def release_build(conf, pkg_name):
 #
 # Request a cross build from a specified package
 #
-def cross_build(conf, pkg_name):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
+def cross_build(s, pkg_name):
     if(s is None):
         blog.error("Connection refused.")
         return
@@ -90,12 +69,7 @@ def cross_build(conf, pkg_name):
 #
 # get job status from server
 #
-def build_status(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        return
-
+def build_status(s):
     resp = connect.send_msg(s, "RUNNING_JOBS_STATUS")
     running_jobs = json.loads(resp)
 
@@ -112,7 +86,6 @@ def build_status(conf):
 
         for job in running_jobs:
             print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
-    
 
     if(completed_jobs):
         print()
@@ -120,7 +93,10 @@ def build_status(conf):
         print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in completed_jobs:
-            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            if(job['job_status'] == "FAILED"):
+                print ("{:<20} \033[91m{:<15}\033[0m {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            else:
+                print ("{:<20} \033[92m{:<15}\033[0m {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
 
     if(queued_jobs):
@@ -131,19 +107,13 @@ def build_status(conf):
         for job in queued_jobs:
             print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
-
     if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")
 
 #
 # Get connected buildbots / controllers
 #
-def client_status(conf):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        return
-
+def client_status(s):
     resp = connect.send_msg(s, "CONNECTED_CONTROLLERS")
     controllers = json.loads(resp)
 
@@ -167,12 +137,7 @@ def client_status(conf):
 #
 # get build log
 #
-def get_buildlog(conf, job_id):
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, main.B_TYPE)
-
-    if(s is None):
-        return
-
+def get_buildlog(s, job_id):
     resp = connect.send_msg(s, "VIEW_LOG {}".format(job_id))
     
     if(resp == "INV_JOB_ID" or resp == "NO_LOG"):
@@ -184,3 +149,68 @@ def get_buildlog(conf, job_id):
     print("\nBUILD LOG FOR '{}':\n".format(job_id))
     for line in log:
         print(line)
+
+def clear_completed_jobs(s):
+    resp = connect.send_msg(s, "CLEAR_COMPLETED_JOBS")
+
+    if(not resp == "JOBS_CLEARED"):
+        blog.error("An error occurred: {}".format(resp))
+        return
+
+    return
+
+def get_managed_packages(s):
+    resp = connect.send_msg(s, "MANAGED_PACKAGES")
+    
+    jsonp = json.loads(resp)
+
+    print("Managed packages:")
+    print()
+
+    for count, item in enumerate(sorted(jsonp), 1):
+        print(item.ljust(30), end="")
+        if(count % 4 == 0):
+           print()
+
+    print()
+    return
+
+def get_managed_pkgbuilds(s):
+    resp = connect.send_msg(s, "MANAGED_PKGBUILDS")
+
+    jsonp = json.loads(resp)
+
+    print("Managed pkgbuilds:\n")
+
+    for count, item in enumerate(sorted(jsonp), 1):
+        print(item.ljust(30), end="")
+        if(count % 4 == 0):
+           print()
+
+    print()
+    return
+
+
+def get_diff_pkg(s):
+    resp = connect.send_msg(s, "MANAGED_PACKAGES")
+    pkgs = json.loads(resp)
+
+    resp = connect.send_msg(s, "MANAGED_PKGBUILDS")
+    pkg_builds = json.loads(resp)
+
+    print("pkg / pkgbuild difference:\n")
+
+    for count, item in enumerate(sorted(pkg_builds), 1):
+
+        if(item in pkgs):
+            print('\033[92m', end="")
+        else:
+            print('\033[91m', end="")
+
+        print(item.ljust(30), end="")
+        print('\033[0m', end="")
+        if(count % 4 == 0):
+           print()
+
+    print()
+
