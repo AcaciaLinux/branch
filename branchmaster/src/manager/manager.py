@@ -18,10 +18,10 @@ class manager():
 
     def register_client(self, client):
         blog.info("Adding client to manager '{}'.".format(client.get_identifier()))
-        self.client_array.append(client)
+        manager.client_array.append(client)
 
     def get_client(self, uuid):
-        return self.client_array[uuid]
+        return manager.client_array[uuid]
 
     def handle_command(self, client, command):
         blog.debug("Handling command from '{}': {}".format(client.get_identifier(), command))
@@ -39,11 +39,11 @@ class manager():
             self.move_inactive_job(job)
 
         blog.info("Removing client '{}' from manager.".format(client.get_identifier()))
-        self.client_array.remove(client)
+        manager.client_array.remove(client)
 
     def get_controller_clients(self):
         res = [ ]
-        for cl in self.client_array:
+        for cl in manager.client_array:
             if(cl.client_type == "CONTROLLER"):
                 res.append(cl)
         return res
@@ -51,7 +51,7 @@ class manager():
 
     def get_build_clients(self):
         res = [ ]
-        for cl in self.client_array:
+        for cl in manager.client_array:
             if(cl.client_type == "BUILD"):
                 res.append(cl)
         return res
@@ -67,17 +67,17 @@ class manager():
     
     def new_job(self, use_crosstools):
         job = jobs.jobs(use_crosstools)
-        self.queued_jobs.append(job)
+        manager.queued_jobs.append(job)
         return job
 
     def move_inactive_job(self, job):
-        self.build_jobs.remove(job)
-        self.completed_jobs.append(job)
+        manager.build_jobs.remove(job)
+        manager.completed_jobs.append(job)
 
     
     def get_job_by_client(self, client):
-        for job in self.build_jobs:
-            if job in self.build_jobs:
+        for job in manager.build_jobs:
+            if job in manager.build_jobs:
                 if(job.client == client):
                     return job
 
@@ -85,44 +85,44 @@ class manager():
 
     def get_job_by_id(self, jid):
         
-        for job in self.build_jobs:
+        for job in manager.build_jobs:
             if(job.job_id == jid):
                 return job
-        for job in self.queued_jobs:
+        for job in manager.queued_jobs:
             if(job.job_id == jid):
                 return job
 
-        for job in self.completed_jobs:
+        for job in manager.completed_jobs:
             if(job.job_id == jid):
                 return job
         return None
     
     def get_queued_jobs(self):
-        return self.queued_jobs
+        return manager.queued_jobs
 
     def get_running_jobs(self):
-        return self.build_jobs
+        return manager.build_jobs
    
     def get_completed_jobs(self):
-        return self.completed_jobs
+        return manager.completed_jobs
 
     def get_controller_names(self):
         res = [ ]
 
-        for client in self.client_array:
+        for client in manager.client_array:
             if(client.client_type == "CONTROLLER"):
                 res.append(client.get_identifier())
 
         return res
 
     def clear_completed_jobs(self):
-        self.completed_jobs = None
-        self.completed_jobs = [ ]
+        manager.completed_jobs = None
+        manager.completed_jobs = [ ]
 
     def get_buildbot_names(self):
         res = [ ]
 
-        for client in self.client_array:
+        for client in manager.client_array:
             if(client.client_type == "BUILD"):
                 res.append(client.get_identifier())
 
