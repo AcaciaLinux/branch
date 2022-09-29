@@ -116,6 +116,7 @@ class manager():
         return res
 
     def clear_completed_jobs(self):
+        self.completed_jobs = None
         self.completed_jobs = [ ]
 
     def get_buildbot_names(self):

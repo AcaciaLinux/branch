@@ -114,8 +114,11 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return "INV_PKG_BUILD"
 
         bpb = build.parse_build_json(json_bpb)
+        if(bpb.name == "" or bpb.version == "" or bpb.real_version == ""):
+            return "INV_PKG_BUILD"
+
         tdir = storage.create_stor_directory(bpb.name)
-        
+
         bpb_file = os.path.join(tdir, "package.bpb")
         if(os.path.exists(bpb_file)):
             os.remove(bpb_file)
