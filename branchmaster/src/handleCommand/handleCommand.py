@@ -282,6 +282,15 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "CLEAR_COMPLETED_JOBS"):
         manager.clear_completed_jobs()  
         return "JOBS_CLEARED"
+    
+    elif(cmd_header == "PACKAGE_INFO"):
+        stor = pkgbuildstorage.storage()
+
+        if(cmd_body in stor.packages):
+            return stor.get_json_bpb(cmd_body)
+        else:
+            return "INV_PKG"
+
 
     #
     # Invalid command

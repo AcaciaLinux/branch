@@ -23,5 +23,5 @@ def web_log(log):
     print(OKCYAN + " -> " + ENDC + log)
 
 def debug(log):
-    if(config.branch_options().debuglog):
+    if(config.branch_options.debuglog):
         print(OKGREEN + "==> [DEBUG] " + ENDC + log)

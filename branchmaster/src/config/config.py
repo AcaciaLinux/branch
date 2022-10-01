@@ -9,7 +9,7 @@ class branch_options():
     httpport = 8080
     listenaddr = "127.0.0.1"
     debuglog = False
-    untrustedclients = "bla"
+    untrustedclients = ""
     authkeys = [ ]
 
     init_completed = False
