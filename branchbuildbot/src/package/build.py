@@ -106,9 +106,6 @@ def build(directory, package_build, socket, use_crosstools):
     else:
         blog.warn("No source specified. Not fetching source.")
 
-    print("CROSSdeps: {}".format(package_build.cross_dependencies))
-    print("BUILDdeps: {}".format(package_build.build_dependencies))
-   
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
         if(package_build.cross_dependencies == ""):
@@ -168,7 +165,7 @@ def build(directory, package_build, socket, use_crosstools):
     blog.info("Build started on {}.".format(datetime.datetime.now()))
 
     blog.info("Building package...")
-    proc = subprocess.run(["chroot", temp_root, "/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
     std_out_str = proc.stdout
     std_out = std_out_str.split("\n")
