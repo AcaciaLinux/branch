@@ -20,7 +20,7 @@ def main():
 
     # load config
     blog.info("Loading configuration file..")
-    conf = config.load_config()
+    conf = config.branch_options()
 
     if(conf.authkey == "NONE"):
         conf.authkey = None

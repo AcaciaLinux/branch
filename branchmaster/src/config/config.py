@@ -1,7 +1,6 @@
 CONFIG_FILE = "/etc/branch/master.conf"
 
 import os
-
 from log import blog
 
 class branch_options():
@@ -12,6 +11,13 @@ class branch_options():
     debuglog = False
     untrustedclients = "bla"
     authkeys = [ ]
+
+    init_completed = False
+
+    def __init__(self):
+        if(not branch_options.init_completed):
+            self.load_config();
+            branch_options.init_completed = True
 
     # Loads the configuration file from disk and
     # sets the static class variables
@@ -95,12 +101,6 @@ class branch_options():
         branch_cfg.write("authkeys=\n")
 
     def check_config(self):
-        config_exists = False
-
-        try:
-            config_exists = "master.conf" in os.listdir(os.path.dirname(CONFIG_FILE))
-        except FileNotFoundError:
-            config_exists = False
-
-        if(not config_exists):
+        if(not os.path.exists(CONFIG_FILE)):
+            blog.info("First run detected. Continuing with default options.")
             self.create_config()

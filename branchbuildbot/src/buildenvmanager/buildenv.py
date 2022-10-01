@@ -95,7 +95,7 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
 
-    pkgs = ["base", "glibc", "systemd", "gcc", "make", "bash", "sed", "grep", "gawk"]
+    pkgs = ["base", "glibc", "systemd", "gcc", "gcc-libs", "make", "bash", "sed", "grep", "gawk"]
 
     leaf_error = leafcore.a_install(pkgs)
     if(leaf_error != 0):

@@ -21,7 +21,7 @@ def main():
 
     # load config
     blog.info("Loading configuration file..")
-    conf = config.load_config()
+    conf = config.branch_options()
 
     buildenv.check_buildenv()
 
