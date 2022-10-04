@@ -10,11 +10,12 @@ def generic_malformed_request(httphandler):
     httphandler.end_headers()
     httphandler.write_answer_encoded("E_REQUEST")
 
-def send_file(httphandler, file):
+def send_file(httphandler, file, file_len):
     httphandler.send_response(200)
-
+    
     # Content-type: application/octet-stream
     httphandler.send_header("Content-type", "application/octet-stream")
+    httphandler.send_header("Content-Length", file_len)
     httphandler.end_headers()
 
     while True:

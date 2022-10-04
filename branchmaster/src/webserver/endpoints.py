@@ -1,4 +1,5 @@
 import json
+import os
 
 from webserver import webserver
 from webserver import httputils
@@ -121,7 +122,7 @@ def get_endpoint_package(httphandler, form_data):
         return
 
     pfile = open(package_file, "rb")
-    httputils.send_file(httphandler, pfile)
+    httputils.send_file(httphandler, pfile, os.path.getsize(package_file))
 
 
 def get_endpoint_versions(httphandler, form_data):
