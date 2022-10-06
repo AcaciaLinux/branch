@@ -1,9 +1,6 @@
-import tarfile
 import os
 import subprocess
 import shutil
-import requests
-import tarfile
 import json
 
 from log import blog
