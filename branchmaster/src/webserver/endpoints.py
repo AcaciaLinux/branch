@@ -36,10 +36,11 @@ def get_endpoint_pkglist(httphandler):
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
     conf = config.branch_options()
-
+    req_line = httphandler.headers._headers[0][1]
+    
     for meta in meta_inf:
         real_version = meta.get_latest_real_version()
-        url = "http://{}:{}/?get=package&pkgname={}".format(conf.listenaddr, conf.httpport, meta.get_name())
+        url = "http://{}/?get=package&pkgname={}".format(req_line, meta.get_name())
 
         httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
 
@@ -53,10 +54,12 @@ def get_endpoint_json_pkglist(httphandler):
     conf = config.branch_options()
 
     dict_arr = [ ]
+    req_line = httphandler.headers._headers[0][1]
 
     for meta in meta_inf:
         real_version = meta.get_latest_real_version()
-        url = "http://{}:{}/?get=package&pkgname={}".format(conf.listenaddr, conf.httpport, meta.get_name())
+        
+        url = "http://{}/?get=package&pkgname={}".format(req_line, meta.get_name())
 
         _dict = {
             "name" : meta.get_name(),
@@ -162,6 +165,7 @@ def root_endpoint(httphandler, form_data):
 def test_endpoint(httphandler, form_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/html")
+    print(httphandler.headers._headers[0][1])
     httphandler.end_headers()
 
     httphandler.wfile.write(bytes("<html>", "utf-8"))
