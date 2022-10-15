@@ -28,6 +28,25 @@ def get_endpoint(httphandler, form_data):
     else:
         httputils.generic_malformed_request(httphandler)
 
+def get_jobs_endpoint(httphandler):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+    
+    manager_obj = manager.manager()
+    all_jobs = [ ]
+
+    completed_jobs = manager.get_completed_jobs()
+    running_jobs = manager.get_running_jobs()
+    queued_jobs = manager.get_queued_jobs()
+
+    all_jobs.append(completed_jobs)
+    all_jobs.append(running_jobs)
+    all_jobs.append(queued_jobs)
+
+    httphandler.wfile.write(bytes(json.dumps([obj.get_info_dict() for obj in all_jobs]), "utf-8"))
+
+
 def get_endpoint_pkglist(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")

@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
 from log import blog
+from config import config
 
 #
 # Registered HTTP endpoints
@@ -32,6 +32,17 @@ class web_server(BaseHTTPRequestHandler):
 
     def write_answer_encoded(self, message):
         self.wfile.write(bytes(message, "utf-8"))
+
+    def end_headers(self):
+        if(config.branch_options.send_cors_headers):
+            blog.warn("Sending Access-Control-Allow-Origin: *")
+            blog.warn("This should only be used for debugging purposes.")
+
+            self.send_header('Access-Control-Allow-Origin', "*")
+            self.send_header('Access-Control-Allow-Methods', "*")
+            self.send_header('Access-Control-Allow-Headers', "*")
+        return super(web_server, self).end_headers()
+
 
     # 
     # handle the get request

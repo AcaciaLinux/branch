@@ -52,15 +52,15 @@ class storage():
     packages = [ ]
 
     def __init__(self):
+        if(not os.path.exists(PACKAGE_DIRECTORY)):
+            os.mkdir("packages")
+
         self.index()
 
     #
     # index the package build storage
     #
     def index(self):
-        if(not os.path.exists(PACKAGE_DIRECTORY)):
-            os.mkdir("packages")
-
         # reset packagebuild list
         self.packages = [ ]
 
