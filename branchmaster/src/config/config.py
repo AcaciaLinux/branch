@@ -9,6 +9,7 @@ class branch_options():
     httpport = 8080
     listenaddr = "127.0.0.1"
     debuglog = False
+    send_cors_headers = False
     untrustedclients = ""
     authkeys = [ ]
 
@@ -53,15 +54,29 @@ class branch_options():
             elif(key == "debuglog"):
                 if(val == "False"):
                     branch_options.debuglog = False
-                else:
+                elif(val == "True"):
                     branch_options.debuglog = True
+                else:
+                    blog.error("Unknown configuration value.")
+            
             elif(key == "untrustedclients"):
                 if(val == "False"):
                     branch_options.untrustedclients = False
-                else:
+                elif(val == "True"):
                     branch_options.untrustedclients = True
+                else:
+                    blog.error("Unknown configuration value.")
+
             elif(key == "authkeys"):
                 branch_options.authkeys = self.parse_str_array(val)
+            elif(key == "send-cors-headers"):
+                if(val == "False"):
+                    branch_options.send_cors_headers = False
+                elif (val == "True"):
+                    branch_options.send_cors_headers = True
+                else:
+                    blog.error("Unknown configuration value.")
+
             else:
                 blog.warn("Skipping unknown configuration key: {}".format(key)) 
 
@@ -99,6 +114,8 @@ class branch_options():
         branch_cfg.write("untrustedclients=False\n")
         branch_cfg.write("# List of auth keys: [a][b][c]\n")
         branch_cfg.write("authkeys=\n")
+        branch_cfg.write("# Send '*' access control header to requesting clients (Should be disabled if nginx is in use.)\n")
+        branch_cfg.write("send-cors-headers=False\n")
 
     def check_config(self):
         if(not os.path.exists(CONFIG_FILE)):
