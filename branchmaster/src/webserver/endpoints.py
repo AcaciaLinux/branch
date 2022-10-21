@@ -4,6 +4,7 @@ import os
 from webserver import webserver
 from webserver import httputils
 from localstorage import packagestorage
+from localstorage import pkgbuildstorage
 from config import config
 
 class endpoint():
@@ -25,6 +26,8 @@ def get_endpoint(httphandler, form_data):
         get_endpoint_package(httphandler, form_data)
     elif(form_data["get"] == "versions"):
         get_endpoint_versions(httphandler, form_data)
+    elif(form_data["get"] == "jsonpkgbuildlist"):
+        get_endpoint_json_pkgbuildlist(httphandler)
     else:
         httputils.generic_malformed_request(httphandler)
 
@@ -54,7 +57,6 @@ def get_endpoint_pkglist(httphandler):
     
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
-    conf = config.branch_options()
     req_line = httphandler.headers._headers[0][1]
     
     for meta in meta_inf:
@@ -70,7 +72,6 @@ def get_endpoint_json_pkglist(httphandler):
     
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
-    conf = config.branch_options()
 
     dict_arr = [ ]
     req_line = httphandler.headers._headers[0][1]
@@ -92,6 +93,18 @@ def get_endpoint_json_pkglist(httphandler):
         dict_arr.append(_dict)
 
     httphandler.wfile.write(bytes(json.dumps(dict_arr), "utf-8"))
+
+
+def get_endpoint_json_pkgbuildlist(httphandler):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    stor = pkgbuildstorage.storage()
+    pkgs = stor.packages
+   
+    json_pkgs = json.dumps(pkgs)
+    httphandler.wfile.write(bytes(json_pkgs, "utf-8"))
 
 
 def get_endpoint_package(httphandler, form_data):
