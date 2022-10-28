@@ -48,7 +48,7 @@ def main():
 
 
     blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
-    endpoints.register_endpoints()
+    endpoints.register_get_endpoints()
     endpoints.register_post_endpoints()
     try:
         thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))

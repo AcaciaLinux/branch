@@ -26,6 +26,7 @@ class web_auth():
         user_obj = usermanager.usermanager().get_user(user)
         
         if(user_obj is None):
+            blog.debug("No such user.")
             return False
 
         return user_obj.validate_phash(phash) 
@@ -63,6 +64,7 @@ class web_auth():
         # key has expired
         if((curr_time - key_obj.timestamp) > 900):
             blog.debug("Key validation failed. Key has expired.")
+            self.invalidate_key(key_obj.key_id)
             return False
         
         # key is valid
@@ -70,10 +72,26 @@ class web_auth():
         blog.debug("Key validation succeeded. Updating key timestamp: {}".format(key_obj.timestamp))
         return True
 
-class key():
+    def invalidate_key(self, key_id):
+        blog.debug("Invalidating requested key")
+        
+        key_obj = None
+        
+        # does key exist
+        for k in web_auth.authorized_keys:
+            if(str(k.key_id) == key_id):
+                key_obj = k
+                break
+        
+        if(key_obj is None):
+            blog.debug("Key validation failed. No such key found.")
+            return False
 
+        web_auth.authorized_keys.remove(key_obj)
+        blog.debug("Key invalidated.")
+
+class key():
     def __init__(self):
         self.key_id = uuid.uuid4();
         self.timestamp = time.time()
-
 

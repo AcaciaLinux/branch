@@ -24,8 +24,6 @@ class usermanager():
         usermanager.users = [ ]
     
         self.read_file()
-        
-    
 
     # fetches a user
     def get_user(self, uname):
@@ -37,23 +35,28 @@ class usermanager():
 
     # add a user
     def add_user(self, username, password):
+        for u in usermanager.users:
+            if(u.name == username):
+                return False
+
+
+
         byte_array = password.encode('utf-8')
         salt = bcrypt.gensalt()
         phash = bcrypt.hashpw(byte_array, salt)
 
-        user_obj = user(username, phash)
+        user_obj = user(username, phash.decode("utf-8"))
         usermanager.users.append(user_obj)
 
         blog.debug("New user: updating file..")
         os.remove(USER_FILE)
-
         
         blog.debug("Writing updated file..")
         user_file = open(USER_FILE, "w")
         for u in usermanager.users:
             user_file.write("{}={}\n".format(u.name, u.phash))
-
-        
+       
+        return True
         
     def read_file(self):
         blog.debug("Reading user file..")

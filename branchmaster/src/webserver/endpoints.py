@@ -1,28 +1,36 @@
 import json
 import os
+import re
 
 from webserver import webauth
 from webserver import webserver
 from webserver import httputils
+from webserver import usermanager
 from log import blog
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
+from manager import manager
 from config import config
+
 
 class endpoint():
     def __init__(self, path, handler):
         self.path = path
         self.handlerfunc = handler
 
-def register_endpoints():
+def register_get_endpoints():
+    blog.debug("Registering get endpoints..")
     webserver.register_endpoint(endpoint("get", get_endpoint))
     webserver.register_endpoint(endpoint("", root_endpoint))
     webserver.register_endpoint(endpoint("test", test_endpoint))
 
 def register_post_endpoints():
+    blog.debug("Registering post endpoints..")
     webserver.register_post_endpoint(endpoint("auth", auth_endpoint))
     webserver.register_post_endpoint(endpoint("checkauth", check_auth_endpoint))
-
+    webserver.register_post_endpoint(endpoint("logoff", logoff_endpoint))
+    webserver.register_post_endpoint(endpoint("createuser", create_user_endpoint))
+    webserver.register_post_endpoint(endpoint("crossbuild", crossbuild_endpoint))
 
 def auth_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
@@ -30,12 +38,12 @@ def auth_endpoint(httphandler, form_data, post_data):
     httphandler.end_headers()
     
     # invalid request
-    if("user" not in post_data or "phash" not in post_data):
+    if("user" not in post_data or "pass" not in post_data):
         blog.debug("Missing request data for authentication")
         httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
         return
     
-    if(webauth.web_auth().validate_pw(post_data["user"], post_data["phash"])):
+    if(webauth.web_auth().validate_pw(post_data["user"], post_data["pass"])):
         blog.debug("Authentication succeeded.")
         key = webauth.web_auth().new_authorized_key() 
 
@@ -59,6 +67,114 @@ def check_auth_endpoint(httphandler, form_data, post_data):
         httphandler.wfile.write(bytes("AUTH_OK", "utf-8"))
     else:
         httphandler.wfile.write(bytes("AUTH_FAIL", "utf-8"))
+
+def logoff_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+ 
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+
+    # check if logged in       
+    if(webauth.web_auth().validate_key(post_data["authkey"])):
+        webauth.web_auth().invalidate_key(post_data["authkey"])
+        httphandler.wfile.write(bytes("LOGOFF_ACK", "utf-8"))
+    else:
+        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+
+
+def create_user_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+
+    # check if logged in
+    if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        return
+
+    if("cuser" not in post_data or "cpass" not in post_data):
+        blog.debug("Missing request data for user creation")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return     
+    
+    cuser = post_data["cuser"]
+    cpass = post_data["cpass"]
+    
+    if(bool(re.match('^[a-zA-Z0-9]*$', cuser)) == False):
+        blog.debug("Invalid username for account creation")
+        httphandler.wfile.write(bytes("E_USERNAME", "utf-8"))
+        return
+    
+    if(not usermanager.usermanager().add_user(cuser, cpass)):
+        httphandler.wfile.write(bytes("USER_ALREADY_EXISTS", "utf-8"))
+        return
+
+    httphandler.wfile.write(bytes("USER_CREATED", "utf-8"))
+
+def crossbuild_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+
+    # check if logged in
+    if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        return
+
+    if("pkgname" not in post_data):
+        blog.debug("Missing request data for crossbuild")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+
+    pkgname = post_data["pkgname"]
+
+    # invoke branch manager
+    storage = pkgbuildstorage.storage()
+    if(pkgname in storage.packages):
+        blog.info("Controller client requested cross build for {}".format(pkgname))
+            
+        pkg = storage.get_bpb_obj(pkgname)
+
+        # get a job obj, use_crosstools = True
+        job = manager.manager().new_job(True)
+
+        # TODO: remove seperate build_pkg_name, because pkg contains it.
+        job.build_pkg_name = pkg.name
+        job.pkg_payload = pkg
+        job.requesting_client = "Web client"
+        job.set_status("WAITING")
+        
+        # TODO: remove call to manager, because manager has static class variables now
+        res = manager.manager().get_queue().add_to_queue(manager.manager(), job)
+        httphandler.wfile.write(bytes("ADDED_TO_QUEUE", "utf-8"))
+        
+        print(res)
+
+        return
+    else:
+        blog.info("Web client requested release build for invalid package.")
+        httphandler.wfile.write(bytes("E_INV_PKG", "utf-8"))
+        return
+
+
+    
+     
+
+
 
 
 def get_endpoint(httphandler, form_data):
