@@ -45,3 +45,19 @@ $PKG_REAL_VERSION
 
 ## Usage: client
 The controller can be configured in its configuration file located at `/etc/branch/client.conf`. Use `branch -h` to list available commands.
+
+## Currently available public API-calls
+```
+?get=packagelist
+?get=jsonpackagelist
+?get=package
+?get=versions
+?get=jsonpkgbuildlist
+?get=jobs
+```
+
+## Currently available private API-calls
+```
+/auth
+/checkauth
+```
