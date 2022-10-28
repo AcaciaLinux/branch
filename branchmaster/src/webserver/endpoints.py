@@ -1,8 +1,10 @@
 import json
 import os
 
+from webserver import webauth
 from webserver import webserver
 from webserver import httputils
+from log import blog
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from config import config
@@ -16,6 +18,48 @@ def register_endpoints():
     webserver.register_endpoint(endpoint("get", get_endpoint))
     webserver.register_endpoint(endpoint("", root_endpoint))
     webserver.register_endpoint(endpoint("test", test_endpoint))
+
+def register_post_endpoints():
+    webserver.register_post_endpoint(endpoint("auth", auth_endpoint))
+    webserver.register_post_endpoint(endpoint("checkauth", check_auth_endpoint))
+
+
+def auth_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+    
+    # invalid request
+    if("user" not in post_data or "phash" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+    
+    if(webauth.web_auth().validate_pw(post_data["user"], post_data["phash"])):
+        blog.debug("Authentication succeeded.")
+        key = webauth.web_auth().new_authorized_key() 
+
+        httphandler.wfile.write(bytes("{}".format(key.key_id), "utf-8"))
+    else:
+        blog.debug("Authentication failure")
+        httphandler.wfile.write(bytes("E_AUTH", "utf-8"))
+
+
+def check_auth_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+    
+    if(webauth.web_auth().validate_key(post_data["authkey"])):
+        httphandler.wfile.write(bytes("AUTH_OK", "utf-8"))
+    else:
+        httphandler.wfile.write(bytes("AUTH_FAIL", "utf-8"))
+
 
 def get_endpoint(httphandler, form_data):
     if(form_data["get"] == "packagelist"):

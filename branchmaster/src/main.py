@@ -26,6 +26,7 @@ from bsocket import server
 from manager import manager
 from localstorage import pkgbuildstorage
 
+from webserver import usermanager
 from webserver import endpoints
 from webserver import webserver
 
@@ -42,9 +43,17 @@ def main():
     conf = config.branch_options()
     conf.load_config()
 
+    blog.info("Loading user file..")
+    userm = usermanager.usermanager()
+
+
     blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
     endpoints.register_endpoints()
-    thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
+    endpoints.register_post_endpoints()
+    try:
+        thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
+    except Exception:
+        blog.error("Webserver failed to bind port.")
 
     thread.start()
 

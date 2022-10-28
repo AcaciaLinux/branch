@@ -11,7 +11,12 @@ def init_server(addr, port):
     # sock opts
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((addr, port))
+    try:
+        sock.bind((addr, port))
+    except OSError:
+        blog.error("Port already in use by another process.")
+        exit(0)
+
     sock.listen(100)
     sock.setblocking(False)
 
