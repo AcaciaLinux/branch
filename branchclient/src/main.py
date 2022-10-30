@@ -15,8 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Route Kanal"
-BRANCH_VERSION = "0.3"
+BRANCH_CODENAME = "Water Hazard"
+BRANCH_VERSION = "0.4"
 
 B_TYPE = "CONTROLLER"
 

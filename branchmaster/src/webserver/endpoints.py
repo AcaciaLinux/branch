@@ -31,6 +31,8 @@ def register_post_endpoints():
     webserver.register_post_endpoint(endpoint("logoff", logoff_endpoint))
     webserver.register_post_endpoint(endpoint("createuser", create_user_endpoint))
     webserver.register_post_endpoint(endpoint("crossbuild", crossbuild_endpoint))
+    webserver.register_post_endpoint(endpoint("releasebuild", releasebuild_endpoint))
+    webserver.register_post_endpoint(endpoint("viewlog", releasebuild_endpoint))
 
 def auth_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
@@ -121,6 +123,12 @@ def create_user_endpoint(httphandler, form_data, post_data):
     httphandler.wfile.write(bytes("USER_CREATED", "utf-8"))
 
 def crossbuild_endpoint(httphandler, form_data, post_data):
+    build_endpoint(httphandler, form_data, post_data, True)
+
+def releasebuild_endpoint(httphandler, form_data, post_data):
+    build_endpoint(httphandler, form_data, post_data, False)
+
+def build_endpoint(httphandler, form_data, post_data, use_crosstools):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
@@ -136,45 +144,84 @@ def crossbuild_endpoint(httphandler, form_data, post_data):
         return
 
     if("pkgname" not in post_data):
-        blog.debug("Missing request data for crossbuild")
+        blog.debug("Missing request data for build request")
         httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
         return
 
     pkgname = post_data["pkgname"]
 
-    # invoke branch manager
+    # request pkgbuild from branch manager
     storage = pkgbuildstorage.storage()
     if(pkgname in storage.packages):
-        blog.info("Controller client requested cross build for {}".format(pkgname))
-            
+        blog.info("Web client requested build for {}".format(pkgname))
+         
         pkg = storage.get_bpb_obj(pkgname)
+        mgr = manager.manager()
 
         # get a job obj, use_crosstools = True
-        job = manager.manager().new_job(True)
+        job = mgr.new_job(use_crosstools)
 
         # TODO: remove seperate build_pkg_name, because pkg contains it.
         job.build_pkg_name = pkg.name
         job.pkg_payload = pkg
-        job.requesting_client = "Web client"
+        job.requesting_client = "webclient"
         job.set_status("WAITING")
         
-        # TODO: remove call to manager, because manager has static class variables now
-        res = manager.manager().get_queue().add_to_queue(manager.manager(), job)
-        httphandler.wfile.write(bytes("ADDED_TO_QUEUE", "utf-8"))
-        
-        print(res)
-
-        return
+        res = mgr.get_queue().add_to_queue(job)
+        httphandler.wfile.write(bytes(res, "utf-8"))
     else:
         blog.info("Web client requested release build for invalid package.")
         httphandler.wfile.write(bytes("E_INV_PKG", "utf-8"))
+
+def clear_completed_jobs_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+
+    if("authkey" not in post_data):
+        blog.debug("missing request data for authentication")
+        httphandler.wfile.write(bytes("e_request", "utf-8"))
         return
 
-
+    # check if logged in
+    if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        return
     
-     
+    manager.manager().clear_completed_jobs()  
+    httphandler.wfile.write(bytes("JOBS_CLEARED", "utf-8"))
 
+def viewjob_log_endpoint(httphandler, form_data, post_data):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+ 
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
 
+    # check if logged in
+    if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        return
+    
+    if("jobid" not in post_data):
+        blog.debug("Missing request data for viewlog")
+        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        return
+
+    jobid = post_data["jobid"]
+    
+    job = manager.manager().get_job_by_id(cmd_body)
+        
+    if(job is None):
+        httphandler.wfile.write(bytes("INV_JOB_ID", "utf-8"))
+        
+    if(job.build_log is None):
+        httphandler.wfile.write(bytes("NO_LOG", "utf-8"))
+
+    httphandler.wfile.write(bytes(json.dumps(job.build_log), "utf-8"))
 
 
 def get_endpoint(httphandler, form_data):

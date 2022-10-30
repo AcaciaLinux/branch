@@ -145,7 +145,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             job.requesting_client = client.get_identifier()
             job.set_status("WAITING")
 
-            res = manager.get_queue().add_to_queue(manager, job)
+            res = manager.get_queue().add_to_queue(job)
             return res
         else:
             blog.info("Controller client requested release build for invalid package.")
@@ -172,7 +172,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             job.requesting_client = client.get_identifier()
             job.set_status("WAITING")
 
-            res = manager.get_queue().add_to_queue(manager, job)
+            res = manager.get_queue().add_to_queue(job)
             return res
         else:
             blog.info("Controller client requested release build for invalid package.")
@@ -219,7 +219,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             
             # queue every job
             for job in jobs:
-                manager.get_queue().add_to_queue(manager, job)
+                manager.get_queue().add_to_queue(job)
             
             return "BATCH_QUEUED"
         else:
@@ -330,7 +330,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         client.is_ready = True
         client.send_command("CMD_OK")
 
-        manager.queue.notify_ready(manager)
+        manager.queue.notify_ready()
         return None
 
     #

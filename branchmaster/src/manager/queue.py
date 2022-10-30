@@ -1,18 +1,23 @@
 import json
 
+from manager import manager
 from log import blog
 from package import build
 from dependency import dependency
 
 class queue():
-
+    
+    # static manager object
+    def __init__(self, mgr):
+        self.manager = mgr
+        
     #
     # Check if job is blocked
     #
-    def job_is_blocked(self, manager, job):
+    def job_is_blocked(self, job):
         for blocker in job.blocked_by:
-            sjob = manager.get_job_by_id(blocker)
-            if(not sjob in manager.completed_jobs):
+            sjob = self.manager.get_job_by_id(blocker)
+            if(not sjob in self.manager.completed_jobs):
                 blog.debug("Job is currently blocked: {}".format(job.build_pkg_name))
                 return True
             else:
@@ -21,19 +26,19 @@ class queue():
     #
     # Called when a controller requests RELEASE_BUILD
     #
-    def add_to_queue(self, manager, job):
+    def add_to_queue(self, job):
         
         # We have a build server ready immediately, no need to queue..
-        if(not len(manager.get_ready_build_clients()) == 0):
+        if(not len(self.manager.get_ready_build_clients()) == 0):
             blog.info("Build request was immediately handled by a ready build client.")
-            clients = manager.get_ready_build_clients()
+            clients = self.manager.get_ready_build_clients()
         
             # get first ready build client, and submit
             cli = clients[0]
-            self.submit_build_cmd(manager, cli, job)
+            self.submit_build_cmd(cli, job)
  
-            manager.queued_jobs.remove(job)
-            manager.build_jobs.append(job)
+            self.manager.queued_jobs.remove(job)
+            self.manager.build_jobs.append(job)
 
 
             return "BUILD_REQ_SUBMIT_IMMEDIATELY"
@@ -45,7 +50,7 @@ class queue():
     #
     # Called when we get SIG_READY from buildbot
     #
-    def notify_ready(self, manager):
+    def notify_ready(self):
 
         # TODO: Fix!
         # If all jobs are blocked, but a new client is ready, it 
@@ -55,7 +60,7 @@ class queue():
         
         #recheck_for_ready() ..?
 
-        if(not manager.queued_jobs):
+        if(not self.manager.queued_jobs):
             blog.debug("A build client is ready, but is currently not needed.")
             return
 
@@ -65,8 +70,8 @@ class queue():
         unblocked_jobs = [ ]
 
         # find a not blocked package
-        for sjob in manager.queued_jobs:
-            if(not self.job_is_blocked(manager, sjob)):
+        for sjob in self.manager.queued_jobs:
+            if(not self.job_is_blocked(sjob)):
                 unblocked_jobs.append(sjob)
        
         # Notify that there are no jobs available
@@ -78,18 +83,18 @@ class queue():
         job = unblocked_jobs[0]
         
         # remove job from queued, add to building
-        manager.queued_jobs.remove(job)
-        manager.build_jobs.append(job)
+        self.manager.queued_jobs.remove(job)
+        self.manager.build_jobs.append(job)
 
         # get a ready build client from the manager
-        clients = manager.get_ready_build_clients()
+        clients = self.manager.get_ready_build_clients()
         cli = clients[0]
 
         # submit the build command to the client
-        self.submit_build_cmd(manager, cli, job)
+        self.submit_build_cmd(cli, job)
 
 
-    def submit_build_cmd(self, manager, client, job_obj):
+    def submit_build_cmd(self, client, job_obj):
         client.is_ready = False        
     
         # our jobs id
@@ -110,6 +115,4 @@ class queue():
             client.send_command("BUILD_PKG_CROSS {}".format(pkg_json))
         else:    
             client.send_command("BUILD_PKG {}".format(pkg_json))
-
-
 

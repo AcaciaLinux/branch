@@ -6,7 +6,11 @@ from manager import jobs
 class manager():
     
     # static class objects
-    queue = queue.queue()
+    queue = None
+
+    def __init__(self):
+        manager.queue = queue.queue(self) 
+
     client_array = [ ]
     
     build_jobs = [ ]
