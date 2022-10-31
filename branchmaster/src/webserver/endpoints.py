@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 import os
 import re
@@ -12,11 +13,34 @@ from localstorage import pkgbuildstorage
 from manager import manager
 from config import config
 
-
+#
+# endpoint class with path and corresponding handler function
+#
 class endpoint():
     def __init__(self, path, handler):
         self.path = path
         self.handlerfunc = handler
+#
+# webresponse class with response code and payload
+#
+class webresponse():
+    def __init__(self, wstatus, payload):
+        self.status = wstatus.name
+        self.response_code = wstatus.value
+        self.payload = payload
+
+    def json_str(self):
+        return json.dumps({ 
+                "status": self.status,
+                "response_code": self.response_code,
+                "payload": self.payload
+            })
+
+class webstatus(Enum):
+    SUCCESS = 200
+    MISSING_DATA = 300
+    SERV_FAILURE = 400
+    AUTH_FAILURE = 500
 
 def register_get_endpoints():
     blog.debug("Registering get endpoints..")
@@ -32,8 +56,13 @@ def register_post_endpoints():
     webserver.register_post_endpoint(endpoint("createuser", create_user_endpoint))
     webserver.register_post_endpoint(endpoint("crossbuild", crossbuild_endpoint))
     webserver.register_post_endpoint(endpoint("releasebuild", releasebuild_endpoint))
-    webserver.register_post_endpoint(endpoint("viewlog", releasebuild_endpoint))
+    webserver.register_post_endpoint(endpoint("viewlog", viewjob_log_endpoint))
+    webserver.register_post_endpoint(endpoint("clearcompletedjobs", clear_completed_jobs_endpoint))
 
+#
+# endpoint used to authenticate a user
+#
+# ENDPOINT /auth (POST)
 def auth_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
@@ -42,85 +71,106 @@ def auth_endpoint(httphandler, form_data, post_data):
     # invalid request
     if("user" not in post_data or "pass" not in post_data):
         blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
     
     if(webauth.web_auth().validate_pw(post_data["user"], post_data["pass"])):
         blog.debug("Authentication succeeded.")
         key = webauth.web_auth().new_authorized_key() 
-
-        httphandler.wfile.write(bytes("{}".format(key.key_id), "utf-8"))
+        httphandler.wfile.write(bytes(webresponse(webstatus.SUCCESS, "{}".format(key.key_id)).json_str(), "utf-8"))
     else:
         blog.debug("Authentication failure")
-        httphandler.wfile.write(bytes("E_AUTH", "utf-8"))
+        wr = webresponse(webstatus.AUTH_FAILURE, "Authentication failed.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
-
+#
+# checks if the user is logged in or not
+#
+# ENDPOINT /checkauth (POST)
 def check_auth_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
 
     if("authkey" not in post_data):
-        blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
     
     if(webauth.web_auth().validate_key(post_data["authkey"])):
-        httphandler.wfile.write(bytes("AUTH_OK", "utf-8"))
+        wr = webresponse(webstatus.SUCCESS, "Authentication succeeded.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
     else:
-        httphandler.wfile.write(bytes("AUTH_FAIL", "utf-8"))
+        wr = webresponse(webstatus.AUTH_FAILURE, "Authentication failed.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
+#
+# destroys the specified session and logs the user off
+#
+# ENDPOINT /logoff (POST)
 def logoff_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
  
     if("authkey" not in post_data):
-        blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     # check if logged in       
     if(webauth.web_auth().validate_key(post_data["authkey"])):
         webauth.web_auth().invalidate_key(post_data["authkey"])
-        httphandler.wfile.write(bytes("LOGOFF_ACK", "utf-8"))
+        wr = webresponse(webstatus.SUCCESS, "Logoff acknowledged.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
     else:
-        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
-
-
+        wr = webresponse(webstatus.AUTH_FAILURE, "Invalid authentication key.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+ 
+#
+# creates a webuser
+#
+# ENDPOINT /createuser (POST)
 def create_user_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
 
     if("authkey" not in post_data):
-        blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     # check if logged in
     if(not webauth.web_auth().validate_key(post_data["authkey"])):
-        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        wr = webresponse(webstatus.AUTH_FAILURE, "Invalid authentication key.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
+
 
     if("cuser" not in post_data or "cpass" not in post_data):
         blog.debug("Missing request data for user creation")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
-        return     
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for user creation.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+        return
     
     cuser = post_data["cuser"]
     cpass = post_data["cpass"]
     
     if(bool(re.match('^[a-zA-Z0-9]*$', cuser)) == False):
         blog.debug("Invalid username for account creation")
-        httphandler.wfile.write(bytes("E_USERNAME", "utf-8"))
+        wr = webresponse(webstatus.SERV_FAILURE, "Invalid username for account creation..")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
     
     if(not usermanager.usermanager().add_user(cuser, cpass)):
-        httphandler.wfile.write(bytes("USER_ALREADY_EXISTS", "utf-8"))
+        wr = webresponse(webstatus.SERV_FAILURE, "User already exists.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
-    httphandler.wfile.write(bytes("USER_CREATED", "utf-8"))
+    wr = webresponse(webstatus.SUCCESS, "User created.")
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
 def crossbuild_endpoint(httphandler, form_data, post_data):
     build_endpoint(httphandler, form_data, post_data, True)
@@ -128,6 +178,10 @@ def crossbuild_endpoint(httphandler, form_data, post_data):
 def releasebuild_endpoint(httphandler, form_data, post_data):
     build_endpoint(httphandler, form_data, post_data, False)
 
+#
+# request a release/cross build from the server
+#
+# ENDPOINT /build (POST) 
 def build_endpoint(httphandler, form_data, post_data, use_crosstools):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
@@ -135,17 +189,20 @@ def build_endpoint(httphandler, form_data, post_data, use_crosstools):
 
     if("authkey" not in post_data):
         blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     # check if logged in
     if(not webauth.web_auth().validate_key(post_data["authkey"])):
-        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        wr = webresponse(webstatus.AUTH_FAILURE, "Invalid authentication key.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     if("pkgname" not in post_data):
-        blog.debug("Missing request data for build request")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        blog.debug("Missing request data for build request: pkgname")
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for package build.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     pkgname = post_data["pkgname"]
@@ -168,29 +225,46 @@ def build_endpoint(httphandler, form_data, post_data, use_crosstools):
         job.set_status("WAITING")
         
         res = mgr.get_queue().add_to_queue(job)
-        httphandler.wfile.write(bytes(res, "utf-8"))
+        
+        wr = webresponse(webstatus.SUCCESS, "Package build queued successfully: {}.".format(res))
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+
     else:
         blog.info("Web client requested release build for invalid package.")
-        httphandler.wfile.write(bytes("E_INV_PKG", "utf-8"))
+        wr = webresponse(webstatus.SERV_FAILURE, "No such package available.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
+
+#
+# Clears all completd jobs
+#
+# ENDPOINT /clearcompletedjobs (POST)
 def clear_completed_jobs_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
 
     if("authkey" not in post_data):
-        blog.debug("missing request data for authentication")
-        httphandler.wfile.write(bytes("e_request", "utf-8"))
+        blog.debug("Missing request data for authentication")
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for authentication.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     # check if logged in
     if(not webauth.web_auth().validate_key(post_data["authkey"])):
-        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        wr = webresponse(webstatus.AUTH_FAILURE, "Invalid authentication key.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
     
     manager.manager().clear_completed_jobs()  
-    httphandler.wfile.write(bytes("JOBS_CLEARED", "utf-8"))
+    wr = webresponse(webstatus.SUCCESS, "Completed jobs cleared successfully")
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
+
+#
+# Returns a json joblist 
+#
+# ENDPOINT /viewlog (POST)
 def viewjob_log_endpoint(httphandler, form_data, post_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
@@ -198,32 +272,43 @@ def viewjob_log_endpoint(httphandler, form_data, post_data):
  
     if("authkey" not in post_data):
         blog.debug("Missing request data for authentication")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for viewlog: authkey")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     # check if logged in
     if(not webauth.web_auth().validate_key(post_data["authkey"])):
-        httphandler.wfile.write(bytes("NOT_LOGGED_IN", "utf-8"))
+        blog.debug("Missing authentication key")
+        wr = webresponse(webstatus.AUTH_FAILURE, "Invalid authentication key.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
     
     if("jobid" not in post_data):
         blog.debug("Missing request data for viewlog")
-        httphandler.wfile.write(bytes("E_REQUEST", "utf-8"))
+        wr = webresponse(webstatus.MISSING_DATA, "Missing request data for viewlog: jobid")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
         return
 
     jobid = post_data["jobid"]
     
-    job = manager.manager().get_job_by_id(cmd_body)
+    job = manager.manager().get_job_by_id(jobid)
         
     if(job is None):
-        httphandler.wfile.write(bytes("INV_JOB_ID", "utf-8"))
-        
+        wr = webresponse(webstatus.SERV_FAILURE, "Invalid job id specified.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+        return
+
     if(job.build_log is None):
-        httphandler.wfile.write(bytes("NO_LOG", "utf-8"))
+        wr = webresponse(webstatus.SERV_FAILURE, "No build log available.")
+        httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+        return
 
-    httphandler.wfile.write(bytes(json.dumps(job.build_log), "utf-8"))
+    wr = webresponse(webstatus.SUCCESS, job.build_log)
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
-
+#
+# get endpoint main function
+#
 def get_endpoint(httphandler, form_data):
     if(form_data["get"] == "packagelist"):
         get_endpoint_pkglist(httphandler)
@@ -233,45 +318,45 @@ def get_endpoint(httphandler, form_data):
         get_endpoint_package(httphandler, form_data)
     elif(form_data["get"] == "versions"):
         get_endpoint_versions(httphandler, form_data)
-    elif(form_data["get"] == "jsonpkgbuildlist"):
+    elif(form_data["get"] == "jsonpackagebuildlist"):
         get_endpoint_json_pkgbuildlist(httphandler)
+    elif(form_data["get"] == "joblist"):
+        get_jobs_endpoint(httphandler)
     else:
         httputils.generic_malformed_request(httphandler)
 
+#
+# Gets a list of queued, running, completed jobs
+#
+# ENDPOINT /?get=joblist (GET)
 def get_jobs_endpoint(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
     httphandler.end_headers()
     
     manager_obj = manager.manager()
-    all_jobs = [ ]
 
-    completed_jobs = manager.get_completed_jobs()
-    running_jobs = manager.get_running_jobs()
-    queued_jobs = manager.get_queued_jobs()
-
-    all_jobs.append(completed_jobs)
-    all_jobs.append(running_jobs)
-    all_jobs.append(queued_jobs)
-
-    httphandler.wfile.write(bytes(json.dumps([obj.get_info_dict() for obj in all_jobs]), "utf-8"))
+    completed_jobs = manager_obj.get_completed_jobs()
+    running_jobs = manager_obj.get_running_jobs()
+    queued_jobs = manager_obj.get_queued_jobs()
 
 
-def get_endpoint_pkglist(httphandler):
-    httphandler.send_response(200)
-    httphandler.send_header("Content-type", "text/plain")
-    httphandler.end_headers()
-    
-    stor = packagestorage.storage()
-    meta_inf = stor.get_all_package_meta()
-    req_line = httphandler.headers._headers[0][1]
-    
-    for meta in meta_inf:
-        real_version = meta.get_latest_real_version()
-        url = "http://{}/?get=package&pkgname={}".format(req_line, meta.get_name())
+    all_jobs = {
+        "completed_jobs": json.dumps([obj.get_info_dict() for obj in completed_jobs]),
+        "running_jobs": json.dumps([obj.get_info_dict() for obj in running_jobs]),
+        "queued_jobs": json.dumps([obj.get_info_dict() for obj in queued_jobs])
+    }
 
-        httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
+    jobs = json.dumps(all_jobs)
 
+    wr = webresponse(webstatus.SUCCESS, jobs)
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
+
+
+#
+# Gets a list of all available packages
+#
+# ENDPOINT /?get=packagelist (GET)
 def get_endpoint_json_pkglist(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
@@ -299,9 +384,13 @@ def get_endpoint_json_pkglist(httphandler):
 
         dict_arr.append(_dict)
 
-    httphandler.wfile.write(bytes(json.dumps(dict_arr), "utf-8"))
+    wr = webresponse(webstatus.SUCCESS, json.dumps(dict_arr))
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
-
+#
+# Gets a list of all available package builds
+#
+# ENDPOINT /?get=jsonpackagebuildlist (GET)
 def get_endpoint_json_pkgbuildlist(httphandler):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/plain")
@@ -311,9 +400,39 @@ def get_endpoint_json_pkgbuildlist(httphandler):
     pkgs = stor.packages
    
     json_pkgs = json.dumps(pkgs)
-    httphandler.wfile.write(bytes(json_pkgs, "utf-8"))
 
+    wr = webresponse(webstatus.SUCCESS, json_pkgs)
+    httphandler.wfile.write(bytes(wr.json_str(), "utf-8"))
 
+#
+# Endpoint specifically for leaf
+# returns non-json response
+#
+# fetches package list in csv format
+#
+# ENDPOINT: /?get=packagelist (GET)
+def get_endpoint_pkglist(httphandler):
+    httphandler.send_response(200)
+    httphandler.send_header("Content-type", "text/plain")
+    httphandler.end_headers()
+    
+    stor = packagestorage.storage()
+    meta_inf = stor.get_all_package_meta()
+    req_line = httphandler.headers._headers[0][1]
+    
+    for meta in meta_inf:
+        real_version = meta.get_latest_real_version()
+        url = "http://{}/?get=package&pkgname={}".format(req_line, meta.get_name())
+
+        httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
+
+#
+# Endpoint specifically for leaf.
+# returns non-json response
+#
+# fetches a package file
+#
+# ENDPOINT: /?get=package (GET)
 def get_endpoint_package(httphandler, form_data):
     stor = packagestorage.storage()
     
@@ -366,7 +485,14 @@ def get_endpoint_package(httphandler, form_data):
     pfile = open(package_file, "rb")
     httputils.send_file(httphandler, pfile, os.path.getsize(package_file))
 
-
+#
+# Endpoint specifically for leaf.
+# (returns non-json response)
+#
+# gets a list of all available versions;real_versions 
+# for a given package
+#
+# ENDPOINT: /?get=versions (GET)
 def get_endpoint_versions(httphandler, form_data):
     stor = packagestorage.storage()
     form_keys = form_data.keys()
@@ -389,8 +515,10 @@ def get_endpoint_versions(httphandler, form_data):
     for key in versions:
         httphandler.wfile.write(bytes("{};{}\n".format(key, versions[key]), "utf-8")) 
 
-
-
+#
+# / endpoint, returns html page
+#
+# ENDPOINT: / (GET)
 def root_endpoint(httphandler, form_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/html")
@@ -400,7 +528,10 @@ def root_endpoint(httphandler, form_data):
     httphandler.wfile.write(bytes("<h1>Nope.</h1>", "utf-8"))
     httphandler.wfile.write(bytes("</html>", "utf-8"))
 
-
+#
+# simple get-test endpoint
+#
+# ENDPOINT: /test (GET)
 def test_endpoint(httphandler, form_data):
     httphandler.send_response(200)
     httphandler.send_header("Content-type", "text/html")
