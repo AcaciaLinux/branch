@@ -73,7 +73,7 @@ def auth_endpoint(httphandler, form_data, post_data):
         blog.debug("Authentication succeeded.")
         key = webauth.web_auth().new_authorized_key()
         
-        httphandler.send_web_response(webstatus.SUCCESS, "{]".format(key.key_id))
+        httphandler.send_web_response(webstatus.SUCCESS, "{}".format(key.key_id))
     
     else:
         blog.debug("Authentication failure")
