@@ -254,17 +254,14 @@ def viewjob_log_endpoint(httphandler, form_data, post_data):
         return
 
     jobid = post_data["jobid"]
-    
     job = manager.manager().get_job_by_id(jobid)
         
     if(job is None):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "Invalid job id specified.")
-        
         return
 
     if(job.build_log is None):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "No build log available.")
-        
         return
 
     httphandler.send_web_response(webstatus.SUCCESS, job.build_log)
@@ -307,9 +304,7 @@ def get_jobs_endpoint(httphandler):
         "queued_jobs": json.dumps([obj.get_info_dict() for obj in queued_jobs])
     }
 
-    jobs = json.dumps(all_jobs)
-
-    httphandler.send_web_response(webstatus.SUCCESS, jobs)
+    httphandler.send_web_response(webstatus.SUCCESS, all_jobs)
     
 
 
@@ -340,7 +335,7 @@ def get_endpoint_json_pkglist(httphandler):
 
         dict_arr.append(_dict)
 
-    httphandler.send_web_response(webstatus.SUCCESS, json.dumps(dict_arr))
+    httphandler.send_web_response(webstatus.SUCCESS, dict_arr)
     
 
 #
@@ -349,7 +344,7 @@ def get_endpoint_json_pkglist(httphandler):
 # ENDPOINT /?get=jsonpackagebuildlist (GET)
 def get_endpoint_json_pkgbuildlist(httphandler):
     stor = pkgbuildstorage.storage()
-    httphandler.send_web_response(webstatus.SUCCESS, json.dumps(stor.packages)) 
+    httphandler.send_web_response(webstatus.SUCCESS, stor.packages) 
 
 #
 # Endpoint specifically for leaf
