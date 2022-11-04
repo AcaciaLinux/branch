@@ -6,6 +6,8 @@ import cgi
 import os
 import traceback
 
+from webserver import endpoints
+
 #
 # Registered HTTP endpoints
 #
@@ -37,13 +39,55 @@ def remove_post_endpoint(endpoint):
 #
 class web_server(BaseHTTPRequestHandler):
 
-    # stub out http.server log messages
+    # send a file response to the current http handler
+    def send_file(self, file, file_len):
+        self.send_response(200)
+        self.send_header("Content-type", "application/octet-stream")
+        self.send_header("Content-Length", file_len)
+        self.end_headers()
+
+        while True:
+            bytes_read = file.read(4096)
+
+            if(not bytes_read):
+                break
+
+            self.wfile.write(bytes_read)
+
+
+    # send generic malformed request response
+    def generic_malformed_request(self):
+        self.send_response(400)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request").json_str())
+
+    # send a raw string without wrapping it in a webresponse object 
+    def send_str_raw(self, http_status, msg):
+        self.send_response(http_status)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+
+        self.write_answer_encoded(msg)
+
+    # send web response
+    def send_web_response(self, status, payload):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        
+        self.write_answer_encoded(endpoints.webresponse(status, payload).json_str())
+
+    # pass httpserver log messages to blog
     def log_message(self, format, *args):
         blog.debug("[http-server] {}".format(*args))
 
+    # utility to encode and send a message to the current http handler
     def write_answer_encoded(self, message):
+        blog.debug("Sending message: {}".format(message))
         self.wfile.write(bytes(message, "utf-8"))
 
+    # add CORS if needed
     def end_headers(self):
         if(config.branch_options.send_cors_headers):
             blog.warn("Sending Access-Control-Allow-Origin: *")
@@ -53,7 +97,6 @@ class web_server(BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Methods', "*")
             self.send_header('Access-Control-Allow-Headers', "*")
         return super(web_server, self).end_headers()
-
 
     # 
     # handle the get request
@@ -98,10 +141,13 @@ class web_server(BaseHTTPRequestHandler):
         self.send_response(400)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-    
-        self.write_answer_encoded("E_REQUEST")
+
+        self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
         return
 
+    #
+    # handle a post request
+    #
     def do_POST(self):
         blog.web_log("Handling API-post request from {}..".format(self.client_address))
         self.send_response(200)
@@ -128,7 +174,7 @@ class web_server(BaseHTTPRequestHandler):
        
         if(self.headers["Content-Length"] is None):
             blog.debug("Empty post body received.")
-            self.write_answer_encoded("E_REQUEST")
+            self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
             return
 
         form = cgi.FieldStorage(
@@ -160,7 +206,7 @@ class web_server(BaseHTTPRequestHandler):
 
                     return
 
-        self.write_answer_encoded("E_REQUEST")
+        self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
         return 
 
 
