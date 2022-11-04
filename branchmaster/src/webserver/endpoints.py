@@ -299,9 +299,9 @@ def get_jobs_endpoint(httphandler):
 
 
     all_jobs = {
-        "completed_jobs": json.dumps([obj.get_info_dict() for obj in completed_jobs]),
-        "running_jobs": json.dumps([obj.get_info_dict() for obj in running_jobs]),
-        "queued_jobs": json.dumps([obj.get_info_dict() for obj in queued_jobs])
+        "completed_jobs": [obj.get_info_dict() for obj in completed_jobs],
+        "running_jobs": [obj.get_info_dict() for obj in running_jobs],
+        "queued_jobs": [obj.get_info_dict() for obj in queued_jobs]
     }
 
     httphandler.send_web_response(webstatus.SUCCESS, all_jobs)
