@@ -388,7 +388,7 @@ def get_endpoint_package(httphandler, form_data):
                 
                 # Could not find specified version, notify failure.
                 if(package_file is None):
-                    httphandler.send_str_raw(httphandler, 404, "E_VERSION")
+                    httphandler.send_str_raw(404, "E_VERSION")
                     return
 
 
@@ -401,27 +401,27 @@ def get_endpoint_package(httphandler, form_data):
     
                 # Could not find latest version (Shouldn't happen..?), notify failure.
                 if(package_file is None):
-                    httphandler.send_str_raw(httphandler, 404, "E_VERSION")
+                    httphandler.send_str_raw(404, "E_VERSION")
                     return 
 
 
         # Package doesn't exist, notify failure
         else:
-            httphandler.send_str_raw(httphandler, 404, "E_PACKAGE")
+            httphandler.send_str_raw(404, "E_PACKAGE")
             return
 
     # No package name specified, notify failure
     else:
-        httphandler.send_str_raw(httphandler, 400, "E_PKGNAME")
+        httphandler.send_str_raw(400, "E_PKGNAME")
         return
     
     # Couldn't find package file..
     if(package_file is None):
-        httphandler.send_str_raw(httphandler, 404, "E_PACKAGE")
+        httphandler.send_str_raw(404, "E_PACKAGE")
         return
 
     pfile = open(package_file, "rb")
-    httphandler.send_file(httphandler, pfile, os.path.getsize(package_file))
+    httphandler.send_file(pfile, os.path.getsize(package_file))
 
 #
 # Endpoint specifically for leaf.
@@ -436,11 +436,11 @@ def get_endpoint_versions(httphandler, form_data):
     form_keys = form_data.keys()
     
     if(not "pkgname" in form_keys):
-        httphandler.send_str_raw(httphandler, 400, "E_PKGNAME")
+        httphandler.send_str_raw(400, "E_PKGNAME")
         return
 
     if(not form_data["pkgname"] in stor.packages):
-        httphandler.send_str_raw(httphandler, 404, "E_PACKAGE")
+        httphandler.send_str_raw(404, "E_PACKAGE")
         return
 
     meta = stor.get_meta_by_name(form_data["pkgname"])

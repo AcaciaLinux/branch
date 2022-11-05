@@ -213,13 +213,13 @@ class web_server(BaseHTTPRequestHandler):
 def parse_form_data(str_form):
     form_val = str_form.split("&")
 
-    if(not "=" in str_form):
-        return None
-
     _dict = { }
 
     for dataset in form_val:
         split = dataset.split("=")
+        if(not "=" in dataset):
+            continue
+
         key = split[0]
         val = split[1]
         _dict[key] = val
