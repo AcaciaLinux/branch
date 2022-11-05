@@ -30,6 +30,7 @@ The WebApi uses "WebResponse" objects to return a standarized response accross a
 - releasebuild
 - viewlog
 - clearcompletedjobs
+- submitpackagebuild
 
 # Missing data
 All api endpoints return "MISSING_DATA" if a POST request field is missing and "AUTH_FAILURE" if the user is not authenticated.
@@ -69,17 +70,23 @@ Post-data: authkey
 Response:
 - SUCCESS: jobs cleared
 
+## submitpackagebuild
+Post-data: authkey, packagebuild
+Response:
+- SUCCESS: packagebuild submission accepted.
+- SERV_FAILURE: packagebuild is missing name, version or real_version
+
 ## viewlog 
 Post-data: authkey, jobid
 Response:
 - SUCCESS: build_log as payload
 
 ## get
-### packagelist
+### leafpackagelist
 Response: packagelist in plaintext
 
-### jsonpackagelist
-Response: json packagelist as payload
+### packagelist
+Response: packagelist as payload
 
 ### package
 Get-data: ?pkgname=bla
@@ -89,8 +96,15 @@ Response: packagefile
 Get-data: ?pkgname=bla
 Response: list of versions in plain text
 
-### jsonpackagebuildlist
-Response: json packagebuildlist as payload
+### packagebuildlist
+Response: packagebuildlist as payload
 
 ### joblist
-Response: json joblist as payload
+Response: joblist as payload
+
+### packagebuild
+Response: branch packagebuild as payload
+
+### clientlist
+Response: list of connected clients as payload
+

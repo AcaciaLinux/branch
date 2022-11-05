@@ -11,6 +11,7 @@ from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager
 from config import config
+from package import build
 
 #
 # endpoint class with path and corresponding handler function
@@ -57,6 +58,7 @@ def register_post_endpoints():
     webserver.register_post_endpoint(endpoint("releasebuild", releasebuild_endpoint))
     webserver.register_post_endpoint(endpoint("viewlog", viewjob_log_endpoint))
     webserver.register_post_endpoint(endpoint("clearcompletedjobs", clear_completed_jobs_endpoint))
+    webserver.register_post_endpoint(endpoint("submitpackagebuild", submit_packagebuild_endpoint))
 
 #
 # endpoint used to authenticate a user
@@ -264,25 +266,69 @@ def viewjob_log_endpoint(httphandler, form_data, post_data):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "No build log available.")
         return
 
-    httphandler.send_web_response(webstatus.SUCCESS, job.build_log)
+    httphandler.send_web_response(webstatuseSUCCESS, job.build_log)
     
+#
+# Post endpoint to submit a package build
+#
+# ENDPOINT /submitpackagebuild (POST) 
+
+def submit_packagebuild_endpoint(httphandler, form_data, post_data):
+    if("authkey" not in post_data):
+        blog.debug("Missing request data for authentication")
+        httphandler.send_web_response(webstatus.MISSING_DATA, "Missing request data for viewlog: authkey")
+        return
+
+    # check if logged in
+    if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        blog.debug("Missing authentication key")
+        httphandler.send_web_response(webstatus.AUTH_FAILURE, "Invalid authentication key.")        
+        return
+        
+    if("packagebuild" not in post_data):
+        blog.debug("Missing request data for package submission")
+        httphandler.send_web_response(webstatus.MISSING_DATA, "Missing package build.")
+        return
+    
+    blog.debug("Checking submission..")
+    storage = pkgbuildstorage.storage()
+    package_build = build.parse_build_str(post_data["packagebuild"])
+
+    if(package_build.name == "" or package_build.version == "" or package_build.real_version == ""):
+        httphandler.send_web_response(webstatus.SERV_FAILURE, "Missing values in package build")
+        return
+    
+    blog.debug("Writing package submission to disk..")
+    tdir = storage.create_stor_directory(package_build.name)
+
+    packagebuild_file = os.path.join(tdir, "package.bpb")
+    if(os.path.exists(packagebuild_file)):
+        os.remove(packagebuild_file)
+   
+    build.write_build_file(packagebuild_file, package_build)
+    httphandler.send_web_response(webstatus.SUCCESS, "Package submission accepted.")
+
 
 #
 # get endpoint main function
 #
 def get_endpoint(httphandler, form_data):
-    if(form_data["get"] == "packagelist"):
-        get_endpoint_pkglist(httphandler)
-    elif(form_data["get"] == "jsonpackagelist"):
+    if(form_data["get"] == "leafpackagelist"):
+        get_endpoint_leaf_pkglist(httphandler)
+    elif(form_data["get"] == "packagelist"):
         get_endpoint_json_pkglist(httphandler)
     elif(form_data["get"] == "package"):
         get_endpoint_package(httphandler, form_data)
     elif(form_data["get"] == "versions"):
         get_endpoint_versions(httphandler, form_data)
-    elif(form_data["get"] == "jsonpackagebuildlist"):
-        get_endpoint_json_pkgbuildlist(httphandler)
+    elif(form_data["get"] == "packagebuildlist"):
+        get_endpoint_pkgbuildlist(httphandler)
     elif(form_data["get"] == "joblist"):
-        get_jobs_endpoint(httphandler)
+        get_endpoint_jobs(httphandler)
+    elif(form_data["get"] == "packagebuild"):
+        get_endpoint_pkgbuild(httphandler, form_data)
+    elif(form_data["get"] == "clientlist"):
+        get_endpoint_clientlist(httphandler)
     else:
         httphandler.generic_malformed_request()
 
@@ -290,7 +336,7 @@ def get_endpoint(httphandler, form_data):
 # Gets a list of queued, running, completed jobs
 #
 # ENDPOINT /?get=joblist (GET)
-def get_jobs_endpoint(httphandler):
+def get_endpoint_jobs(httphandler):
     manager_obj = manager.manager()
 
     completed_jobs = manager_obj.get_completed_jobs()
@@ -305,7 +351,38 @@ def get_jobs_endpoint(httphandler):
     }
 
     httphandler.send_web_response(webstatus.SUCCESS, all_jobs)
+
+#
+# Gets a pkgbuild file
+#
+# ENDPOINT /?get=packagebuild
+def get_endpoint_pkgbuild(httphandler, form_data):
+    storage = pkgbuildstorage.storage()
     
+    if("pkgname" not in form_data):
+        httphandler.send_web_response(webstatus.MISSING_DATA, "Missing request data")
+        return
+     
+    if(form_data["pkgname"] in storage.packages):
+        pkgbuild_file = open(storage.get_pkg_build_file(form_data["pkgname"]), "r")
+        httphandler.send_web_response(webstatus.SUCCESS, pkgbuild_file.read())
+    else:
+        httphandler.send_web_response(webstatus.SERV_FAILURE, "Invalid packagebuild name.")
+
+#
+# Gets a list of conected clients
+# 
+# ENDPOINT /?get=clientlist
+def get_endpoint_clientlist(httphandler):
+    clients = manager.manager().get_controller_names()
+    buildbots = manager.manager().get_buildbot_names()
+
+    _dict = {
+        "controllers:": clients,
+        "buildbots:": buildbots
+    }
+
+    httphandler.send_web_response(webstatus.SUCCESS, _dict)
 
 
 #
@@ -342,7 +419,7 @@ def get_endpoint_json_pkglist(httphandler):
 # Gets a list of all available package builds
 #
 # ENDPOINT /?get=jsonpackagebuildlist (GET)
-def get_endpoint_json_pkgbuildlist(httphandler):
+def get_endpoint_pkgbuildlist(httphandler):
     stor = pkgbuildstorage.storage()
     httphandler.send_web_response(webstatus.SUCCESS, stor.packages) 
 
@@ -352,8 +429,8 @@ def get_endpoint_json_pkgbuildlist(httphandler):
 #
 # fetches package list in csv format
 #
-# ENDPOINT: /?get=packagelist (GET)
-def get_endpoint_pkglist(httphandler):
+# ENDPOINT: /?get=leafpackagelist (GET)
+def get_endpoint_leaf_pkglist(httphandler):
     stor = packagestorage.storage()
     meta_inf = stor.get_all_package_meta()
     req_line = httphandler.headers._headers[0][1]
