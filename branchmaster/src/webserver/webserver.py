@@ -150,9 +150,6 @@ class web_server(BaseHTTPRequestHandler):
     #
     def do_POST(self):
         blog.web_log("Handling API-post request from {}..".format(self.client_address))
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
 
         # strip /
         self.path = self.path[1:len(self.path)]        
