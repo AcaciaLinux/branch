@@ -266,7 +266,7 @@ def viewjob_log_endpoint(httphandler, form_data, post_data):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "No build log available.")
         return
 
-    httphandler.send_web_response(webstatuseSUCCESS, job.build_log)
+    httphandler.send_web_response(webstatus.SUCCESS, job.build_log)
     
 #
 # Post endpoint to submit a package build
