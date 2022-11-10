@@ -162,7 +162,6 @@ def write_build_file(file, pkg_opts):
     bpb_file.write("build={\n")
     
     for line in pkg_opts.build_script:
-        bpb_file.write("\t")
         bpb_file.write(line)
         bpb_file.write("\n")
 
