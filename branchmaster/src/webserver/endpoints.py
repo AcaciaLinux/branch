@@ -378,8 +378,8 @@ def get_endpoint_clientlist(httphandler):
     buildbots = manager.manager().get_buildbot_names()
 
     _dict = {
-        "controllers:": clients,
-        "buildbots:": buildbots
+        "controllers": clients,
+        "buildbots": buildbots
     }
 
     httphandler.send_web_response(webstatus.SUCCESS, _dict)
