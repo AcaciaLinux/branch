@@ -225,13 +225,18 @@ def parse_form_data(str_form):
 
 
 def start_web_server(hostname, serverport):
-    web_serv = HTTPServer((hostname, serverport), web_server)
+    web_serv = None
+    
+    try:
+        web_serv = HTTPServer((hostname, serverport), web_server)
+    except Exception as ex:
+        blog.error("Webserver failed to initialize: {}".format(ex))
+        blog.error("Thread exiting.")
+        return
 
     # We don't handle keyboardInterrupt for the webserver,
     # it's killed once the main thread exits
     try:
         web_serv.serve_forever()
     except KeyboardInterrupt:
-        pass
-
-    web_serv.server_close()
+        web_serv.server_close()

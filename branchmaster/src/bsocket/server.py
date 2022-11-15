@@ -13,9 +13,10 @@ def init_server(addr, port):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind((addr, port))
-    except OSError:
-        blog.error("Port already in use by another process.")
-        exit(0)
+    except Exception as ex:
+        blog.error("Branchmaster failed to initialize: {}".format(ex))
+        blog.error("Thread exiting.")
+        return
 
     sock.listen(100)
     sock.setblocking(False)

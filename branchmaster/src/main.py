@@ -50,16 +50,24 @@ def main():
     blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
     endpoints.register_get_endpoints()
     endpoints.register_post_endpoints()
+    
+    web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
     try:
-        thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
-    except Exception:
-        blog.error("Webserver failed to bind port.")
-
-    thread.start()
+        web_thread.start()
+    except Exception as ex:
+        blog.error("Webserver failed to start: {}".format(ex))
 
     blog.info("Launching branchmaster..")
     blog.info("Serving on {} port {}".format(conf.listenaddr, conf.port))
-    server.init_server(conf.listenaddr, int(conf.port)) 
+    
+    cli_thread = threading.Thread(target=server.init_server, daemon=True, args=(conf.listenaddr, int(conf.port)))
+    try:
+        cli_thread.start()
+    except Exception as ex:
+        blog.error("Socket-cli server failed to start: {}".format(ex))
+
+    web_thread.join()
+    cli_thread.join()
 
 if (__name__ == "__main__"):
     try:
