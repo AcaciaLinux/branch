@@ -48,7 +48,8 @@ def release_build(s, pkg_name):
         blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
     elif(resp == "INV_PKG_NAME"):
         blog.error("Invalid package name.")
-        
+    elif(resp == "PKG_BUILD_DAMAGED"):
+        blog.error("The packagebuild you attempted to queue is damaged.")
 #
 # Request a cross build from a specified package
 #
@@ -65,7 +66,8 @@ def cross_build(s, pkg_name):
         blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
     elif(resp == "INV_PKG_NAME"):
         blog.error("Invalid package name.")
-        
+    elif(resp == "PKG_BUILD_DAMAGED"):
+        blog.error("The packagebuild you attempted to queue is damaged.")
 #
 # get job status from server
 #

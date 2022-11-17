@@ -90,8 +90,8 @@ def parse_build_str(build_str):
                 continue
 
             if(len(prop_arr) != 2):
-                blog.error("Broken package build file. Failed property of key: ", key)
-                exit(-1)
+                blog.error("Broken package build file. Failed property of key: {}".format(key))
+                return None
 
             val = prop_arr[1]
 

@@ -136,6 +136,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             
             pkg = storage.get_bpb_obj(cmd_body)
 
+            if(pkg is None):
+                return "PKG_BUILD_DAMAGED"
+
             # get a job obj, crosstools = False
             job = manager.new_job(False)
 
@@ -162,6 +165,10 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             blog.info("Controller client requested cross build for {}".format(cmd_body))
             
             pkg = storage.get_bpb_obj(cmd_body)
+        
+            if(pkg is None):
+                return "PKG_BUILD_DAMAGED"
+
 
             # get a job obj, use_crosstools = True
             job = manager.new_job(True)
