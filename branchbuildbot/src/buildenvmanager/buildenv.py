@@ -142,6 +142,9 @@ def setup_env(use_crossroot):
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
 
+    blog.info("Upgrading real root..")
+    upgrade_real_root()
+
     if(not Path(temp_dir).is_mount()):
         blog.info("Mounting overlayfs..")
      
@@ -237,6 +240,34 @@ def clean_env():
     os.mkdir(diff_dir)
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
+
+def upgrade_real_root():
+    root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    
+    leafcore = None
+    try:
+        leafcore = pyleafcore.Leafcore()
+    except Exception:
+        blog.error("cleaf not found. Exiting.")
+        exit(-1)
+
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
+    leafcore.setRootDir(root_dir)
+
+    leaf_error = leafcore.a_update()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        blog.error("Failed to update real root. Cannot continue.")
+        return -1
+
+    leaf_error = leafcore.a_upgrade()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        blog.error("Failed to upgrade real root. Cannot continue")
+        return -1
+
+    
 
 def umount_busy_wait(path):
     blog.info("Unmounting {}".format(path))
