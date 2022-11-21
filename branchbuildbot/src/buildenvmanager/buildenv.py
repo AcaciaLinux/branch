@@ -143,7 +143,8 @@ def setup_env(use_crossroot):
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
 
     blog.info("Upgrading real root..")
-    upgrade_real_root()
+    if(upgrade_real_root() == -1):
+        return -1
 
     if(not Path(temp_dir).is_mount()):
         blog.info("Mounting overlayfs..")
