@@ -5,8 +5,25 @@ import time
 from log import blog
 from pyleaf import pyleafcore
 from pathlib import Path
+from buildenvmanager import buildenv
 
 LAUNCH_DIR = os.getcwd()
+leafcore_instance = None
+
+# leafcore init
+def init_leafcore():
+    global leafcore_instance
+
+    blog.debug("Initializing leafcore..")
+    try:
+        leafcore_instance = pyleafcore.Leafcore()
+    except Exception as ex:
+        blog.error("Failed to initialize leafcore. Exception raised: {}".format(ex))
+        return -1
+    leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
+    blog.debug("Leafcore initialized.")
+    return 0
 
 # checks if the build environment is setup
 def check_buildenv():
@@ -39,39 +56,34 @@ def check_buildenv():
     if(not os.path.exists(control_file)):
         if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir) != 0):
             blog.error("Real root deployment failed.")
-            exit(-1)
+            return -1
 
     control_file = os.path.join(cross_dir, "installed")
 
     if(not os.path.exists(control_file)):
         if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
             blog.error("Crosstools deployment failed.")
-            exit(-1)
+            return -1
 
     blog.info("Build environment setup completed.")
+    return 0
 
 # installs packages to overlayfs temproot
 def install_pkgs(packages):
+    global leafcore_instance
+
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
     
-    leafcore = None
-    try:
-        leafcore = pyleafcore.Leafcore()
-    except Exception:
-        blog.error("cleaf not found. Exiting.")
-        exit(-1)
+    # set root dir properly
+    leafcore_instance.setRootDir(temp_dir)
 
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
-    leafcore.setRootDir(temp_dir)
-
-    leaf_error = leafcore.a_update()
+    leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
 
     if(packages):
-        leaf_error = leafcore.a_install(packages)
+        leaf_error = leafcore_instance.a_install(packages)
         if(leaf_error != 0):
             blog.error("Leaf error code: {}".format(leaf_error))
             return -1
@@ -80,24 +92,18 @@ def install_pkgs(packages):
     return 0
 
 def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
-    leafcore = None
-    try:
-        leafcore = pyleafcore.Leafcore()
-    except Exception:
-        blog.error("cleaf not found. Exiting.")
-        exit(-1)
+    global leafcore_instance
+    
+    leafcore_instance.setRootDir(root_dir)
 
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore.setRootDir(root_dir)
-
-    leaf_error = leafcore.a_update()
+    leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
 
     pkgs = ["base", "glibc", "systemd", "gcc", "gcc-libs", "make", "bash", "sed", "grep", "gawk"]
 
-    leaf_error = leafcore.a_install(pkgs)
+    leaf_error = leafcore_instance.a_install(pkgs)
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
@@ -107,24 +113,18 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
     return 0
 
 def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
-    leafcore = None
-    try:
-        leafcore = pyleafcore.Leafcore()
-    except Exception:
-        blog.error("cleaf not found. Exiting.")
-        exit(-1)
+    global leafcore_instance
 
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore.setRootDir(cross_dir)
+    leafcore_instance.setRootDir(cross_dir)
 
-    leaf_error = leafcore.a_update()
+    leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
 
     pkgs = ["crosstools"]
 
-    leaf_error = leafcore.a_install(pkgs)
+    leaf_error = leafcore_instance.a_install(pkgs)
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         return -1
@@ -244,25 +244,17 @@ def clean_env():
 
 def upgrade_real_root():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    global leafcore_instance
     
-    leafcore = None
-    try:
-        leafcore = pyleafcore.Leafcore()
-    except Exception:
-        blog.error("cleaf not found. Exiting.")
-        exit(-1)
+    leafcore_instance.setRootDir(root_dir)
 
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
-    leafcore.setRootDir(root_dir)
-
-    leaf_error = leafcore.a_update()
+    leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         blog.error("Failed to update real root. Cannot continue.")
         return -1
 
-    leaf_error = leafcore.a_upgrade()
+    leaf_error = leafcore_instance.a_upgrade([])
     if(leaf_error != 0):
         blog.error("Leaf error code: {}".format(leaf_error))
         blog.error("Failed to upgrade real root. Cannot continue")

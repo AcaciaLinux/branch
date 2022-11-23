@@ -39,9 +39,17 @@ def main():
     # load config
     blog.info("Loading configuration file..")
     conf = config.branch_options()
-
-    buildenv.check_buildenv()
-
+     
+    # init leafcore
+    blog.debug("About to initialize leafcore..")
+    if(buildenv.init_leafcore() != 0):
+        return -1
+   
+    # check if the build environment is setup..
+    blog.info("Checking build environments..")
+    if(buildenv.check_buildenv() != 0):
+        return -1
+ 
     # establish socket connection
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
 
@@ -56,13 +64,14 @@ def main():
     if(res == "CMD_OK"):
         blog.info("Server acknowleged ready signal.")
     else:
-        return
+        blog.debug("Did not receive ready signal. Exiting..")
+        return -1
 
     blog.info("Waiting for commands from masterserver...")
     # always wait for cmds from masterserver
     while True:
         cmd = connect.recv_only(s)
-        
+         
         # no data, server exited.
         if(cmd is None):
             blog.warn("Connection to server lost.")
