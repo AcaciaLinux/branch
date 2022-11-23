@@ -35,6 +35,9 @@ def main():
     print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 
+    # check for TERM var
+    blog.initialize()
+
     # load config
     blog.info("Loading configuration file..")
     conf = config.branch_options()
