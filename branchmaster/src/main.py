@@ -37,15 +37,15 @@ def main():
     print()
     print()
 
+    # check for TERM var
+    blog.initialize()
     blog.info("Masterserver initializing..")
 
     blog.info("Loading masterserver configuration..")
     conf = config.branch_options()
-    conf.load_config()
 
     blog.info("Loading user file..")
     userm = usermanager.usermanager()
-
 
     blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
     endpoints.register_get_endpoints()

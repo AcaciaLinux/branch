@@ -32,7 +32,10 @@ def handle_command(socket, command):
             job_id = json_obj['job_id']
             blog.info("Got a job from masterserver. Job ID: '{}'. Using realroot".format(job_id))
 
-            buildenv.setup_env(False) 
+            res = buildenv.setup_env(False) 
+            if(res == -1):
+                return "BUILD_FAILED"
+            
             rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
@@ -116,7 +119,10 @@ def handle_command(socket, command):
             job_id = json_obj['job_id']
             blog.info("Got a job from masterserver. Job ID: '{}'. Using crosstools.".format(job_id))
 
-            buildenv.setup_env(True) 
+            res = buildenv.setup_env(True) 
+            if(res == -1):
+                return "BUILD_FAILED"
+
             rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
