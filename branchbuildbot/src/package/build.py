@@ -177,6 +177,7 @@ def build(directory, package_build, socket, use_crosstools):
 
     std_out_trimmed = std_out[-500:]
 
+
     log = [ ]
     for line in leaflog_arr:
         log.append(line)
