@@ -167,11 +167,20 @@ def build(directory, package_build, socket, use_crosstools):
     blog.info("Building package...")
     proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
+    # stdout log
     std_out_str = proc.stdout
     std_out = std_out_str.split("\n")
-    
-    last_lines = [ ]
 
+    # leaf log
+    leaflog = buildenv.fetch_leaf_logs()
+
+    last_lines = [ ]
+    
+    # leaflog
+    for line in leaflog.split("\n"):
+        last_lines.append(line)
+    
+    # last 500 lines of stdout
     for x in range(500):
         if(not std_out):
             break
@@ -185,7 +194,6 @@ def build(directory, package_build, socket, use_crosstools):
         blog.info("Log upload completed.")
     else:
         blog.warn("Log upload failed.")
-    
 
     if(proc.returncode != 0):
         blog.error("Package build script failed.")
