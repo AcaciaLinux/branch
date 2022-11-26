@@ -25,6 +25,16 @@ def init_leafcore():
     blog.debug("Leafcore initialized.")
     return 0
 
+# fetches logs
+def fetch_leaf_logs():
+    global leafcore_instance
+    return leafcore_instance.get_log()
+
+# clears logs post action
+def clear_leaf_logs():
+    global leafcore_instance
+    return leafcore_instance.clear_log()
+
 # checks if the build environment is setup
 def check_buildenv():
     # 3 directories required for overlayFS
@@ -241,6 +251,12 @@ def clean_env():
     os.mkdir(diff_dir)
     os.mkdir(work_dir)
     os.mkdir(temp_dir)
+    
+    blog.info("Clearing leafcore logs..")
+    buildenv.clear_leaf_logs()
+    blog.info("Cleanup completed. Ready for commands.")
+
+
 
 def upgrade_real_root():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")

@@ -34,7 +34,10 @@ def handle_command(socket, command):
 
             res = buildenv.setup_env(False) 
             if(res == -1):
-                return "BUILD_FAILED"
+                connect.send_msg(socket, "BUILD_FAILED")
+                blog.error("Build failed because leaf failed to upgrade the real root.")
+                blog.error("Returning to ready state, but all package builds using this environment will fail.")
+                return "SIG_READY"
             
             rootdir = buildenv.get_build_path()
             
@@ -121,7 +124,10 @@ def handle_command(socket, command):
 
             res = buildenv.setup_env(True) 
             if(res == -1):
-                return "BUILD_FAILED"
+                connect.send_msg(socket, "BUILD_FAILED")
+                blog.error("Build failed because leaf failed to upgrade the real root.")
+                blog.error("Returning to ready state, but all package builds using this environment will fail.")
+                return "SIG_READY"
 
             rootdir = buildenv.get_build_path()
             

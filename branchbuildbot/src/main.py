@@ -58,7 +58,7 @@ def main():
 
     if(s is None):
         blog.error("Connection refused.")
-        exit(-1)
+        return -1
 
     # Signal readyness to server
     blog.info("Sending ready signal...")
@@ -79,7 +79,7 @@ def main():
         if(cmd is None):
             blog.warn("Connection to server lost.")
             s.close()
-            exit(0)
+            return -1
 
         blog.debug("Handling command from server.. {}".format(cmd))
         res = handleCommand.handle_command(s, cmd) 

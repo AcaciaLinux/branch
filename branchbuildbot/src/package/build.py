@@ -167,25 +167,30 @@ def build(directory, package_build, socket, use_crosstools):
     blog.info("Building package...")
     proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
+    # stdout log
     std_out_str = proc.stdout
     std_out = std_out_str.split("\n")
+
+    # leaf log
+    leaflog = buildenv.fetch_leaf_logs()
+    leaflog_arr = leaflog.split("\n")
+
+    std_out_trimmed = std_out[-500:]
+
+    log = [ ]
+    for line in leaflog_arr:
+        log.append(line)
+
+    for line in std_out_trimmed:
+        log.append(line)
     
-    last_lines = [ ]
-
-    for x in range(500):
-        if(not std_out):
-            break
-
-        last_lines.append(std_out.pop())
-
-    jlog = json.dumps(last_lines)
+    jlog = json.dumps(log)
 
     res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
     if(res == "LOG_OK"):
         blog.info("Log upload completed.")
     else:
         blog.warn("Log upload failed.")
-    
 
     if(proc.returncode != 0):
         blog.error("Package build script failed.")
