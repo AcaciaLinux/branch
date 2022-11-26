@@ -173,21 +173,19 @@ def build(directory, package_build, socket, use_crosstools):
 
     # leaf log
     leaflog = buildenv.fetch_leaf_logs()
+    leaflog_arr = leaflog.split("\n")
 
-    last_lines = [ ]
+    std_out_trimmed = std_out[-500:]
+
+
+    log = [ ]
+    for line in leaflog_arr:
+        log.append(line)
+
+    for line in std_out_trimmed:
+        log.append(line)
     
-    # leaflog
-    for line in leaflog.split("\n"):
-        last_lines.append(line)
-    
-    # last 500 lines of stdout
-    for x in range(500):
-        if(not std_out):
-            break
-
-        last_lines.append(std_out.pop())
-
-    jlog = json.dumps(last_lines)
+    jlog = json.dumps(log)
 
     res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
     if(res == "LOG_OK"):

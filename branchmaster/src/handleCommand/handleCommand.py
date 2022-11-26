@@ -371,14 +371,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         if(not job is None):
             blog.info("Build job '{}' log received.".format(job.get_jobid()))
-                
-            json_array = json.loads(cmd_body)
-            log_array = [ ]
-
-            while json_array:
-                log_array.append(json_array.pop())
-
-            job.set_buildlog(log_array)
+            job.set_buildlog(json.loads(cmd_body))
             return "LOG_OK"
 
         return "NO_JOB"
