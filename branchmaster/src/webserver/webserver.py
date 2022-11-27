@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from log import blog
 from config import config
 
@@ -206,6 +207,9 @@ class web_server(BaseHTTPRequestHandler):
         self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
         return 
 
+# stub class
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 def parse_form_data(str_form):
     form_val = str_form.split("&")
@@ -228,15 +232,10 @@ def start_web_server(hostname, serverport):
     web_serv = None
     
     try:
-        web_serv = HTTPServer((hostname, serverport), web_server)
+        web_serv = ThreadedHTTPServer((hostname, serverport), web_server)
+        web_serv.serve_forever()
     except Exception as ex:
         blog.error("Webserver failed to initialize: {}".format(ex))
         blog.error("Thread exiting.")
         return
 
-    # We don't handle keyboardInterrupt for the webserver,
-    # it's killed once the main thread exits
-    try:
-        web_serv.serve_forever()
-    except KeyboardInterrupt:
-        web_serv.server_close()
