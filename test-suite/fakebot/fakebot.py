@@ -149,9 +149,7 @@ def handle_command_from_server(command, s):
         # TODO: fix this properly..
         if ALWAYS_STALL_UPLOAD:
             print("SET TO ALWAYS STALL UPLOAD!")
-            to_send = fakepac.read(4096)
-            all_len = all_len + len(to_send)
-            s.sendall(to_send)
+            time.sleep(500000)
 
         data = receive_data(s)
 
@@ -160,7 +158,7 @@ def handle_command_from_server(command, s):
             print("Error: file upload not acknowledged by the server.")
             return
         
-        print("File upload acknowleged")
+        print("File upload completed: UPLOAD_ACK")
 
         print("Reporting status update: BUILD_CLEAN")
         msg = "BUILD_CLEAN"
@@ -176,7 +174,9 @@ def handle_command_from_server(command, s):
 # receive_data
 def receive_data(sock):
     data = sock.recv(1024).decode("utf-8")
-    
+    print("data received:")
+    print(data)
+
     #TODO: this will break for longer commands, fix?
     byte_len = data.split(" ")[0]
     data = data.split(" ")[1]

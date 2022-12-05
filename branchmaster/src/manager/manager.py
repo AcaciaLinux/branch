@@ -31,7 +31,7 @@ class manager():
         blog.debug("Handling command from '{}': {}".format(client.get_identifier(), command))
         res = handleCommand.handle_command(self, client, command)
         if(not res is None):
-            client.send_command(res)
+            return res
 
     def remove_client(self, client):
         job = self.get_job_by_client(client)
