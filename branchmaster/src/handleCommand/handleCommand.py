@@ -298,6 +298,17 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         else:
             return "INV_PKG"
 
+    elif(cmd_header == "CANCEL_QUEUED_JOB"):
+        if(cmd_body == ""):
+            return "INV_JOB_ID"
+        
+        job = manager.get_job_by_id(cmd_body)
+        
+        if(job is None):
+            return "INV_JOB_ID"
+       
+        manager.cancel_queued_job(job) 
+        return "JOB_CANCELED"
 
     #
     # Invalid command

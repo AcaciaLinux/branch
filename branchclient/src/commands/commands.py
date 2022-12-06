@@ -136,6 +136,19 @@ def client_status(s):
         print(name, end=' ')
     print()
 
+
+def cancel_queued_job(s, job_id):
+    resp = connect.send_msg(s, "CANCEL_QUEUED_JOB {}".format(job_id))
+    
+    if(resp == "INV_JOB_ID"):
+        blog.error("No such job queued.")
+        return
+
+
+    if(resp == "JOB_CANCELED"):
+        blog.info("Queued job {} cancelled.".format(job_id)) 
+
+
 #
 # get build log
 #

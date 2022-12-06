@@ -59,6 +59,7 @@ def main():
     argparser.add_argument("-mp", "--managedpackages", help="Get list of managed packages", action="store_true")
     argparser.add_argument("-mk", "--managedpkgbuilds", help="Get list of managed packagebuilds.", action="store_true")
     argparser.add_argument("-dp", "--differencepkgs", help="Get difference between packagebuilds and packages.", action="store_true")
+    argparser.add_argument("-cn", "--canceljob", help="Cancels a currently queued job.")
 
     # parse arguments
     args = argparser.parse_args()
@@ -110,6 +111,9 @@ def main():
         elif(not args.viewlog is None):
             blog.info("Requesting log for job id '{}'".format(args.viewlog))
             commands.get_buildlog(s, args.viewlog)
+        elif(not args.canceljob is None):
+            blog.info("Requesting to cancel job..")
+            commands.cancel_queued_job(s, args.canceljob)
 
 if (__name__ == "__main__"):
     try:
