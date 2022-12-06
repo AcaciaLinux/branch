@@ -9,7 +9,6 @@ UPLOAD_DATA=False
 ALWAYS_STALL_UPLOAD=True
 AUTO_RECONNECT=True
 
-
 import random
 import os
 import socket
@@ -160,6 +159,7 @@ def handle_command_from_server(command, s):
         
         print("File upload completed: UPLOAD_ACK")
 
+
         print("Reporting status update: BUILD_CLEAN")
         msg = "BUILD_CLEAN"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
@@ -176,6 +176,7 @@ def receive_data(sock):
     data = sock.recv(1024).decode("utf-8")
     print("data received:")
     print(data)
+
 
     #TODO: this will break for longer commands, fix?
     byte_len = data.split(" ")[0]
@@ -249,6 +250,8 @@ def main():
     if(s == -1):
         return -1
 
+    s = handshake(host, int(port), authkey)
+    
     print("Ready to receive commands!")
     receive_commands(s)
 
