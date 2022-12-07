@@ -76,6 +76,11 @@ def handshake(host, port, authkey):
     return s
 
 def receive_commands(s):
+    cmd = "REPORT_SYS_EVENT Failed to upgrade real root, manual intervention required."
+    cmd = "{} {}".format(len(cmd), cmd)
+
+    s.sendall(bytes(cmd, "utf-8"))
+
     print("Sending ready signal..")
     # send the "SIG_READY" message to the server
     msg = "SIG_READY"

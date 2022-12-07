@@ -17,6 +17,8 @@ class manager():
     completed_jobs = [ ]
     queued_jobs = [ ]
 
+    system_events = [ ]
+
     def get_queue(self):
         return self.queue
 

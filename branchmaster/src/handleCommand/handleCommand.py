@@ -202,6 +202,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
         return json.dumps(job.build_log)
 
+    elif(cmd_header == "VIEW_SYS_EVENTS"):
+        return json.dumps(manager.system_events)
+
     #
     # Rebuild specified package plus all
     # packages that depend on it
@@ -427,6 +430,14 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         else:
             return "NO_JOB"
+
+    elif(cmd_header == "REPORT_SYS_EVENT"):
+        if(cmd_body is None):
+            return "EMPTY_SYS_EVENT"
+
+        blog.info("Received System Event report from {}.".format(client.get_identifier()))
+        manager.system_events.append("{} => {}".format(client.get_identifier(), cmd_body))
+        return "RECV_SYS_EVENT"
 
     #
     # Invalid command
