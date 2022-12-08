@@ -129,6 +129,9 @@ class manager():
     def cancel_queued_job(self, job):
         manager.queued_jobs.remove(job)
 
+    def cancel_all_queued_jobs(self):
+        manager.queued_jobs = [ ] 
+
     def get_buildbot_names(self):
         res = [ ]
 

@@ -299,7 +299,10 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return stor.get_json_bpb(cmd_body)
         else:
             return "INV_PKG"
-
+    
+    #
+    # Cancel queued jobs
+    #
     elif(cmd_header == "CANCEL_QUEUED_JOB"):
         if(cmd_body == ""):
             return "INV_JOB_ID"
@@ -311,6 +314,13 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
        
         manager.cancel_queued_job(job) 
         return "JOB_CANCELED"
+
+    #
+    # Cancel all queued jobs
+    #
+    elif(cmd_header == "CANCEL_ALL_QUEUED_JOBS"):
+        manager.cancel_all_queued_jobs()
+        return "JOBS_CANCELED"
 
     #
     # Invalid command
