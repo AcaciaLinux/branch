@@ -6,6 +6,7 @@ from log import blog
 class branch_options():
     serverport = 27015
     serveraddr = "127.0.0.1"
+    leafserveraddr = "http://127.0.0.1/?get=packagelist"
     debuglog = False
     authkey = ""
     identifier = ""
@@ -47,6 +48,8 @@ class branch_options():
                 branch_options.serveraddr = val
             elif(key == "serverport"):
                 branch_options.serverport = int(val)
+            elif(key == "leafserveraddr"):
+                branch_options.leafserveraddr = val
             elif(key == "debuglog"):
                 if(val == "False"):
                     branch_options.debuglog = False
@@ -88,6 +91,9 @@ class branch_options():
         branch_cfg.write("# IP address and port of the masterserver:\n")
         branch_cfg.write("serveraddr=127.0.0.1\n")
         branch_cfg.write("serverport=27015\n")
+
+        branch_cfg.write("# URL leaf should use to retrieve its packagelist\n")
+        branch_cfg.write("leafserveraddr=http://127.0.0.1/?get=packagelist\n")
 
         branch_cfg.write("# Print Debug log messages:\n")
         branch_cfg.write("debuglog=False\n")
