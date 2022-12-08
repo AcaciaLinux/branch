@@ -169,7 +169,6 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(pkg is None):
                 return "PKG_BUILD_DAMAGED"
 
-
             # get a job obj, use_crosstools = True
             job = manager.new_job(True)
 
@@ -346,13 +345,27 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                 job.set_status("COMPLETED")
 
             manager.move_inactive_job(job)
-
-        blog.info("Client {} is ready for commands.".format(client.get_identifier()))
-        client.is_ready = True
+        
         client.send_command("CMD_OK")
+        blog.info("Client {} is ready for commands.".format(client.get_identifier()))
 
+        client.is_ready = True
         manager.queue.notify_ready()
         return None
+    
+    #
+    # Status update from assigned job: Job accepted by buildbot
+    #
+    elif(cmd_header == "JOB_ACCEPTED"):
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
+            job.set_status("JOB_ACCEPTED")
+            return "STATUS_ACK"
+
+        return "NO_JOB"
+
 
     #
     # Status update from assigned job: Build environment is ready
@@ -401,6 +414,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             job.set_status("BUILD_FAILED")
 
         return "STATUS_ACK"
+
 
     #
     # Status update from assigned job: Build environment clean up completed.

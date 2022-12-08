@@ -94,6 +94,10 @@ def recv_only(socket):
 
     return data_trimmed
 
+def send_only(socket, cmd):
+    cmd = "{} {}".format(len(bytes(cmd, "utf-8")), cmd)
+    socket.sendall(bytes(cmd, "utf-8"))
+
 #
 # send msg to server and read response
 #
@@ -109,7 +113,7 @@ def send_msg(socket, cmd):
 def send_file(socket, filename):
     file = open(filename, "rb")
 
-    print("Uploading file to masterserver...")
+    blog.info("Uploading file to masterserver...")
 
     bytes_sent = 0
     file_size = os.path.getsize(filename)
