@@ -24,7 +24,7 @@ def init_leafcore():
     leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
     leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
     leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOPROGRESS, True)
-    leafcore_instance.setStringConfig(pyleafcore.LeafConfig_string.CONFIG_PKGLISTURL, config.branch_options.leafserveraddr)
+    leafcore_instance.setStringConfig(pyleafcore.LeafConfig_string.CONFIG_PKGLISTURL, config.branch_options.leafserveraddr + "/?get=packagelist")
     blog.debug("Leafcore initialized.")
     return 0
 
