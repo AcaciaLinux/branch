@@ -36,6 +36,13 @@ def clear_leaf_logs():
     global leafcore_instance
     return leafcore_instance.clear_log()
 
+def drop_buildenv():
+    root_dir = os.path.join(LAUNCH_DIR, "realroot")
+    cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
+    
+    shutil.rmtree(root_dir)
+    shutil.rmtree(cross_dir)
+
 # checks if the build environment is setup
 def check_buildenv():
     # 3 directories required for overlayFS
@@ -66,14 +73,14 @@ def check_buildenv():
 
     if(not os.path.exists(control_file)):
         if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir) != 0):
-            blog.error("Real root deployment failed.")
+            blog.error("Real root deployment failed. Sending system event to masterserver..")
             return -1
 
     control_file = os.path.join(cross_dir, "installed")
 
     if(not os.path.exists(control_file)):
         if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
-            blog.error("Crosstools deployment failed.")
+            blog.error("Crosstools deployment failed. Sending system event to masterserver..")
             return -1
 
     blog.info("Build environment setup completed.")
@@ -155,6 +162,9 @@ def setup_env(use_crossroot):
 
     blog.info("Upgrading real root..")
     if(upgrade_real_root() == -1):
+        return -1
+
+    if(upgrade_cross_root() == -1):
         return -1
 
     if(not Path(temp_dir).is_mount()):
@@ -258,6 +268,26 @@ def clean_env():
     blog.info("Cleanup completed. Ready for commands.")
 
 
+def upgrade_cross_root():
+    root_dir = os.path.join(LAUNCH_DIR, "crosstools")
+    global leafcore_instance
+    
+    leafcore_instance.setRootDir(root_dir)
+
+    leaf_error = leafcore_instance.a_update()
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        blog.error("Failed to update cross root. Cannot continue.")
+        return -1
+
+    leaf_error = leafcore_instance.a_upgrade([])
+    if(leaf_error != 0):
+        blog.error("Leaf error code: {}".format(leaf_error))
+        blog.error("Failed to upgrade cross root. Cannot continue")
+        return -1
+    
+    leafcore_instance.clear_log()
+
 
 def upgrade_real_root():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
@@ -276,6 +306,8 @@ def upgrade_real_root():
         blog.error("Leaf error code: {}".format(leaf_error))
         blog.error("Failed to upgrade real root. Cannot continue")
         return -1
+
+    leafcore_instance.clear_log()
 
     
 

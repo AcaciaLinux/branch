@@ -27,6 +27,7 @@ def handle_command(socket, command):
     # BUILD_PKG request
     if(cmd_header == "BUILD_PKG"):
         if(not cmd_body is None):
+            connect.send_msg(socket, "JOB_ACCEPTED")
             json_obj = json.loads(cmd_body)
 
             job_id = json_obj['job_id']
@@ -35,9 +36,10 @@ def handle_command(socket, command):
             res = buildenv.setup_env(False) 
             if(res == -1):
                 connect.send_msg(socket, "BUILD_FAILED")
-                blog.error("Build failed because leaf failed to upgrade the real root.")
-                blog.error("Returning to ready state, but all package builds using this environment will fail.")
-                return "SIG_READY"
+                connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
+                shutil.rmtree("realroot")
+                shutil.rmtree("crossroot")
+                return None
             
             rootdir = buildenv.get_build_path()
             
@@ -101,11 +103,12 @@ def handle_command(socket, command):
             else:
                 blog.info("File upload completed!")
 
+            connect.send_msg(socket, "BUILD_CLEAN")
+            
             # Clean build environment..
             blog.info("Cleaning up build environment..")
             buildenv.clean_env()
             
-            connect.send_msg(socket, "BUILD_CLEAN")
 
             # We completed the build job. Send SIG_READY
             blog.info("Build job completed.")
@@ -117,18 +120,18 @@ def handle_command(socket, command):
     # BUILD_PKG request
     elif(cmd_header == "BUILD_PKG_CROSS"):
         if(not cmd_body is None):
+            connect.send_msg(socket, "JOB_ACCEPTED")
             json_obj = json.loads(cmd_body)
 
             job_id = json_obj['job_id']
-            blog.info("Got a job from masterserver. Job ID: '{}'. Using crosstools.".format(job_id))
+            blog.info("Got a job from masterserver. Using crosstools.")
 
             res = buildenv.setup_env(True) 
             if(res == -1):
                 connect.send_msg(socket, "BUILD_FAILED")
-                blog.error("Build failed because leaf failed to upgrade the real root.")
-                blog.error("Returning to ready state, but all package builds using this environment will fail.")
-                return "SIG_READY"
-
+                connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
+                return None
+            
             rootdir = buildenv.get_build_path()
             
             # create temp workdir directory
