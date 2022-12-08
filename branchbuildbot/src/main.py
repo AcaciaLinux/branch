@@ -63,7 +63,7 @@ def main():
 
     if(check_failed):
         blog.info("Reporting system event.")
-        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
+        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
         s.close()
         blog.info("Disconnected.")
         return -1
