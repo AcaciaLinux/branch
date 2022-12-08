@@ -106,23 +106,39 @@ def build(directory, package_build, socket, use_crosstools):
     else:
         blog.warn("No source specified. Not fetching source.")
 
+    deps_failed = False
+
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
         if(package_build.cross_dependencies == ""):
             blog.info("Installing 'build' dependencies..")
             if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
                 os.chdir(call_dir)
-                return "BUILD_FAILED"
+                deps_failed = True
         else:
             blog.info("Installing 'cross' dependencies..")
             if(buildenv.install_pkgs(parse_bpb_str_array(package_build.cross_dependencies)) != 0):
                 os.chdir(call_dir)
-                return "BUILD_FAILED"
+                deps_failed = True
     else:
         blog.info("Installing 'build' dependencies..")
         if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
             os.chdir(call_dir)
-            return "BUILD_FAILED"
+            deps_failed = True
+
+    if(deps_failed):
+        blog.warn("Aborting job because dependencies failed to install. Submitting leaflog as buildlog.")
+        jlog = json.dumps(buildenv.fetch_leaf_logs())
+
+        res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+        if(res == "LOG_OK"):
+            blog.info("Log upload completed.")
+        else:
+            blog.warn("Log upload failed.")
+        
+        blog.debug("Clearing leaf logs..")
+        buildenv.fetch_leaf_logs()
+        return "BUILD_FAILED"
 
     blog.info("Package build will run in: {}".format(build_dir))
     blog.info("Package destination is: {}".format(destdir))
@@ -175,7 +191,8 @@ def build(directory, package_build, socket, use_crosstools):
     leaflog = buildenv.fetch_leaf_logs()
     leaflog_arr = leaflog.split("\n")
 
-    std_out_trimmed = std_out[-500:]
+    # get last 5k lines of std_out
+    std_out_trimmed = std_out[-5000:]
 
 
     log = [ ]
