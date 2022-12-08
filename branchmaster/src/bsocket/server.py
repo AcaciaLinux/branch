@@ -68,7 +68,7 @@ def threaded_client_handler(client_socket):
             while(len(data_trimmed) != cmd_bytes):
                 data_trimmed += receive_data(_client).decode("utf-8")
         
-            blog.info("Received full message from client.")
+            blog.debug("Received full message from client.")
             
             if(data_trimmed):
                 blog.debug("Command from {}: {}".format(_client.get_identifier(), data_trimmed))
@@ -108,7 +108,7 @@ def receive_file(socket, client):
         out_file.write(data)
 
     if(data_len == job.file_size):
-        blog.info("Received {} bytes. File upload successfull".format(job.file_size))
+        blog.info("Received {} bytes. File upload successful".format(job.file_size))
         out_file.close()
 
         client.file_transfer_mode = False
