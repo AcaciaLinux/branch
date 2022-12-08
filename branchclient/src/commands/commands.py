@@ -136,7 +136,9 @@ def client_status(s):
         print(name, end=' ')
     print()
 
-
+#
+# Cancel a job by id
+#
 def cancel_queued_job(s, job_id):
     resp = connect.send_msg(s, "CANCEL_QUEUED_JOB {}".format(job_id))
     
@@ -144,9 +146,29 @@ def cancel_queued_job(s, job_id):
         blog.error("No such job queued.")
         return
 
-
     if(resp == "JOB_CANCELED"):
         blog.info("Queued job {} cancelled.".format(job_id)) 
+
+#
+# Cancel all currently waiting jobs
+#
+def cancel_all_queued_jobs(s):
+    resp = connect.send_msg(s, "CANCEL_ALL_QUEUED_JOBS")
+    blog.info("Jobs canceled.") 
+
+#
+# Cancel 
+#
+def view_sys_log(s):
+    resp = connect.send_msg(s, "VIEW_SYS_EVENTS")
+    logs = json.loads(resp)
+    
+    if(len(logs) == 0):
+        blog.info("No system events available.")
+        return 0
+
+    for l in logs:
+        print(l)
 
 
 #
