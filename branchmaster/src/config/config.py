@@ -4,22 +4,21 @@ import os
 from log import blog
 
 class branch_options():
-    # static class vars
-    port = 27015
-    httpport = 8080
-    listenaddr = "127.0.0.1"
+    serverport = 27015
+    serveraddr = "127.0.0.1"
     debuglog = False
-    send_cors_headers = False
-    untrustedclients = ""
-    authkeys = [ ]
+    authkey = ""
+    identifier = ""
 
     init_completed = False
 
     def __init__(self):
         if(not branch_options.init_completed):
-            self.load_config();
-            branch_options.init_completed = True
-
+            if(self.load_config() == -1):
+                branch_options.init_completed = False
+            else:
+                branch_options.init_completed = True
+    
     # Loads the configuration file from disk and
     # sets the static class variables
     def load_config(self):
@@ -29,54 +28,40 @@ class branch_options():
         conf_arr = conf_file.read().split("\n")
 
         for prop in conf_arr:
+            # skip empty line
             if(len(prop) == 0):
                 continue
 
             # skip comments
             if(prop[0] == '#'):
                 continue
-            
-            prop_arr = prop.split("=")
-            key = prop_arr[0]
 
-            if(len(prop_arr) != 2):
+
+            divider = prop.find("=")
+            key = prop[0:divider]
+            val = prop[divider+1:len(prop)]
+
+            if(val == ""):
                 blog.error("Cannot continue with broken configuration file.")
                 blog.error("Failed property: {}".format(prop))
                 return -1
-
-            val = prop_arr[1]
-            if(key == "listenaddr"):
-                branch_options.listenaddr = val
-            elif(key == "port"):
-                branch_options.port = val
-            elif(key == "httpport"):
-                branch_options.httpport = val
+            
+            if(key == "serveraddr"):
+                branch_options.serveraddr = val
+            elif(key == "serverport"):
+                branch_options.serverport = int(val)
             elif(key == "debuglog"):
                 if(val == "False"):
                     branch_options.debuglog = False
-                elif(val == "True"):
+                else:
                     branch_options.debuglog = True
+            elif(key == "authkey"):
+                if(val == "NONE"):
+                    branch_options.authkey = None
                 else:
-                    blog.error("Unknown configuration value.")
-            
-            elif(key == "untrustedclients"):
-                if(val == "False"):
-                    branch_options.untrustedclients = False
-                elif(val == "True"):
-                    branch_options.untrustedclients = True
-                else:
-                    blog.error("Unknown configuration value.")
-
-            elif(key == "authkeys"):
-                branch_options.authkeys = self.parse_str_array(val)
-            elif(key == "send-cors-headers"):
-                if(val == "False"):
-                    branch_options.send_cors_headers = False
-                elif (val == "True"):
-                    branch_options.send_cors_headers = True
-                else:
-                    blog.error("Unknown configuration value.")
-
+                    branch_options.authkey = val
+            elif(key == "identifier"):
+                branch_options.identifier = val
             else:
                 blog.warn("Skipping unknown configuration key: {}".format(key)) 
 
@@ -103,19 +88,22 @@ class branch_options():
         branch_cfg = open(CONFIG_FILE, "w")
         
         # defaults
-        branch_cfg.write("# IP address and port the server should listen on:\n")
-        branch_cfg.write("listenaddr=127.0.0.1\n")
-        branch_cfg.write("port=27015\n")
-        branch_cfg.write("# Port the http server should listen on:\n")
-        branch_cfg.write("httpport=8080\n")
+        branch_cfg.write("# IP address and port of the masterserver:\n")
+        branch_cfg.write("serveraddr=127.0.0.1\n")
+        branch_cfg.write("serverport=27015\n")
+
         branch_cfg.write("# Print Debug log messages:\n")
         branch_cfg.write("debuglog=False\n")
-        branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:\n")
-        branch_cfg.write("untrustedclients=False\n")
-        branch_cfg.write("# List of auth keys: [a][b][c]\n")
-        branch_cfg.write("authkeys=\n")
-        branch_cfg.write("# Send '*' access control header to requesting clients (Should be disabled if nginx is in use.)\n")
-        branch_cfg.write("send-cors-headers=False\n")
+        
+        branch_cfg.write("# Authorization key to authenticate this client on the server:\n")
+        branch_cfg.write("# Specify NONE if the server is running in\n")
+        branch_cfg.write("# untrusted mode and doesn't validate clients.\n")
+        branch_cfg.write("authkey=NONE\n")
+
+        branch_cfg.write("# Client clear name:\n")
+        branch_cfg.write("# Used to identify the client in the servers log.\n")
+        branch_cfg.write("# (Should be unique)\n")
+        branch_cfg.write("identifier=a-branch-client\n")
 
     def check_config(self):
         if(not os.path.exists(CONFIG_FILE)):

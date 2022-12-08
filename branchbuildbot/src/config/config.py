@@ -14,8 +14,10 @@ class branch_options():
 
     def __init__(self):
         if(not branch_options.init_completed):
-            self.load_config();
-            branch_options.init_completed = True
+            if(self.load_config() == -1):
+                branch_options.init_completed = False
+            else:
+                branch_options.init_completed = True
     
     # Loads the configuration file from disk and
     # sets the static class variables
@@ -34,15 +36,16 @@ class branch_options():
             if(prop[0] == '#'):
                 continue
 
-            prop_arr = prop.split("=")
-            key = prop_arr[0]
 
-            if(len(prop_arr) != 2):
+            divider = prop.find("=")
+            key = prop[0:divider]
+            val = prop[divider+1:len(prop)]
+
+            if(val == ""):
                 blog.error("Cannot continue with broken configuration file.")
                 blog.error("Failed property: {}".format(prop))
                 return -1
-
-            val = prop_arr[1]
+            
             if(key == "serveraddr"):
                 branch_options.serveraddr = val
             elif(key == "serverport"):

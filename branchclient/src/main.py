@@ -42,6 +42,10 @@ def main():
     blog.info("Loading configuration file..")
     conf = config.branch_options()
 
+    # check for valid conf
+    if(not conf.init_completed):
+        return -1
+
     if(conf.authkey == "NONE"):
         conf.authkey = None
 
