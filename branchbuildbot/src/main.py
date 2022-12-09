@@ -94,7 +94,7 @@ def main():
             return -1
 
         blog.debug("Handling command from server.. {}".format(cmd))
-        res = handlecommand.handle_command(s, cmd)
+        res = handleCommand.handle_command(s, cmd)
 
         if(res == None):
             blog.error("Critical failure. Disconnecting..")
