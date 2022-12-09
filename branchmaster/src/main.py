@@ -44,6 +44,10 @@ def main():
     blog.info("Loading masterserver configuration..")
     conf = config.branch_options()
 
+    # check for valid conf
+    if(not conf.init_completed):
+        return -1
+
     blog.info("Loading user file..")
     userm = usermanager.usermanager()
 
