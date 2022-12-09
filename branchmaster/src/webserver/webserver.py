@@ -45,7 +45,7 @@ class web_server(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "application/octet-stream")
         self.send_header("Content-Length", file_len)
-        self.send_header("Content-Disposition", "filename=\"" + file_name + ".lfpkg\"")
+        self.send_header("Content-Disposition", "filename=\"" + file_name + "\"")
         self.end_headers()
 
         while True:

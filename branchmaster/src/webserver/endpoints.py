@@ -513,7 +513,7 @@ def get_endpoint_package(httphandler, form_data):
     pfile = open(package_file, "rb")
 
     # Send the file to the client
-    httphandler.send_file(pfile, os.path.getsize(package_file), package_full_name)
+    httphandler.send_file(pfile, os.path.getsize(package_file), package_full_name + ".lfpkg")
 
 #
 # Endpoint specifically for leaf.
