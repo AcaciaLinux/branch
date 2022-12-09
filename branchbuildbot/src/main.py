@@ -42,6 +42,10 @@ def main():
     # load config
     blog.info("Loading configuration file..")
     conf = config.branch_options()
+
+    # check for valid conf
+    if(not conf.init_completed):
+        return -1
      
     # init leafcore
     if(buildenv.init_leafcore() != 0):
