@@ -140,7 +140,7 @@ def build(directory, package_build, socket, use_crosstools):
             blog.warn("Log upload failed.")
         
         blog.debug("Clearing leaf logs..")
-        buildenv.fetch_leaf_logs()
+        buildenv.clear_leaf_logs()
         return "BUILD_FAILED"
 
     blog.info("Package build will run in: {}".format(build_dir))
