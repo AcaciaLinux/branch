@@ -90,7 +90,8 @@ def main():
             return -1
 
         blog.debug("Handling command from server.. {}".format(cmd))
-        res = connect.send_msg(s, handleCommand.handle_command(s, cmd))
+        res = handlecommand.handle_command(s, cmd)
+
         if(res == None):
             blog.error("Critical failure. Disconnecting..")
             s.close()
@@ -101,6 +102,8 @@ def main():
             buildenv.check_buildenv()
             blog.info("Reconnecting..")
             s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
+
+        connect.send_msg(s, res)
 
 if (__name__ == "__main__"):
     try:
