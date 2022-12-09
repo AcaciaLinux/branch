@@ -471,7 +471,7 @@ def get_endpoint_package(httphandler, form_data):
 
                 # Construct the package path
                 package_file = stor.get_pkg_path(form_data["pkgname"], form_data["version"])
-                
+
                 # Could not find specified version, notify failure.
                 if(package_file is None):
                     httphandler.send_str_raw(404, "E_VERSION")
