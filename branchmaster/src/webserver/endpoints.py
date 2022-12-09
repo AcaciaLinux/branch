@@ -452,17 +452,26 @@ def get_endpoint_package(httphandler, form_data):
     stor = packagestorage.storage()
     
     package_file = None
+    package_full_name = ""
 
     form_keys = form_data.keys()
     if("pkgname" in form_keys):
         
         # Package exists
         if(form_data["pkgname"] in stor.packages):
-        
+
+            # Get the meta file for that package
+            meta = stor.get_meta_by_name(form_data["pkgname"])
+
             # We have a version tag, get specific version.
             if("version" in form_keys):
+
+                # Construct the full package name
+                package_full_name = form_data["pkgname"] + "-" + meta.get_version(form_data["version"])
+
+                # Construct the package path
                 package_file = stor.get_pkg_path(form_data["pkgname"], form_data["version"])
-                
+
                 # Could not find specified version, notify failure.
                 if(package_file is None):
                     httphandler.send_str_raw(404, "E_VERSION")
@@ -472,10 +481,14 @@ def get_endpoint_package(httphandler, form_data):
             # No version tag, get latest
             else:
                 # latest version, no version tag
-                meta = stor.get_meta_by_name(form_data["pkgname"])
                 latest_version = meta.get_latest_real_version()
+
+                # Construct the full package name
+                package_full_name = form_data["pkgname"] + "-" + meta.get_version(latest_version)
+
+                # Construct the package path
                 package_file = stor.get_pkg_path(form_data["pkgname"], latest_version)
-    
+
                 # Could not find latest version (Shouldn't happen..?), notify failure.
                 if(package_file is None):
                     httphandler.send_str_raw(404, "E_VERSION")
@@ -498,7 +511,9 @@ def get_endpoint_package(httphandler, form_data):
         return
 
     pfile = open(package_file, "rb")
-    httphandler.send_file(pfile, os.path.getsize(package_file))
+
+    # Send the file to the client
+    httphandler.send_file(pfile, os.path.getsize(package_file), package_full_name + ".lfpkg")
 
 #
 # Endpoint specifically for leaf.
