@@ -128,7 +128,10 @@ def build(directory, package_build, socket, use_crosstools):
 
     if(deps_failed):
         blog.warn("Aborting job because dependencies failed to install. Submitting leaflog as buildlog.")
-        jlog = json.dumps(buildenv.fetch_leaf_logs())
+        
+        leaf_log = buildenv.fetch_leaf_logs()
+        leaf_log_arr = leaf_log.split("\n")
+        jlog = json.dumps(leaf_log_arr)
 
         res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
         if(res == "LOG_OK"):
@@ -137,7 +140,7 @@ def build(directory, package_build, socket, use_crosstools):
             blog.warn("Log upload failed.")
         
         blog.debug("Clearing leaf logs..")
-        buildenv.fetch_leaf_logs()
+        buildenv.clear_leaf_logs()
         return "BUILD_FAILED"
 
     blog.info("Package build will run in: {}".format(build_dir))
