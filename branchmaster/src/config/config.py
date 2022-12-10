@@ -4,11 +4,12 @@ import os
 from log import blog
 
 class branch_options():
-    serverport = 27015
-    serveraddr = "127.0.0.1"
-    debuglog = False
-    authkey = ""
-    identifier = ""
+    port = 27015
+    httpport = 8080
+    listenaddr = "127.0.0.1"
+    send_cors_headers = False
+    untrustedclients = ""
+    authkeys = [ ]
 
     init_completed = False
 
@@ -46,24 +47,38 @@ class branch_options():
                 blog.error("Failed property: {}".format(prop))
                 return -1
             
-            if(key == "serveraddr"):
-                branch_options.serveraddr = val
-            elif(key == "serverport"):
-                branch_options.serverport = int(val)
+            if(key == "listenaddr"):
+                branch_options.listenaddr = val
+            elif(key == "port"):
+                branch_options.port = val
+            elif(key == "httpport"):
+                branch_options.httpport = val
             elif(key == "debuglog"):
                 if(val == "False"):
                     branch_options.debuglog = False
-                else:
+                elif(val == "True"):
                     branch_options.debuglog = True
-            elif(key == "authkey"):
-                if(val == "NONE"):
-                    branch_options.authkey = None
                 else:
-                    branch_options.authkey = val
-            elif(key == "identifier"):
-                branch_options.identifier = val
-            else:
-                blog.warn("Skipping unknown configuration key: {}".format(key)) 
+                    blog.error("Unknown configuration value.")
+
+            elif(key == "untrustedclients"):
+                if(val == "False"):
+                    branch_options.untrustedclients = False
+                elif(val == "True"):
+                    branch_options.untrustedclients = True
+                else:
+                    blog.error("Unknown configuration value.")
+
+            elif(key == "authkeys"):
+                branch_options.authkeys = self.parse_str_array(val)
+            elif(key == "send-cors-headers"):
+                if(val == "False"):
+                    branch_options.send_cors_headers = False
+                elif (val == "True"):
+                    branch_options.send_cors_headers = True
+                else:
+                    blog.error("Unknown configuration value.")
+            
 
     def parse_str_array(self, string):
         vals = [ ]
@@ -88,22 +103,19 @@ class branch_options():
         branch_cfg = open(CONFIG_FILE, "w")
         
         # defaults
-        branch_cfg.write("# IP address and port of the masterserver:\n")
-        branch_cfg.write("serveraddr=127.0.0.1\n")
-        branch_cfg.write("serverport=27015\n")
-
+        branch_cfg.write("# IP address and port the server should listen on:\n")
+        branch_cfg.write("listenaddr=127.0.0.1\n")
+        branch_cfg.write("port=27015\n")
+        branch_cfg.write("# Port the http server should listen on:\n")
+        branch_cfg.write("httpport=8080\n")
         branch_cfg.write("# Print Debug log messages:\n")
         branch_cfg.write("debuglog=False\n")
-        
-        branch_cfg.write("# Authorization key to authenticate this client on the server:\n")
-        branch_cfg.write("# Specify NONE if the server is running in\n")
-        branch_cfg.write("# untrusted mode and doesn't validate clients.\n")
-        branch_cfg.write("authkey=NONE\n")
-
-        branch_cfg.write("# Client clear name:\n")
-        branch_cfg.write("# Used to identify the client in the servers log.\n")
-        branch_cfg.write("# (Should be unique)\n")
-        branch_cfg.write("identifier=a-branch-client\n")
+        branch_cfg.write("# Disable client validation and allow untrusted clients to interact with the server:\n")
+        branch_cfg.write("untrustedclients=False\n")
+        branch_cfg.write("# List of auth keys: [a][b][c]\n")
+        branch_cfg.write("authkeys=\n")
+        branch_cfg.write("# Send '*' access control header to requesting clients (Should be disabled if nginx is in use.)\n")
+        branch_cfg.write("send-cors-headers=False\n")
 
     def check_config(self):
         if(not os.path.exists(CONFIG_FILE)):
