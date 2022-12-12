@@ -42,7 +42,7 @@ def calculate_tree(storage, calculated, masternode):
     for pkg in storage.packages:
         pkg_build = storage.get_bpb_obj(pkg)
         
-        if(masternode.name in pkg_build.dependencies or masternode.name in pkg_build.dependencies):
+        if(masternode.name in pkg_build.dependencies or masternode.name in pkg_build.build_dependencies):
             blog.debug("Adding to dependers.. {}".format(pkg))
             
             # Add sub node
@@ -114,7 +114,7 @@ def get_job_array(manager, client, dependencies):
         
         job.requesting_client = client.get_identifier()
 
-        job.set_status("JOB_WAITING")
+        job.set_status("BLOCKED")
         job_array.append(job)
 
     return job_array

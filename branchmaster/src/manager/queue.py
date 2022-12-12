@@ -51,15 +51,7 @@ class queue():
     # Called when we get SIG_READY from buildbot
     #
     def notify_ready(self):
-
-        # TODO: Fix!
-        # If all jobs are blocked, but a new client is ready, it 
-        # will not get a job assigned even after one became available.
-        # implement a function which checks if there is a job available
-        # for a waiting client
-        
-        #recheck_for_ready() ..?
-
+        # no queue, idle bot..
         if(not self.manager.queued_jobs):
             blog.debug("A build client is ready, but is currently not needed.")
             return
@@ -69,7 +61,7 @@ class queue():
         job = None
         unblocked_jobs = [ ]
 
-        # find a not blocked package
+        # find not blocked jobs
         for sjob in self.manager.queued_jobs:
             if(not self.job_is_blocked(sjob)):
                 unblocked_jobs.append(sjob)
@@ -79,19 +71,21 @@ class queue():
             blog.info("No job available for client. All jobs are blocked or none is waiting.")
             return
 
-        # get the first unblocked job
-        job = unblocked_jobs[0]
-        
-        # remove job from queued, add to building
-        self.manager.queued_jobs.remove(job)
-        self.manager.build_jobs.append(job)
+        # find idle buildbots
+        for ready_client in self.manager.get_ready_build_clients():
+            # break if we have no unblocked jobs
+            if(not unblocked_jobs):
+                break
 
-        # get a ready build client from the manager
-        clients = self.manager.get_ready_build_clients()
-        cli = clients[0]
+            # get an unblocked job
+            job = unblocked_jobs.pop()
 
-        # submit the build command to the client
-        self.submit_build_cmd(cli, job)
+            # remove job from queued, add to building
+            self.manager.queued_jobs.remove(job)
+            self.manager.build_jobs.append(job)
+
+            blog.debug("Submitting job to a ready buildbot.")
+            self.submit_build_cmd(ready_client, job)
 
 
     def submit_build_cmd(self, client, job_obj):
