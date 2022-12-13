@@ -76,6 +76,9 @@ class manager():
         manager.queued_jobs.append(job)
         return job
 
+    def add_job_to_queue(self, job):
+        manager.queued_jobs.append(job)
+
     def move_inactive_job(self, job):
         manager.build_jobs.remove(job)
         manager.completed_jobs.append(job)

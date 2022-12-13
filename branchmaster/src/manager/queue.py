@@ -40,7 +40,6 @@ class queue():
             self.manager.queued_jobs.remove(job)
             self.manager.build_jobs.append(job)
 
-
             return "BUILD_REQ_SUBMIT_IMMEDIATELY"
         # We dont have a build server ready, we need to queue..
         else:

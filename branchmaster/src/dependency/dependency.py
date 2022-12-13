@@ -32,7 +32,7 @@ def get_dependency_tree(pkg_name):
 def calculate_tree(storage, calculated, masternode):
     # Ignore circular dependencies
     if(masternode.name in calculated):
-        blog.debug("Circular dependency ignored.")
+        blog.debug("Already calculated dependencies skipped.")
         return None
    
     # Add self to already calculated packages.
@@ -42,7 +42,7 @@ def calculate_tree(storage, calculated, masternode):
     for pkg in storage.packages:
         pkg_build = storage.get_bpb_obj(pkg)
         
-        if(masternode.name in pkg_build.dependencies or masternode.name in pkg_build.build_dependencies):
+        if(masternode.name in pkg_build.build_dependencies):
             blog.debug("Adding to dependers.. {}".format(pkg))
             
             # Add sub node
@@ -69,16 +69,6 @@ def calculate_list(storage, pkg_name, calculated, deps):
     for check_pkg in storage.packages:
         pkg_build = storage.get_bpb_obj(check_pkg)
         
-        if(pkg_name in pkg_build.dependencies):
-            if(not check_pkg in deps):
-                blog.debug("Adding to dependers.. {}".format(check_pkg))
-                deps.append(check_pkg)
-                ldeps.append(check_pkg)
-            else:
-                blog.debug("Already in dependers.. {}".format(check_pkg))
-
-            continue
-
         if(pkg_name in pkg_build.build_dependencies):
             if(not check_pkg in deps):
                 blog.debug("Adding to dependers.. {}".format(check_pkg))
@@ -108,13 +98,14 @@ def get_job_array(manager, client, dependencies):
 
     for dependency in dependencies:
         # do not use crosstools
-        job = manager.new_job(False)
+        job = jobs.jobs(False)
         job.build_pkg_name = dependency
         job.pkg_payload = stor.get_bpb_obj(dependency)
         
         job.requesting_client = client.get_identifier()
 
-        job.set_status("BLOCKED")
+        job.set_status("WAITING")
+
         job_array.append(job)
 
     return job_array

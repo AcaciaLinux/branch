@@ -203,6 +203,24 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
     elif(cmd_header == "VIEW_SYS_EVENTS"):
         return json.dumps(manager.system_events)
+    
+    #
+    # get dependency tree for a given package
+    #
+    elif(cmd_header == "GET_TREE_STR"):
+        storage = pkgbuildstorage.storage()
+
+        if(cmd_body in storage.packages):
+            blog.info("Calculating dependers for {}..".format(cmd_body))
+            
+            res = dependency.get_dependency_tree(cmd_body)
+            dependency_array = res.get_deps_array()
+
+            return json.dumps(res.get_tree_str())
+
+        else:
+            return "INV_PKG_NAME"
+
 
     #
     # Rebuild specified package plus all
@@ -226,6 +244,14 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             # calculate blockers on tree
             res.calc_blockers(jobs)
             
+            if(not dependency.get_job_by_name(jobs, cmd_body).blocked_by == [ ]):
+                blog.info("Circular dependency detected in packagebuilds. Cannot queue batch job.")
+                return "CIRCULAR_DEPENDENCY"
+            
+            # add jobs to manager
+            for job in jobs:
+                manager.add_job_to_queue(job)
+
             # queue every job
             for job in jobs:
                 manager.get_queue().add_to_queue(job)
