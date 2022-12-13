@@ -227,6 +227,23 @@ def get_managed_pkgbuilds(s):
     print()
     return
 
+def view_tree(s, pkg_name):
+    resp = connect.send_msg(s, "GET_TREE_STR {}".format(pkg_name))
+    if(resp == "INV_PKG_NAME"):
+        blog.error("No such package available.")
+    else:
+        print(json.loads(resp))
+
+
+def rebuild_dependers(s, pkg_name):
+    resp = connect.send_msg(s, "REBUILD_DEPENDERS {}".format(pkg_name))
+    if(resp == "INV_PKG_NAME"):
+        blog.error("No such package available.")
+    elif(resp == "CIRCULAR_DEPENDENCY"):
+        blog.error("Circular dependency detected. The requested batch build contains a circular dependency and could not be submitted.")
+    elif(resp == "BATCH_QUEUED"):
+        blog.info("Batch queued successfully.")
+
 
 def get_diff_pkg(s):
     resp = connect.send_msg(s, "MANAGED_PACKAGES")
