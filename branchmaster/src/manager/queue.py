@@ -77,7 +77,10 @@ class queue():
                 break
 
             # get an unblocked job
-            job = unblocked_jobs.pop()
+    
+            # get head of list
+            job = unblocked_jobs[0]
+            del unblocked_jobs[0]
 
             # remove job from queued, add to building
             self.manager.queued_jobs.remove(job)
