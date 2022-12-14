@@ -43,8 +43,7 @@ def strip(root_dir):
 
             if (res.returncode == 0):
                 blog.debug("[strip] {}".format(file_abs))
-
-            stripped_files.append(file_abs)
+                stripped_files.append(file_abs)
 
     return stripped_files
 
