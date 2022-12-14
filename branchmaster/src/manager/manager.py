@@ -39,10 +39,10 @@ class manager():
         job = self.get_job_by_client(client)
 
         if(job is not None):
-            blog.warn("Build job '{}' failed because the build client disconnected.".format(job.get_jobid()))
-            job.set_completed = True
-            job.set_status("FAILED")
-            self.move_inactive_job(job)
+            blog.warn("Build job '{}' aborted because the build client disconnected. Readding to queue..".format(job.get_jobid()))
+            manager.build_jobs.remove(job)
+            manager.queued_jobs = [job] + manager.queued_jobs
+
 
         blog.info("Removing client '{}' from manager.".format(client.get_identifier()))
         manager.client_array.remove(client)

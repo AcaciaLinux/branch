@@ -1,4 +1,5 @@
 import os
+import inspect
 
 from config import config
 
@@ -25,40 +26,55 @@ def initialize():
 def warn(log):
     global NO_TERM
 
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0]).__name__
+
     if(NO_TERM):
-        print("==> [WARN] " + log)
+        print("[{}] ==> [WARN] ".format(module) + log)
     else:
-        print(WARNING + "==> [WARN] " + ENDC + log)
+        print(WARNING + "[{}] ==> [WARN] ".format(module) + ENDC + log)
 
 def error(log):
     global NO_TERM
-    
+
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0]).__name__
+
     if(NO_TERM):
-        print("==> [ERROR] " + log)
+        print("[{}] ==> [ERROR] ".format(module) + log)
     else:
-        print(FAIL + "==> [ERROR] " + ENDC + log)
+        print(FAIL + "[{}] ==> [ERROR] ".format(module) + ENDC + log)
 
 def info(log):
     global NO_TERM
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0]).__name__
+
 
     if(NO_TERM):
-        print("==> " + log)
+        print("[{}] ==> ".format(module) + log)
     else:
-        print(OKGREEN + "==> " + ENDC + log)
+        print(OKGREEN + "[{}] ==> ".format(module) + ENDC + log)
 
 def web_log(log):
     global NO_TERM 
 
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0]).__name__
+
     if(NO_TERM):
-        print(" -> " + log)
+        print("[{}] -> ".format(module) + log)
     else:
-        print(OKCYAN + " -> " + ENDC + log)
+        print(OKCYAN + "[{}] -> ".format(module) + ENDC + log)
 
 def debug(log):
     global NO_TERM
 
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0]).__name__
+
     if(config.branch_options.debuglog):
         if(NO_TERM):
-            print("==> [DEBUG] " + log)
+            print("[{}] ==> [DEBUG] ".format(module) + log)
         else:
-            print(OKGREEN + "==> [DEBUG] " + ENDC + log)
+            print(OKCYAN + "[{}] ==> [DEBUG] ".format(module) + ENDC + log)

@@ -7,9 +7,7 @@ class jobs():
 
         # class members
         self.job_id = ""
-        
         self.pkg_payload = None
-        
         self.build_pkg_name = ""
 
         self.requesting_client = ""
@@ -24,10 +22,12 @@ class jobs():
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
-
+        
         self.use_crosstools = use_crosstools
-
         self.build_log = None
+        
+        # set to true once a bot sends JOB_ACCEPTED response
+        self.job_accepted = False
 
     #
     # get dict of class variables

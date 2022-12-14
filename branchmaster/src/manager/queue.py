@@ -4,6 +4,7 @@ from manager import manager
 from log import blog
 from package import build
 from dependency import dependency
+from overwatch import overwatch
 
 class queue():
     
@@ -35,6 +36,7 @@ class queue():
         
             # get first ready build client, and submit
             cli = clients[0]
+            overwatch.check_accepted_timeout(self.manager, cli, job)
             self.submit_build_cmd(cli, job)
  
             self.manager.queued_jobs.remove(job)
@@ -87,6 +89,8 @@ class queue():
             self.manager.build_jobs.append(job)
 
             blog.debug("Submitting job to a ready buildbot.")
+
+            overwatch.check_accepted_timeout(self.manager, ready_client, job)
             self.submit_build_cmd(ready_client, job)
 
 

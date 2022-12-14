@@ -5,9 +5,11 @@
 # WARNING: DO NOT CONNECT THIS TO A PROD SERVER
 # will upload garbage to the masterserver and not build anything!
 
-UPLOAD_DATA=False
+UPLOAD_DATA=True
 ALWAYS_STALL_UPLOAD=True
 AUTO_RECONNECT=True
+ALWAYS_IGNORE_COMMANDS=True
+
 
 import random
 import os
@@ -90,6 +92,9 @@ def receive_commands(s):
 
 
     print("Ready! Waiting for commands.")
+    
+    if ALWAYS_IGNORE_COMMANDS:
+        time.sleep(5000000)
 
     # enter a loop to continuously receive messages from the server
     while True:

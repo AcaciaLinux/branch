@@ -394,10 +394,12 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
     #
     elif(cmd_header == "JOB_ACCEPTED"):
         job = manager.get_job_by_client(client)
+        
 
         if(not job is None):
             blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
             job.set_status("JOB_ACCEPTED")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -412,6 +414,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Setup Build Environment' step.".format(job.get_jobid()))
             job.set_status("BUILD_ENV_READY")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -425,6 +428,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Compile source' step.".format(job.get_jobid()))
             job.set_status("BUILD_COMPLETE")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -435,6 +439,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' log received.".format(job.get_jobid()))
             job.set_buildlog(json.loads(cmd_body))
+            job.job_accepted = True
             return "LOG_OK"
 
         return "NO_JOB"
@@ -448,7 +453,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' failed 'Compile source' step.".format(job.get_jobid()))
             job.set_status("BUILD_FAILED")
-
+            job.job_accepted = True
+        
         return "STATUS_ACK"
 
 
@@ -461,6 +467,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
             job.set_status("BUILD_CLEAN")
+            job.job_accepted = True
 
         return "STATUS_ACK"
 
@@ -469,7 +476,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         if(not job is None):
             job.set_status("UPLOADING")
-
+            job.job_accepted = True
+            
             job.file_size = int(cmd_body)
             
             stor = packagestorage.storage()
