@@ -56,7 +56,7 @@ def main():
     # check if the build environment is setup..
     blog.info("Checking build environments..")
     if(buildenv.check_buildenv() != 0):
-        check_failed = True  
+        check_failed = True
  
     # establish socket connection
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
@@ -68,6 +68,20 @@ def main():
     if(check_failed):
         blog.info("Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
+        s.close()
+        blog.info("Disconnected.")
+        return -1
+
+    if (not buildenv.check_host_binary("chroot")):
+        blog.error("'chroot' binary is missing")
+        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
+        s.close()
+        blog.info("Disconnected.")
+        return -1
+
+    if (not buildenv.check_host_binary("strip")):
+        blog.error("'strip' binary is missing")
+        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
         s.close()
         blog.info("Disconnected.")
         return -1

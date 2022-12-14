@@ -88,6 +88,17 @@ def check_buildenv():
     blog.info("Build environment setup completed.")
     return 0
 
+# Checks if a binary on the host is accessible through the PATH variable
+def check_host_binary(binary):
+
+    for path in os.environ["PATH"].split(":"):
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if file == binary:
+                    return True
+
+    return False
+
 # installs packages to overlayfs temproot
 def install_pkgs(packages):
     global leafcore_instance

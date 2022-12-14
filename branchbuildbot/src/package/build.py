@@ -30,6 +30,23 @@ class BPBOpts():
     def get_json(self):
         return json.dumps(self.__dict__)
 
+def strip(root_dir):
+    blog.info("Stripping unneeded symbols from {}".format(root_dir))
+
+    stripped_files = []
+
+    for root, dir, files in os.walk(root_dir):
+        for file in files:
+            file_abs = os.path.join(root, file)
+
+            res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+
+            if (res.returncode == 0):
+                blog.debug("[strip] {}".format(file_abs))
+                stripped_files.append(file_abs)
+
+    return stripped_files
+
 def build(directory, package_build, socket, use_crosstools):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
@@ -197,6 +214,8 @@ def build(directory, package_build, socket, use_crosstools):
     # get last 5k lines of std_out
     std_out_trimmed = std_out[-5000:]
 
+    # strip unneeded symbols from binaries
+    stripped_files = strip(destdir)
 
     log = [ ]
     for line in leaflog_arr:
@@ -204,7 +223,10 @@ def build(directory, package_build, socket, use_crosstools):
 
     for line in std_out_trimmed:
         log.append(line)
-    
+
+    for line in stripped_files:
+        log.append("[strip] {}".format(line))
+
     jlog = json.dumps(log)
 
     res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
