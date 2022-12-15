@@ -120,8 +120,8 @@ def main():
             buildenv.check_buildenv()
             blog.info("Reconnecting..")
             s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
-
-        connect.send_msg(s, res)
+        else:
+            connect.send_msg(s, res)
 
 if (__name__ == "__main__"):
     try:

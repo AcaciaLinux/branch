@@ -37,8 +37,7 @@ def handle_command(socket, command):
             if(res == -1):
                 connect.send_msg(socket, "BUILD_FAILED")
                 connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
-                shutil.rmtree("realroot")
-                shutil.rmtree("crossroot")
+                buildenv.drop_buildenv()
                 return None
             
             rootdir = buildenv.get_build_path()

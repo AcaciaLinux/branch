@@ -25,14 +25,26 @@ class Client():
         uid = uuid.uuid4();
         blog.debug("Initializing new client with UUID: {}".format(str(uid)))
         self.client_uuid = uid
-        
+
+        # client thread
+        self.client_thread = None
+
         # client socket
         self.sock = sock
 
+        # client is not ready by default
+        self.is_ready = False
+
+        # number of failed commands (incremented by overwatch) 
+        self.failed_commands = 0
+        
+        # client alive flag
+        self.alive = True
+
         # register the client
         manager.manager().register_client(self)
-        is_ready = False
-  
+ 
+
     #
     # receive data from manager
     #
@@ -53,16 +65,16 @@ class Client():
     # send_command to self
     #
     def send_command(self, message):
-        blog.info("send_command function called.")
         message = "{} {}".format(len(message), message)
         self.sock.send(bytes(message, "UTF-8"))
-        blog.info("Message {} sent!".format(message))
+        blog.debug("Message {} sent!".format(message))
 
     #
     # handle a clients disconnect.
     #
     def handle_disconnect(self):
-        blog.info("Client {} has disconnected.".format(self.get_identifier()))
-        manager.manager().remove_client(self)
-        self.sock.close()
-
+        if(self.alive):
+            blog.info("Client {} has disconnected.".format(self.get_identifier()))
+            manager.manager().remove_client(self)
+            self.sock.close()
+            self.alive = False

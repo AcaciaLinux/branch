@@ -203,6 +203,24 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
     elif(cmd_header == "VIEW_SYS_EVENTS"):
         return json.dumps(manager.system_events)
+    
+    #
+    # get dependency tree for a given package
+    #
+    elif(cmd_header == "GET_TREE_STR"):
+        storage = pkgbuildstorage.storage()
+
+        if(cmd_body in storage.packages):
+            blog.info("Calculating dependers for {}..".format(cmd_body))
+            
+            res = dependency.get_dependency_tree(cmd_body)
+            dependency_array = res.get_deps_array()
+
+            return json.dumps(res.get_tree_str())
+
+        else:
+            return "INV_PKG_NAME"
+
 
     #
     # Rebuild specified package plus all
@@ -226,6 +244,14 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             # calculate blockers on tree
             res.calc_blockers(jobs)
             
+            if(not dependency.get_job_by_name(jobs, cmd_body).blocked_by == [ ]):
+                blog.info("Circular dependency detected in packagebuilds. Cannot queue batch job.")
+                return "CIRCULAR_DEPENDENCY"
+            
+            # add jobs to manager
+            for job in jobs:
+                manager.add_job_to_queue(job)
+
             # queue every job
             for job in jobs:
                 manager.get_queue().add_to_queue(job)
@@ -368,10 +394,12 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
     #
     elif(cmd_header == "JOB_ACCEPTED"):
         job = manager.get_job_by_client(client)
+        
 
         if(not job is None):
             blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
             job.set_status("JOB_ACCEPTED")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -386,6 +414,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Setup Build Environment' step.".format(job.get_jobid()))
             job.set_status("BUILD_ENV_READY")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -399,6 +428,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'Compile source' step.".format(job.get_jobid()))
             job.set_status("BUILD_COMPLETE")
+            job.job_accepted = True
             return "STATUS_ACK"
 
         return "NO_JOB"
@@ -409,6 +439,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' log received.".format(job.get_jobid()))
             job.set_buildlog(json.loads(cmd_body))
+            job.job_accepted = True
             return "LOG_OK"
 
         return "NO_JOB"
@@ -422,7 +453,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' failed 'Compile source' step.".format(job.get_jobid()))
             job.set_status("BUILD_FAILED")
-
+            job.job_accepted = True
+        
         return "STATUS_ACK"
 
 
@@ -435,6 +467,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
             job.set_status("BUILD_CLEAN")
+            job.job_accepted = True
 
         return "STATUS_ACK"
 
@@ -443,7 +476,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         if(not job is None):
             job.set_status("UPLOADING")
-
+            job.job_accepted = True
+            
             job.file_size = int(cmd_body)
             
             stor = packagestorage.storage()

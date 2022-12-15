@@ -1,4 +1,5 @@
 from dependency import dependency
+from log import blog
 
 class node():
 
@@ -28,35 +29,50 @@ class node():
                 return subnode
 
     #
-    # Prints all subnode of current object
+    # Fetches subnode of current object
     #
-    def print_tree(self):
-        print(self.name, ":")
+    def get_tree_str(self):
+        result = ""
+        result = result + "{} -> ({}):\n".format(self.name, self.blocked_by)
 
         for x in self.get_sub_nodes():
-            print("==> ", x.name, " (blocked by:", x.blocked_by.name, ")")
-            x.print_tree_tabbed(1)
+            result = result + "-> {} (blocked by: {})\n".format(x.name, x.blocked_by.name)
+            result = result + x.get_tree_tabbed(1)
 
+        return result
+    
 
     #
-    # Prints all subnodes of current object, indented by 'tab'
+    # Fetches all subnodes of current object, indented by ' '
     #
-    def print_tree_tabbed(self, tab):
+    def get_tree_tabbed(self, tab):
         tabspace = "\t" * tab 
         tab = tab + 1
+        
+        result = ""
 
         for x in self.get_sub_nodes():
-            print(tabspace, "==> ", x.name, " (blocked by:", x.blocked_by.name, ")")
-            x.print_tree_tabbed(tab)
-
+            result = result + "{}-> {} (blocked by: {})\n".format(tabspace, x.name, x.blocked_by.name)
+            result = result + x.get_tree_tabbed(tab)
+        
+        return result
+        
     #
     # Calculate all blockers of 'jobs'
     #
     def calc_blockers(self, jobs):
+        blog.debug("Calculating blockers for: {}".format(self.name))
         for sub in self.get_sub_nodes():
             job = dependency.get_job_by_name(jobs, sub.name)
-            job.blocked_by.append(dependency.get_job_by_name(jobs, sub.blocked_by.name).job_id)
+            job.blocked_by.append(dependency.get_job_by_name(jobs, sub.blocked_by.name).job_id) 
             
+            blog.debug("Job {} blocked by: {}".format(self.name, job.blocked_by))
+
+            if(job.blocked_by == [ ]):
+                job.set_status("WAITING")
+            else:
+                job.set_status("BLOCKED")
+
             sub.calc_blockers(jobs)
 
     #

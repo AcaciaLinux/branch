@@ -36,6 +36,8 @@ def threaded_client_handler(client_socket):
     _client = client.Client(client_socket)
     blog.info("New client initialized. UUID: {}".format(_client.get_identifier()))
 
+    _client.client_thread = threading.current_thread()
+
     while True:
         if(_client.file_transfer_mode):
             receive_file(client_socket, _client)
@@ -92,7 +94,8 @@ def receive_file(socket, client):
     job = manager.manager().get_job_by_client(client)
     
     if(job is None):
-        print("Wtf?")
+        blog.error("Buildbot attempted to submit file while not having a job assigned?")
+        return
 
     out_file = open(job.file_name, "wb")
     data_len = 0
