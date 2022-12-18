@@ -34,5 +34,9 @@ def check_accepted_timeout_thread(manager, client, job):
     
     blog.info("No response from buildbot received.")
     blog.warn("Buildbot failed. Closing connection..")
+    
+    # report system event
+    manager.system_events.append("[branchmaster] => Buildbot {} kicked by Overwatch (Reason: No response)".format(client.get_identifier()))
+    
     client.handle_disconnect()
     return
