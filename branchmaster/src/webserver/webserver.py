@@ -117,7 +117,12 @@ class web_server(BaseHTTPRequestHandler):
             if(self.path[0] == '?' and len(self.path) > 1):
                 form_dict = parse_form_data(self.path[1:len(self.path)])
                 if(not form_dict is None):
-                    real_path = list(form_dict.keys())[0]
+                    lk = list(form_dict.keys())
+                    if(len(lk) == 0):
+                        self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
+                        return
+                    else:
+                        real_path = lk[0]
             else:
                 real_path = self.path
         else:
@@ -164,7 +169,12 @@ class web_server(BaseHTTPRequestHandler):
             if(self.path[0] == '?' and len(self.path) > 1):
                 form_dict = parse_form_data(self.path[1:len(self.path)])
                 if(not form_dict is None):
-                    real_path = list(form_dict.keys())[0]
+                    lk = list(form_dict.keys())
+                    if(len(lk) == 0):
+                        self.write_answer_encoded(endpoints.webresponse(endpoints.webstatus.SERV_FAILURE, "Bad request.").json_str())
+                        return
+                    else:
+                        real_path = lk[0]
             else:
                 real_path = self.path
         else:
