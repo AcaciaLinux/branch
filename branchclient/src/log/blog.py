@@ -30,9 +30,9 @@ def warn(log):
     module = inspect.getmodule(frame[0]).__name__
 
     if(NO_TERM):
-        print("[{}] ==> [WARN] ".format(module) + log)
+        print("{:<20} [{}] ==> [WARN] ".format(module) + log)
     else:
-        print(WARNING + "[{}] ==> [WARN] ".format(module) + ENDC + log)
+        print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[WARN]", ENDC, WARNING, module, ENDC, log))
 
 def error(log):
     global NO_TERM
@@ -43,7 +43,7 @@ def error(log):
     if(NO_TERM):
         print("[{}] ==> [ERROR] ".format(module) + log)
     else:
-        print(FAIL + "[{}] ==> [ERROR] ".format(module) + ENDC + log)
+        print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[ERROR]", ENDC, FAIL, module, ENDC, log))
 
 def info(log):
     global NO_TERM
@@ -54,7 +54,7 @@ def info(log):
     if(NO_TERM):
         print("[{}] ==> ".format(module) + log)
     else:
-        print(OKGREEN + "[{}] ==> ".format(module) + ENDC + log)
+        print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[INFO]", ENDC, OKGREEN, module, ENDC, log))
 
 def web_log(log):
     global NO_TERM 
@@ -65,7 +65,7 @@ def web_log(log):
     if(NO_TERM):
         print("[{}] -> ".format(module) + log)
     else:
-        print(OKCYAN + "[{}] -> ".format(module) + ENDC + log)
+        print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[WEB]", ENDC, OKCYAN, module, ENDC, log))
 
 def debug(log):
     global NO_TERM
@@ -77,4 +77,4 @@ def debug(log):
         if(NO_TERM):
             print("[{}] ==> [DEBUG] ".format(module) + log)
         else:
-            print(OKCYAN + "[{}] ==> [DEBUG] ".format(module) + ENDC + log)
+            print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[DEBUG]", ENDC, OKCYAN, module, ENDC, log))
