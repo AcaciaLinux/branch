@@ -6,9 +6,12 @@ from manager import client
 from manager import manager
 from _thread import *
 import threading
+import os
+import shutil
 
 # Initialize DefaultSelector
 sel = selectors.DefaultSelector()
+STAGING_AREA = "staging"
 
 def init_server(addr, port):
     blog.info("Socket server initializing.")
@@ -21,6 +24,10 @@ def init_server(addr, port):
     
     blog.debug("Setting listening type to 5")
     s.listen(5)
+
+    blog.debug("Checking pkg-staging area")
+    if(not os.path.exists(STAGING_AREA)):
+        os.mkdir(STAGING_AREA)
 
     blog.debug("Listening for clients..")
     while True:
@@ -97,7 +104,9 @@ def receive_file(socket, client):
         blog.error("Buildbot attempted to submit file while not having a job assigned?")
         return
 
-    out_file = open(job.file_name, "wb")
+    staging_path = os.path.join(STAGING_AREA, "{}-{}.lfpkg".format(job.build_pkg_name, job.job_id))
+
+    out_file = open(staging_path, "wb")
     data_len = 0
 
     blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(client.get_identifier(), job.file_size))
@@ -120,6 +129,10 @@ def receive_file(socket, client):
     else:
         blog.warn("File upload failed, because the client disconnected.")
         client.file_transfer_mode = False
+    
+    blog.info("Moving package from staging to deployment area..")
+    shutil.move(staging_path, job.file_name)
+    blog.debug("Moving from File-transfer mode to command mode.")
 
 def receive_data(client):
     try:

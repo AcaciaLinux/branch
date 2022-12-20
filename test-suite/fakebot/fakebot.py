@@ -6,9 +6,9 @@
 # will upload garbage to the masterserver and not build anything!
 
 UPLOAD_DATA=True
-ALWAYS_STALL_UPLOAD=True
-AUTO_RECONNECT=True
-ALWAYS_IGNORE_COMMANDS=True
+ALWAYS_STALL_UPLOAD=False
+AUTO_RECONNECT=False
+ALWAYS_IGNORE_COMMANDS=False
 
 
 import random
@@ -122,7 +122,9 @@ def handle_command_from_server(command, s):
         msg = "BUILD_COMPLETE"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         data = receive_data(s)
+        print(data)
 
+        data = receive_data(s)
         # wait a few seconds
         #time.sleep(3)
         
@@ -135,10 +137,11 @@ def handle_command_from_server(command, s):
         msg = "FILE_TRANSFER_MODE {}".format(byte_len)
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         
+        data = receive_data(s)
+        
         # check if the server acknowledged the file transfer mode
         print("Requesting mode switch..")
-        data = receive_data(s)
-        if data != "ACK_FILE_TRANSFER":
+        if "ACK_FILE_TRANSFER" not in data:
             print("Error: file transfer mode not acknowledged by the server.")
             return
 
