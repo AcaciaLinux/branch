@@ -94,6 +94,8 @@ def build(directory, package_build, socket, use_crosstools):
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
             os.chdir(call_dir)
+            jlog = json.dumps(["Failed to fetch main source:", package_build.source])
+            res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
             return "BUILD_FAILED"
 
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
@@ -105,6 +107,8 @@ def build(directory, package_build, socket, use_crosstools):
             blog.info("Fetching extra source: {}".format(extra_src))
             if(fetch_file(extra_src) != 0):
                 os.chdir(call_dir)
+                jlog = json.dumps(["Failed to fetch extra source:", extra_src])
+                res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
                 return "BUILD_FAILED"
 
         try:
