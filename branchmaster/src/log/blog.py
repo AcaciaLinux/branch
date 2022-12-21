@@ -30,7 +30,7 @@ def warn(log):
     module = inspect.getmodule(frame[0]).__name__
 
     if(NO_TERM):
-        print("{:<20} [{}] ==> [WARN] {} ".format(module, log))
+        print("[{}] ==> [WARN] {} ".format(module, log))
     else:
         print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[WARN]", ENDC, WARNING, module, ENDC, log))
 
