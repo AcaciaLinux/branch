@@ -30,7 +30,7 @@ def warn(log):
     module = inspect.getmodule(frame[0]).__name__
 
     if(NO_TERM):
-        print("{:<20} [{}] ==> [WARN] ".format(module) + log)
+        print("{:<20} [{}] ==> [WARN] {} ".format(module, log))
     else:
         print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[WARN]", ENDC, WARNING, module, ENDC, log))
 
@@ -41,7 +41,7 @@ def error(log):
     module = inspect.getmodule(frame[0]).__name__
 
     if(NO_TERM):
-        print("[{}] ==> [ERROR] ".format(module) + log)
+        print("[{}] ==> [ERROR] {} ".format(module, log))
     else:
         print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[ERROR]", ENDC, FAIL, module, ENDC, log))
 
@@ -52,7 +52,7 @@ def info(log):
 
 
     if(NO_TERM):
-        print("[{}] ==> ".format(module) + log)
+        print("[{}] ==> {} ".format(module, log))
     else:
         print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[INFO]", ENDC, OKGREEN, module, ENDC, log))
 
@@ -63,7 +63,7 @@ def web_log(log):
     module = inspect.getmodule(frame[0]).__name__
 
     if(NO_TERM):
-        print("[{}] -> ".format(module) + log)
+        print("[{}] -> {} ".format(module, log))
     else:
         print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[WEB]", ENDC, OKCYAN, module, ENDC, log))
 
@@ -75,6 +75,6 @@ def debug(log):
 
     if(config.branch_options.debuglog):
         if(NO_TERM):
-            print("[{}] ==> [DEBUG] ".format(module) + log)
+            print("[{}] ==> [DEBUG] {} ".format(module, log))
         else:
             print("{}{:<8}{}{}{:<24}{} {}".format(BOLD, "[DEBUG]", ENDC, OKCYAN, module, ENDC, log))
