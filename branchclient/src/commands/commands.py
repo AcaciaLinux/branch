@@ -1,5 +1,6 @@
 import main
 import json
+import os
 
 from log import blog
 from bsocket import connect 
@@ -227,6 +228,9 @@ def get_managed_pkgbuilds(s):
     print()
     return
 
+#
+# views dependency tree
+#
 def view_tree(s, pkg_name):
     resp = connect.send_msg(s, "GET_TREE_STR {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
@@ -234,7 +238,9 @@ def view_tree(s, pkg_name):
     else:
         print(json.loads(resp))
 
-
+#
+# rebuild dependers (auto calc)
+#
 def rebuild_dependers(s, pkg_name):
     resp = connect.send_msg(s, "REBUILD_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
@@ -244,7 +250,9 @@ def rebuild_dependers(s, pkg_name):
     elif(resp == "BATCH_QUEUED"):
         blog.info("Batch queued successfully.")
 
-
+#
+# difference between pkgs
+#
 def get_diff_pkg(s):
     resp = connect.send_msg(s, "MANAGED_PACKAGES")
     pkgs = json.loads(resp)
