@@ -276,3 +276,61 @@ def get_diff_pkg(s):
 
     print()
 
+
+
+#
+# submit a branch solution to the masterserver as a batch (CROSS BUILD)
+#
+def submit_solution_cb(s, solution_file_str):
+    submit_solution(s, solution_file_str, True) 
+
+#
+# submit a branch solution to the masterserver as a batch (RELEASE BUILD)
+#
+def submit_solution_rb(s, solution_file_str):
+    submit_solution(s, solution_file_str, False) 
+
+#
+# submit a branch solution to the masterserver as a batch
+#
+def submit_solution(s, solution_file_str, use_crosstools):
+    if(not os.path.exists(solution_file_str)):
+        blog.error("Solution file not found.")
+        return -1
+    
+    blog.info("Parsing solution..")
+    solution_file = open(solution_file_str, "r")
+    sl = solution_file.read().split("\n") 
+
+    solution = [ ]
+
+    for l in sl:
+        if(len(l) == 0):
+            break 
+
+        if(l[0] != "#"):
+            pkgs = [ ]
+            split = l.strip().split(";")
+            for sp in split:
+                if(s != ""):
+                    pkgs.append(sp)
+            
+            solution.append(pkgs)
+
+    blog.info("Solution parsed!")
+    blog.info("Submitting solution..")
+    
+    resp = ""
+
+    if(use_crosstools):
+        resp = connect.send_msg(s, "SUBMIT_SOLUTION_CB {}".format(json.dumps(solution)))
+    else:
+        resp = connect.send_msg(s, "SUBMIT_SOLUTION_RB {}".format(json.dumps(solution)))
+
+    if(resp == "INV_SOL"):
+        blog.error("Attempted to submit invalid solution.")
+    elif(resp.split(" ")[0] == "PKG_BUILD_MISSING"):
+        blog.error("A required package build is missing: {}".format(resp.split(" ")[1]))
+    else:
+        blog.info("Batch queued.")
+

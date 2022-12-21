@@ -86,6 +86,35 @@ def calculate_list(storage, pkg_name, calculated, deps):
         
     return deps
 
+def job_arr_from_solution(manager, client, solution, use_crosstools):
+    created_jobs = [ ]
+    prev_jobs = [ ]
+
+    storage = pkgbuildstorage.storage()
+
+    for line in solution:
+        new_prev_jobs = [ ]
+
+        for pk in line:
+            job = jobs.jobs(use_crosstools)
+            job.build_pkg_name = pk
+            job.pkg_payload = storage.get_bpb_obj(pk)
+            
+            if(job.pkg_payload is None):
+                return None, pk
+
+            job.requesting_client = client.get_identifier()
+            
+            job.blocked_by = prev_jobs
+        
+            job.set_status("WAITING")
+            new_prev_jobs.append(job)
+            created_jobs.append(job)
+        
+        prev_jobs = new_prev_jobs
+
+    return created_jobs, ""
+
 #
 # Get job array
 #
@@ -101,9 +130,7 @@ def get_job_array(manager, client, dependencies):
         job = jobs.jobs(False)
         job.build_pkg_name = dependency
         job.pkg_payload = stor.get_bpb_obj(dependency)
-        
         job.requesting_client = client.get_identifier()
-
         job.set_status("WAITING")
 
         job_array.append(job)

@@ -76,6 +76,8 @@ def main():
     argparser.add_argument("-sys", "--viewsyslog", help="Fetches buildbot system logs from the masterserver", action="store_true")
     argparser.add_argument("-vt", "--viewtree", help="Fetches dependency tree for a given package")
     argparser.add_argument("-rd", "--rebuilddependers", help="Rebuild dependers of a given package")
+    argparser.add_argument("-rbs", "--releasebuildsol", help="Submits a branch solution to the masterserver. (RELEASEBUILD)")
+    argparser.add_argument("-cbs", "--crossbuildsol", help="Submits a branch solution to the masterserver. (CROSSBUILD)")
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -95,7 +97,9 @@ def main():
         "canceljob": commands.cancel_queued_job,
         "viewsyslog": commands.view_sys_log,
         "viewtree": commands.view_tree,
-        "rebuilddependers": commands.rebuild_dependers
+        "rebuilddependers": commands.rebuild_dependers,
+        "releasebuildsol": commands.submit_solution_rb,
+        "crossbuildsol": commands.submit_solution_cb
     }
 
     # parse arguments

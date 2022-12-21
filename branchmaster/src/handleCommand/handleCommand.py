@@ -237,7 +237,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             # calculate deps array
             dependency_array = res.get_deps_array()
-            
+
             # get array of job objects
             jobs = dependency.get_job_array(manager, client, dependency_array)
             
@@ -347,6 +347,51 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "CANCEL_ALL_QUEUED_JOBS"):
         manager.cancel_all_queued_jobs()
         return "JOBS_CANCELED"
+    
+    #
+    # Releasebuild a solution
+    #
+    elif(cmd_header == "SUBMIT_SOLUTION_RB"):
+        if(cmd_body == ""):
+            return "INV_SOL"
+        
+        solution = json.loads(cmd_body)
+        jobs, status = dependency.job_arr_from_solution(manager, client, solution, False)
+       
+        if(jobs is None):
+            return "PKG_BUILD_MISSING {}".format(status)
+
+        for job in jobs:
+            manager.add_job_to_queue(job)
+
+        # queue every job
+        for job in jobs:
+            manager.get_queue().add_to_queue(job)
+
+        return "BATCH_QUEUED"
+
+    #
+    # Releasebuild a solution
+    #
+    elif(cmd_header == "SUBMIT_SOLUTION_CB"):
+        if(cmd_body == ""):
+            return "INV_SOL"
+        
+        solution = json.loads(cmd_body)
+        jobs, status = dependency.job_arr_from_solution(manager, client, solution, True)
+       
+        if(jobs is None):
+            return "PKG_BUILD_MISSING {}".format(status)
+
+        for job in jobs:
+            manager.add_job_to_queue(job)
+
+        # queue every job
+        for job in jobs:
+            manager.get_queue().add_to_queue(job)
+
+        return "BATCH_QUEUED"
+
 
     #
     # Invalid command
