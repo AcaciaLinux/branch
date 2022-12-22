@@ -447,6 +447,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         # notify queue, because we might have got a job while sending keepalive
         manager.queue.notify_ready()
+        return "CMD_ACK"
 
     
     #
