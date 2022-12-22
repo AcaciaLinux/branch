@@ -105,8 +105,9 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
 
             job.requesting_client = client.get_identifier()
             
-            job.blocked_by = prev_jobs
-        
+            for pj in prev_jobs:
+                job.blocked_by.append(pj.job_id)
+
             job.set_status("WAITING")
             new_prev_jobs.append(job)
             created_jobs.append(job)
