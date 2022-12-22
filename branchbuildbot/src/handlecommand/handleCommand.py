@@ -203,16 +203,15 @@ def handle_command(socket, command):
             blog.info("Build job completed.")
             return "SIG_READY"
 
-        #
-        # Used by overwatch keepalive
-        #
-        elif(cmd_header == "PING"):
-            return "PONG"
-
         else:
             # No json package build submitted. Tell server we failed.
             return "ERR_BUILD_INV"
 
+    #
+    # Used by overwatch keepalive
+    #
+    elif(cmd_header == "PING"):
+        return "PONG"
 
     else:
         # The server sent us an invalid or unimplemented command. Tell the server we failed.
