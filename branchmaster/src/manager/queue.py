@@ -19,7 +19,10 @@ class queue():
         for blocker in job.blocked_by:
             sjob = self.manager.get_job_by_id(blocker)
             if(not sjob in self.manager.completed_jobs):
-                blog.debug("Job is currently blocked: {}".format(job.build_pkg_name))
+                blog.debug("Job is currently blocked: {}. Blocked by: ".format(job.build_pkg_name))
+                for j in job.blocked_by:
+                    blog.debug(j.job_id)
+
                 return True
             else:
                 blog.debug("Job is unblocked, ready to queue: {}".format(job.build_pkg_name))
