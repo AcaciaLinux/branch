@@ -211,6 +211,7 @@ def handle_command(socket, command):
     # Used by overwatch keepalive
     #
     elif(cmd_header == "PING"):
+        blog.info("Handling PING from server..")
         return "PONG"
 
     else:
