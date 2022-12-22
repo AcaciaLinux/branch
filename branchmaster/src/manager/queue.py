@@ -18,7 +18,8 @@ class queue():
     def job_is_blocked(self, job):
         for blocker in job.blocked_by:
             sjob = self.manager.get_job_by_id(blocker)
-            if(not sjob in self.manager.completed_jobs):
+            
+            if(not sjob in manager.manager.completed_jobs):
                 blog.debug("Job is currently blocked: {}. Blocked by: ".format(job.build_pkg_name))
                 for j in job.blocked_by:
                     blog.debug(j.job_id)
