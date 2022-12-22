@@ -12,6 +12,7 @@ from package import build
 from manager import queue
 from manager import jobs
 from dependency import dependency
+from overwatch import overwatch
 
 def handle_command(manager, client, command):
     cmd_header_loc = command.find(" ")
@@ -432,7 +433,21 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         client.is_ready = True
         manager.queue.notify_ready()
+
+        overwatch.check_buildbot_alive(manager, client)
         return None
+
+    #
+    # PONG from buildbot!
+    #
+    elif(cmd_header == "PONG"):
+        blog.debug("Got PONG from {}.".format(client.get_identifier()))
+        client.is_ready = True
+        client.alive = True
+
+        # notify queue, because we might have got a job while sending keepalive
+        manager.queue.notify_ready()
+
     
     #
     # Status update from assigned job: Job accepted by buildbot

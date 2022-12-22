@@ -40,6 +40,7 @@ class manager():
 
         if(job is not None):
             blog.warn("Build job '{}' aborted because the build client disconnected. Readding to queue..".format(job.get_jobid()))
+            job.set_status("WAITING")
             manager.build_jobs.remove(job)
             manager.queued_jobs = [job] + manager.queued_jobs
 

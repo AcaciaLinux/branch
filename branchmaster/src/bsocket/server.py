@@ -50,7 +50,13 @@ def threaded_client_handler(client_socket):
             receive_file(client_socket, _client)
         else:
             blog.debug("Receiving initial message from client..")
-            data = receive_data(_client)
+            data = None
+            try:
+                data = receive_data(_client)
+            except ConnectionResetError:
+                blog.warn("Connection to client reset. Handling disconnect..")
+                _client.handle_disconnect()
+
             if(data is None or data == b""):
                 _client.handle_disconnect()
                 break

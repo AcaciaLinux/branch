@@ -105,6 +105,10 @@ def handle_command_from_server(command, s):
     # check if the received command is "BUILD_PKG"
     print(command)
 
+    if command == "PING":
+        msg = "PONG"
+        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+
     if command == "BUILD_PKG" or command == "BUILD_PKG_CROSS":
         print("Got a build job from the server!")
 
