@@ -56,6 +56,9 @@ def threaded_client_handler(client_socket):
             except ConnectionResetError:
                 blog.warn("Connection to client reset. Handling disconnect..")
                 _client.handle_disconnect()
+            except TimeoutError:
+                blog.warn("Connection to client timed out. Handling disconnect..")
+                _client.handle_disconnect()
 
             if(data is None or data == b""):
                 _client.handle_disconnect()
