@@ -206,7 +206,7 @@ def setup_kfs():
 
     blog.info("Mounting pts..") 
     dev_pts = os.path.join(dev_fs, "pts")
-    os.system("mount -t devpts none {}".format(dev_pts))
+    os.system("mount -v -t devpts none {}".format(dev_pts))
 
     blog.info("Mounting proc..")
     proc_fs = os.path.join(temp_dir, "proc")
