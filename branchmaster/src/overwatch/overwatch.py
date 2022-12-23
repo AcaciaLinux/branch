@@ -67,8 +67,9 @@ def check_buildbot_alive_thread(manager, client):
             client.send_command("PING")
         
         time.sleep(20)
+        
         if(not client.alive):
-            blog.info("Buildbot {} kicked by Overwatch. (Reason: Missed ping)".format(client.get_identifier()))
-            manager.system_events.append("[branchmaster] => Buildbot {} kicked by Overwatch (Reason: Missed ping)".format(client.get_identifier()))
+            blog.info("Buildbot {} disconnected.".format(client.get_identifier()))
+            manager.system_events.append("[branchmaster] => Buildbot {} disconnected.".format(client.get_identifier()))
             
     blog.info("Overwatch thread exiting.")

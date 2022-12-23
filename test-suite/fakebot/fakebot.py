@@ -142,13 +142,6 @@ def handle_command_from_server(command, s):
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         
         data = receive_data(s)
-        
-        # check if the server acknowledged the file transfer mode
-        print("Requesting mode switch..")
-        if "ACK_FILE_TRANSFER" not in data:
-            print("Error: file transfer mode not acknowledged by the server.")
-            return
-
         print("Server switched to FT-mode")
 
         # send the file to the server
