@@ -16,7 +16,12 @@ def checkout_package(s, pkg_name):
     if(bpb_resp == "INV_PKG_NAME"):
         blog.error("The specified package could not be found.")
         return
-    
+
+    if(bpb_resp == "INV_PKG"):
+        blog.error("The package build is damaged and could not be checked out.")
+        return
+
+
     json_bpb = json.loads(bpb_resp)
     bpb = build.parse_build_json(json_bpb)
     build.create_pkg_workdir(bpb)
@@ -31,8 +36,10 @@ def submit_package(s):
 
     json_str = bpb.get_json()
     resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
-    
-    if(resp == "CMD_OK"):
+   
+    if(resp == "INV_PKG_BUILD"):
+        blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
+    elif(resp == "CMD_OK"):
         blog.info("Package submission accepted by server.")
     else:
         blog.error("An error occured: {}".format(resp))
