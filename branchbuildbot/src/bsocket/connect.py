@@ -10,6 +10,12 @@ from log import blog
 def connect(host, port, name, authkey, cltype):
     blog.info("Connecting to server...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    s.setsocketopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    s.setsocketopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+    s.setsocketopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+    s.setsocketopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+
     try:
         s.connect((host, port))
     except ConnectionRefusedError:
