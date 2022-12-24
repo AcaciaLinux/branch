@@ -114,9 +114,7 @@ def receive_file(socket, client):
         blog.error("Buildbot attempted to submit file while not having a job assigned?")
         return
 
-    staging_path = os.path.join(STAGING_AREA, "{}-{}.lfpkg".format(job.build_pkg_name, job.job_id))
-
-    out_file = open(staging_path, "wb")
+    out_file = open(job.file_name, "wb")
     data_len = 0
 
     blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(client.get_identifier(), job.file_size))
@@ -139,10 +137,6 @@ def receive_file(socket, client):
     else:
         blog.warn("File upload failed, because the client disconnected.")
         client.file_transfer_mode = False
-    
-    blog.info("Moving package from staging to deployment area..")
-    shutil.move(staging_path, job.file_name)
-    blog.debug("Moving from File-transfer mode to command mode.")
 
 def receive_data(client):
     try:

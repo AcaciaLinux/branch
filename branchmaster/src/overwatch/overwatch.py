@@ -40,7 +40,7 @@ def check_accepted_timeout_thread(manager, client, job):
     blog.warn("Buildbot failed. Closing connection..")
     
     # report system event
-    manager.system_events.append("[branchmaster] => Buildbot {} kicked by Overwatch (Reason: No response)".format(client.get_identifier()))
+    manager.report_system_event("Overwatch", "Buildbot {} kicked by Overwatch (Reason: No response)".format(client.get_identifier()))
     blog.info("Buildbot {} kicked by Overwatch. (Reason: No response)".format(client.get_identifier()))
     
     client.handle_disconnect()
@@ -75,5 +75,5 @@ def check_buildbot_alive_thread(manager, client):
     
     blog.info("Buildbot {} disconnected.".format(client.get_identifier()))
     client.handle_disconnect()
-    manager.system_events.append("[branchmaster] => Buildbot {} disconnected.".format(client.get_identifier()))
+    manager.report_system_event("Overwatch", "Buildbot {} disconnected.".format(client.get_identifier()))
     blog.info("Overwatch thread exiting.")

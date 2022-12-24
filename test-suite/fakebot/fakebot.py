@@ -128,7 +128,6 @@ def handle_command_from_server(command, s):
         data = receive_data(s)
         print(data)
 
-        data = receive_data(s)
         # wait a few seconds
         #time.sleep(3)
         

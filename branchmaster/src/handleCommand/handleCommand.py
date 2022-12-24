@@ -2,6 +2,8 @@ import json
 import os
 import time
 import selectors
+import shutil
+import hashlib
 
 import main
 from config import config
@@ -13,6 +15,7 @@ from manager import queue
 from manager import jobs
 from dependency import dependency
 from overwatch import overwatch
+from bsocket import server
 
 def handle_command(manager, client, command):
     cmd_header_loc = command.find(" ")
@@ -103,7 +106,12 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
         if(cmd_body in storage.packages):
             blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
-            return storage.get_json_bpb(cmd_body)
+            
+            pkg_build = storage.get_json_bpb(cmd_body)
+            if(pkg_build is None):
+                return "INV_PKG"
+            else:
+                return pkg_build
         else:
             return "INV_PKG_NAME"
 
@@ -421,13 +429,25 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
     # Build client sends ready signal
     #
     elif(cmd_header == "SIG_READY"):
-        # check if cli just finished a job or not
+        # check if client just finished a job or not
         job = manager.get_job_by_client(client)
         if(not job is None):
             blog.info("Build job '{}' completed.".format(job.get_jobid()))
             if(job.get_status() == "BUILD_FAILED"):
                 job.set_status("FAILED")
             else:
+                stor = packagestorage.storage()
+                
+                blog.info("Hashing package..")
+                md5_hash = hashlib.md5()
+                hash_file = open(job.file_name, "rb")
+
+                # read chunk by chunk
+                for chunk in iter(lambda: hash_file.read(4096), b""):
+                    md5_hash.update(chunk)
+
+                blog.info("Deploying package to storage..")
+                shutil.move(job.file_name, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
                 job.set_status("COMPLETED")
 
             manager.move_inactive_job(job)
@@ -541,11 +561,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             job.set_status("UPLOADING")
             job.job_accepted = True
-            
             job.file_size = int(cmd_body)
-            
-            stor = packagestorage.storage()
-            job.file_name = stor.add_package(job.pkg_payload)
+            job.file_name = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.build_pkg_name, job.job_id))
+
 
             client.file_transfer_mode = True
             return "ACK_FILE_TRANSFER"
@@ -558,7 +576,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             return "EMPTY_SYS_EVENT"
 
         blog.info("Received System Event report from {}.".format(client.get_identifier()))
-        manager.system_events.append("{} => {}".format(client.get_identifier(), cmd_body))
+        manager.report_system_event(client.get_identifier(), cmd_body)
+
         return "RECV_SYS_EVENT"
 
     #

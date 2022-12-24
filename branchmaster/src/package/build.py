@@ -50,14 +50,12 @@ def parse_build_json(json_obj):
 
     return pkgbuild
 
-
 #
 # parse build str to pkgbuild
 #
 def parse_build_file(pkg_file):
     build_file = open(pkg_file, "r")
     build_str = build_file.read()
-
     return parse_build_str(build_str)
 
 
@@ -66,7 +64,6 @@ def parse_build_file(pkg_file):
 #
 def parse_build_str(build_str):
     build_arr = build_str.split("\n")
-
     pkgbuild = package_build()
 
     build_opts = False
