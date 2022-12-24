@@ -73,14 +73,14 @@ def main():
         return -1
 
     if (not buildenv.check_host_binary("chroot")):
-        blog.error("'chroot' binary is missing")
+        blog.error("'chroot' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
         s.close()
         blog.info("Disconnected.")
         return -1
 
     if (not buildenv.check_host_binary("strip")):
-        blog.error("'strip' binary is missing")
+        blog.error("'strip' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
         s.close()
         blog.info("Disconnected.")
