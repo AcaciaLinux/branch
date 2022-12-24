@@ -100,7 +100,8 @@ def threaded_client_handler(client_socket):
             else:
                 blog.debug("Client disconnected.")
                 _client.handle_disconnect()
-
+    
+    manager.manager().report_system_event("Branchmaster", "Client {} disconnected.".format(_client.get_identifier()))
     blog.debug("Client thread exiting.")
 
 #

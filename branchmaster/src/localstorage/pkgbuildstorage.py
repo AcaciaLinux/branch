@@ -47,7 +47,11 @@ class storage():
 
         pkg_path = self.get_pkg_build_file(name)
         bpb = build.parse_build_file(pkg_path)
-        bpb_json = bpb.get_json()
+        
+        if(bpb is None):
+            return None
+        else:
+            return bpb.get_json()
         
         return bpb_json
 
