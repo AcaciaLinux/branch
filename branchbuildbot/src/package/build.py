@@ -44,13 +44,14 @@ def strip(root_dir):
             
             # skip if symlink
             if(not os.path.isfile(file_abs)):
-                return
+                continue
 
             # get file magic bytes
             with open(file_abs, "rb") as f:
                 magic_bytes = f.read(4)
 
                 if(magic_bytes == EXECUTABLE_MAGIC_BYTES or magic_bytes == SHARED_LIB_MAGIC_BYTES):
+                    blog.debug("[strip] Stripping file {}!".format(file_abs))
                     res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
 
                     if (res.returncode == 0):
