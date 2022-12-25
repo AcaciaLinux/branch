@@ -115,16 +115,15 @@ def send_msg(socket, cmd):
     return data
 
 #
-# send file
+# sends a file to the server using socket sendfile function
 #
 def send_file(socket, filename):
     file = open(filename, "rb")
 
-    blog.info("Uploading file to masterserver...")
-
     file_size = os.path.getsize(filename)
     bytes_sent = 0
     start_time = time.time()
+    elapsed_time = 0
 
     while True:
         # Use sendfile to transfer the contents of the file
@@ -132,15 +131,14 @@ def send_file(socket, filename):
         bytes_sent += socket.sendfile(file, bytes_sent, file_size - bytes_sent)
 
         # Print progress report every 10 seconds
-        elapsed_time = time.time() - start_time
+        elapsed_time += time.time() - start_time
+        start_time = time.time()
         if(elapsed_time > 10):
             speed = bytes_sent / elapsed_time / 1024
             blog.info("{:.2f} KB / {:.2f} KB, {:.2f} KB/sec".format(bytes_sent / 1024, file_size / 1024, speed))
-            start_time = time.time()
+            elapsed_time = 0  # Reset elapsed time
 
         # we are done sending
         if(bytes_sent == file_size):
             break
 
-    res = recv_only(socket)
-    return res
