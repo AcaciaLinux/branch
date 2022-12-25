@@ -12,7 +12,10 @@ from log import blog
 from package import leafpkg
 from bsocket import connect
 
-class BPBOpts():
+EXECUTABLE_MAGIC_BYTES = b'\x7fELF'
+SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
+
+class package_build():
     def __init__(self):
         self.name = ""
         self.version = ""
@@ -39,15 +42,22 @@ def strip(root_dir):
         for file in files:
             file_abs = os.path.join(root, file)
 
-            res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+            # get file magic bytes
+            with open(file_abs, "rb") as f:
+                magic_bytes = f.read(4)
 
-            if (res.returncode == 0):
-                blog.debug("[strip] {}".format(file_abs))
-                stripped_files.append(file_abs)
+                if(magic_bytes == EXECUTABLE_MAGIC_BYTES or magic_bytes == SHARED_LIB_MAGIC_BYTES):
+                    res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+
+                    if (res.returncode == 0):
+                        blog.debug("[strip] {}".format(file_abs))
+                        stripped_files.append(file_abs)
+                else:
+                    blog.debug("[strip] Skipped file {}, not ELF binary!")
 
     return stripped_files
 
-def build(directory, package_build, socket, use_crosstools):
+def build(directory, package_build_obj, socket, use_crosstools):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
     # change to packagebuild directory
@@ -59,11 +69,11 @@ def build(directory, package_build, socket, use_crosstools):
 
     # get leafpkg
     lfpkg = leafpkg.leafpkg()
-    lfpkg.name = package_build.name
-    lfpkg.version = package_build.version
-    lfpkg.real_version = package_build.real_version
-    lfpkg.description = package_build.description
-    lfpkg.dependencies = package_build.dependencies
+    lfpkg.name = package_build_obj.name
+    lfpkg.version = package_build_obj.version
+    lfpkg.real_version = package_build_obj.real_version
+    lfpkg.description = package_build_obj.description
+    lfpkg.dependencies = package_build_obj.dependencies
     
     # write leafpkg to disk
     destdir = leafpkg.write_leaf_package_directory(lfpkg)
@@ -71,8 +81,8 @@ def build(directory, package_build, socket, use_crosstools):
     # change to build directory
     os.chdir(build_dir)
 
-    if(package_build.source):
-        source_file = package_build.source.split("/")[-1]
+    if(package_build_obj.source):
+        source_file = package_build_obj.source.split("/")[-1]
         
         blog.debug("Source file is: {}".format(source_file))
 
@@ -80,7 +90,7 @@ def build(directory, package_build, socket, use_crosstools):
 
         blog.info("Setting up pycurl..")
         curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, package_build.source)
+        curl.setopt(pycurl.URL, package_build_obj.source)
         curl.setopt(pycurl.FOLLOWLOCATION, 1)
         curl.setopt(pycurl.MAXREDIRS, 5)
         curl.setopt(pycurl.CONNECTTIMEOUT, 30)
@@ -94,7 +104,7 @@ def build(directory, package_build, socket, use_crosstools):
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
             os.chdir(call_dir)
-            jlog = json.dumps(["Failed to fetch main source:", package_build.source])
+            jlog = json.dumps(["Failed to fetch main source:", package_build_obj.source])
             res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
             return "BUILD_FAILED"
 
@@ -103,7 +113,7 @@ def build(directory, package_build, socket, use_crosstools):
         out_file.close()
         curl.close()
 
-        for extra_src in package_build.extra_sources:
+        for extra_src in package_build_obj.extra_sources:
             blog.info("Fetching extra source: {}".format(extra_src))
             if(fetch_file(extra_src) != 0):
                 os.chdir(call_dir)
@@ -131,19 +141,19 @@ def build(directory, package_build, socket, use_crosstools):
 
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
-        if(package_build.cross_dependencies == ""):
+        if(package_build_obj.cross_dependencies == ""):
             blog.info("Installing 'build' dependencies..")
-            if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
+            if(buildenv.install_pkgs(parse_bpb_str_array(package_build_obj.build_dependencies)) != 0):
                 os.chdir(call_dir)
                 deps_failed = True
         else:
             blog.info("Installing 'cross' dependencies..")
-            if(buildenv.install_pkgs(parse_bpb_str_array(package_build.cross_dependencies)) != 0):
+            if(buildenv.install_pkgs(parse_bpb_str_array(package_build_obj.cross_dependencies)) != 0):
                 os.chdir(call_dir)
                 deps_failed = True
     else:
         blog.info("Installing 'build' dependencies..")
-        if(buildenv.install_pkgs(parse_bpb_str_array(package_build.build_dependencies)) != 0):
+        if(buildenv.install_pkgs(parse_bpb_str_array(package_build_obj.build_dependencies)) != 0):
             os.chdir(call_dir)
             deps_failed = True
 
@@ -173,7 +183,7 @@ def build(directory, package_build, socket, use_crosstools):
     # set -e to cause script to exit once an error occurred
     build_sh.write("set -e\n")
 
-    for line in package_build.build_script:
+    for line in package_build_obj.build_script:
         build_sh.write(line)
         build_sh.write("\n")
 
@@ -190,9 +200,9 @@ def build(directory, package_build, socket, use_crosstools):
 
     # export PKG_NAME, PKG_VERSION, PKG_REAL_VERSION and PKG_INSTALL_DIR
     entry_sh.write("cd /branchbuild/build/\n")
-    entry_sh.write("export PKG_NAME={}\n".format(package_build.name))
-    entry_sh.write("export PKG_VERSION={}\n".format(package_build.version))
-    entry_sh.write("export PKG_REAL_VERSION={}\n".format(package_build.real_version))
+    entry_sh.write("export PKG_NAME={}\n".format(package_build_obj.name))
+    entry_sh.write("export PKG_VERSION={}\n".format(package_build_obj.version))
+    entry_sh.write("export PKG_REAL_VERSION={}\n".format(package_build_obj.real_version))
     entry_sh.write("export PKG_INSTALL_DIR={}\n".format(chroot_destdir))
     entry_sh.write("./build.sh\n")
     entry_sh.close()
@@ -219,11 +229,13 @@ def build(directory, package_build, socket, use_crosstools):
     std_out_trimmed = std_out[-5000:]
 
     # strip unneeded symbols from binaries
-    stripped_files = strip(destdir)
+    stripped_files = [ ]
+    if(proc.returncode == 0):
+        stripped_files = strip(destdir)
 
     log = [ ]
     for line in leaflog_arr:
-        log.append(line)
+        log.append("[leaf] {}".format(line))
 
     for line in std_out_trimmed:
         log.append(line)
@@ -284,19 +296,19 @@ def fetch_file(url):
     
 
 def parse_build_json(json):
-    package_build = BPBOpts()
+    package_build_obj = package_build()
 
-    package_build.name = json_get_key(json, "name")
-    package_build.real_version = json_get_key(json, "real_version")
-    package_build.version = json_get_key(json, "version")
-    package_build.source = json_get_key(json, "source")
-    package_build.extra_sources = json_get_key(json, "extra_sources")
-    package_build.description = json_get_key(json, "description")
-    package_build.dependencies = json_get_key(json, "dependencies")
-    package_build.build_dependencies = json_get_key(json, "build_dependencies")
-    package_build.cross_dependencies = json_get_key(json, "cross_dependencies")
-    package_build.build_script = json_get_key(json, "build_script")
-    return package_build
+    package_build_obj.name = json_get_key(json, "name")
+    package_build_obj.real_version = json_get_key(json, "real_version")
+    package_build_obj.version = json_get_key(json, "version")
+    package_build_obj.source = json_get_key(json, "source")
+    package_build_obj.extra_sources = json_get_key(json, "extra_sources")
+    package_build_obj.description = json_get_key(json, "description")
+    package_build_obj.dependencies = json_get_key(json, "dependencies")
+    package_build_obj.build_dependencies = json_get_key(json, "build_dependencies")
+    package_build_obj.cross_dependencies = json_get_key(json, "cross_dependencies")
+    package_build_obj.build_script = json_get_key(json, "build_script")
+    return package_build_obj
 
 #
 # Parses branchpackagebuild array format:
