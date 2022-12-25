@@ -142,5 +142,5 @@ def send_file(socket, filename):
         if(bytes_sent == file_size):
             break
 
-        res = recv_only(socket)
-        return res
+    res = recv_only(socket)
+    return res
