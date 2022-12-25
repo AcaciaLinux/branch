@@ -1,6 +1,7 @@
 import socket
 import main
 import os
+import time
 
 from log import blog
 
@@ -121,21 +122,25 @@ def send_file(socket, filename):
 
     blog.info("Uploading file to masterserver...")
 
-    bytes_sent = 0
     file_size = os.path.getsize(filename)
+    bytes_sent = 0
+    start_time = time.time()
 
     while True:
-        print("{} bytes / {} bytes".format(bytes_sent, file_size))
-        bytes_read = file.read(4096)
-        bytes_sent += len(bytes_read)
+        # Use sendfile to transfer the contents of the file
+        # directly to the network buffer
+        bytes_sent += socket.sendfile(file, bytes_sent, file_size - bytes_sent)
 
-        # we are done reading
-        if(not bytes_read):
+        # Print progress report every 10 seconds
+        elapsed_time = time.time() - start_time
+        if(elapsed_time > 10):
+            speed = bytes_sent / elapsed_time / 1024
+            blog.info("{:.2f} KB / {:.2f} KB, {:.2f} KB/sec".format(bytes_sent / 1024, file_size / 1024, speed))
+            start_time = time.time()
+
+        # we are done sending
+        if(bytes_sent == file_size):
             break
 
-        socket.sendall(bytes_read)
-   
-    print()
-    res = recv_only(socket)
-    return res
-
+        res = recv_only(socket)
+        return res
