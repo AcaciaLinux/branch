@@ -41,6 +41,10 @@ def strip(root_dir):
     for root, dir, files in os.walk(root_dir):
         for file in files:
             file_abs = os.path.join(root, file)
+            
+            # skip if symlink
+            if(not os.path.isfile(file_abs)):
+                return
 
             # get file magic bytes
             with open(file_abs, "rb") as f:
