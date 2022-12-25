@@ -53,7 +53,7 @@ def strip(root_dir):
                         blog.debug("[strip] {}".format(file_abs))
                         stripped_files.append(file_abs)
                 else:
-                    blog.debug("[strip] Skipped file {}, not ELF binary!")
+                    blog.debug("[strip] Skipped file {}, not ELF binary!".format(file_abs))
 
     return stripped_files
 
