@@ -19,6 +19,12 @@ def init_server(addr, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+    # tcp keepalive
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 5)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+
     blog.debug("Binding socket server to {} port {}".format(addr, port))
     s.bind((addr, port))
     
