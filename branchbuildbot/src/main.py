@@ -15,8 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Water Hazard"
-BRANCH_VERSION = "0.4"
+BRANCH_CODENAME = "Questionable Ethics"
+BRANCH_VERSION = "0.5"
 
 B_TYPE = "BUILD"
 
@@ -73,14 +73,14 @@ def main():
         return -1
 
     if (not buildenv.check_host_binary("chroot")):
-        blog.error("'chroot' binary is missing")
+        blog.error("'chroot' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
         s.close()
         blog.info("Disconnected.")
         return -1
 
     if (not buildenv.check_host_binary("strip")):
-        blog.error("'strip' binary is missing")
+        blog.error("'strip' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
         s.close()
         blog.info("Disconnected.")

@@ -1,3 +1,5 @@
+import time
+
 from log import blog
 from handleCommand import handleCommand 
 from manager import queue
@@ -40,6 +42,7 @@ class manager():
 
         if(job is not None):
             blog.warn("Build job '{}' aborted because the build client disconnected. Readding to queue..".format(job.get_jobid()))
+            job.set_status("WAITING")
             manager.build_jobs.remove(job)
             manager.queued_jobs = [job] + manager.queued_jobs
 
@@ -143,3 +146,9 @@ class manager():
                 res.append(client.get_identifier())
 
         return res
+
+    def report_system_event(self, issuer, event):
+        current_time = time.strftime("%H:%M:%S %d-%m-%Y", time.localtime())
+        manager.system_events.append("[{}] {} => {}".format(current_time, issuer, event))
+
+

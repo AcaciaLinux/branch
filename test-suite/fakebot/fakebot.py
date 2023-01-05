@@ -6,9 +6,9 @@
 # will upload garbage to the masterserver and not build anything!
 
 UPLOAD_DATA=True
-ALWAYS_STALL_UPLOAD=True
-AUTO_RECONNECT=True
-ALWAYS_IGNORE_COMMANDS=True
+ALWAYS_STALL_UPLOAD=False
+AUTO_RECONNECT=False
+ALWAYS_IGNORE_COMMANDS=False
 
 
 import random
@@ -105,6 +105,10 @@ def handle_command_from_server(command, s):
     # check if the received command is "BUILD_PKG"
     print(command)
 
+    if command == "PING":
+        msg = "PONG"
+        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+
     if command == "BUILD_PKG" or command == "BUILD_PKG_CROSS":
         print("Got a build job from the server!")
 
@@ -122,6 +126,7 @@ def handle_command_from_server(command, s):
         msg = "BUILD_COMPLETE"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         data = receive_data(s)
+        print(data)
 
         # wait a few seconds
         #time.sleep(3)
@@ -135,13 +140,7 @@ def handle_command_from_server(command, s):
         msg = "FILE_TRANSFER_MODE {}".format(byte_len)
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         
-        # check if the server acknowledged the file transfer mode
-        print("Requesting mode switch..")
         data = receive_data(s)
-        if data != "ACK_FILE_TRANSFER":
-            print("Error: file transfer mode not acknowledged by the server.")
-            return
-
         print("Server switched to FT-mode")
 
         # send the file to the server

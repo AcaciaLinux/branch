@@ -15,8 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Water Hazard"
-BRANCH_VERSION = "0.4"
+BRANCH_CODENAME = "Questionable Ethics"
+BRANCH_VERSION = "0.5"
 
 B_TYPE = "CONTROLLER"
 
@@ -76,6 +76,8 @@ def main():
     argparser.add_argument("-sys", "--viewsyslog", help="Fetches buildbot system logs from the masterserver", action="store_true")
     argparser.add_argument("-vt", "--viewtree", help="Fetches dependency tree for a given package")
     argparser.add_argument("-rd", "--rebuilddependers", help="Rebuild dependers of a given package")
+    argparser.add_argument("-rbs", "--releasebuildsol", help="Submits a branch solution to the masterserver. (RELEASEBUILD)")
+    argparser.add_argument("-cbs", "--crossbuildsol", help="Submits a branch solution to the masterserver. (CROSSBUILD)")
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -95,7 +97,9 @@ def main():
         "canceljob": commands.cancel_queued_job,
         "viewsyslog": commands.view_sys_log,
         "viewtree": commands.view_tree,
-        "rebuilddependers": commands.rebuild_dependers
+        "rebuilddependers": commands.rebuild_dependers,
+        "releasebuildsol": commands.submit_solution_rb,
+        "crossbuildsol": commands.submit_solution_cb
     }
 
     # parse arguments

@@ -50,14 +50,12 @@ def parse_build_json(json_obj):
 
     return pkgbuild
 
-
 #
 # parse build str to pkgbuild
 #
 def parse_build_file(pkg_file):
     build_file = open(pkg_file, "r")
     build_str = build_file.read()
-
     return parse_build_str(build_str)
 
 
@@ -66,7 +64,6 @@ def parse_build_file(pkg_file):
 #
 def parse_build_str(build_str):
     build_arr = build_str.split("\n")
-
     pkgbuild = package_build()
 
     build_opts = False
@@ -74,6 +71,7 @@ def parse_build_str(build_str):
     for prop in build_arr:
         if(build_opts):
             if(prop == "}"):
+                blog.debug("Exiting build array parsing mode")
                 build_opts = False
                 continue
             
@@ -140,30 +138,59 @@ def parse_bpb_str_array(string):
 #
 # Write build file from BPPopts to disk
 #
-def write_build_file(file, pkg_opts):
+def write_build_file(file, pkg_build):
     bpb_file = open(file, "w")
-    bpb_file.write("name={}\n".format(pkg_opts.name))
-    bpb_file.write("version={}\n".format(pkg_opts.version))
-    bpb_file.write("description={}\n".format(pkg_opts.description))
-    bpb_file.write("real_version={}\n".format(pkg_opts.real_version))
-    bpb_file.write("source={}\n".format(pkg_opts.source))
+    bpb_file.write("name={}\n".format(pkg_build.name))
+    bpb_file.write("version={}\n".format(pkg_build.version))
+    bpb_file.write("description={}\n".format(pkg_build.description))
+    bpb_file.write("real_version={}\n".format(pkg_build.real_version))
+    bpb_file.write("source={}\n".format(pkg_build.source))
 
     # write extra_sources array in bpb format
     bpb_file.write("extra_sources=")
     
-    for exs in pkg_opts.extra_sources:
+    for exs in pkg_build.extra_sources:
         bpb_file.write("[{}]".format(exs))
 
     bpb_file.write("\n")
 
-    bpb_file.write("dependencies={}\n".format(pkg_opts.dependencies))
-    bpb_file.write("builddeps={}\n".format(pkg_opts.build_dependencies))
-    bpb_file.write("crossdeps={}\n".format(pkg_opts.cross_dependencies))
+    bpb_file.write("dependencies={}\n".format(pkg_build.dependencies))
+    bpb_file.write("builddeps={}\n".format(pkg_build.build_dependencies))
+    bpb_file.write("crossdeps={}\n".format(pkg_build.cross_dependencies))
     bpb_file.write("build={\n")
     
-    for line in pkg_opts.build_script:
+    for line in pkg_build.build_script:
         bpb_file.write(line)
         bpb_file.write("\n")
 
     bpb_file.write("}")
     blog.debug("package.bpb file written to disk.")
+
+#
+# Validates a given pkgbuild
+# -1, invalid build
+# 0, parsed correctly
+def validate_pkgbuild(pkg_build):
+    # check if required fields are set
+    if(pkg_build.name == "" or pkg_build.version == "" or pkg_build.real_version == ""):
+        return -1
+
+    # check if build tag is valid
+    encountered_closing_tag = False
+    closing_tag_error = False
+
+    for line in pkg_build.build_script:
+        # if we continue iterating after we have seen a closing tag, the build is invalid.
+        if(encountered_closing_tag):
+            closing_tag_error = True
+            break
+         
+        # set this to true if we see a closing tag
+        if(line == "}"):
+            encountered_closing_tag = True
+
+    # build invalid, because closing tag error
+    if(closing_tag_error):
+        return -1
+
+    return 0

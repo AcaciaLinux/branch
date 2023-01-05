@@ -1,5 +1,6 @@
 import main
 import json
+import os
 
 from log import blog
 from bsocket import connect 
@@ -15,7 +16,12 @@ def checkout_package(s, pkg_name):
     if(bpb_resp == "INV_PKG_NAME"):
         blog.error("The specified package could not be found.")
         return
-    
+
+    if(bpb_resp == "INV_PKG"):
+        blog.error("The package build is damaged and could not be checked out.")
+        return
+
+
     json_bpb = json.loads(bpb_resp)
     bpb = build.parse_build_json(json_bpb)
     build.create_pkg_workdir(bpb)
@@ -30,8 +36,10 @@ def submit_package(s):
 
     json_str = bpb.get_json()
     resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
-    
-    if(resp == "CMD_OK"):
+   
+    if(resp == "INV_PKG_BUILD"):
+        blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
+    elif(resp == "CMD_OK"):
         blog.info("Package submission accepted by server.")
     else:
         blog.error("An error occured: {}".format(resp))
@@ -227,6 +235,9 @@ def get_managed_pkgbuilds(s):
     print()
     return
 
+#
+# views dependency tree
+#
 def view_tree(s, pkg_name):
     resp = connect.send_msg(s, "GET_TREE_STR {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
@@ -234,7 +245,9 @@ def view_tree(s, pkg_name):
     else:
         print(json.loads(resp))
 
-
+#
+# rebuild dependers (auto calc)
+#
 def rebuild_dependers(s, pkg_name):
     resp = connect.send_msg(s, "REBUILD_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
@@ -244,7 +257,9 @@ def rebuild_dependers(s, pkg_name):
     elif(resp == "BATCH_QUEUED"):
         blog.info("Batch queued successfully.")
 
-
+#
+# difference between pkgs
+#
 def get_diff_pkg(s):
     resp = connect.send_msg(s, "MANAGED_PACKAGES")
     pkgs = json.loads(resp)
@@ -267,4 +282,62 @@ def get_diff_pkg(s):
            print()
 
     print()
+
+
+
+#
+# submit a branch solution to the masterserver as a batch (CROSS BUILD)
+#
+def submit_solution_cb(s, solution_file_str):
+    submit_solution(s, solution_file_str, True) 
+
+#
+# submit a branch solution to the masterserver as a batch (RELEASE BUILD)
+#
+def submit_solution_rb(s, solution_file_str):
+    submit_solution(s, solution_file_str, False) 
+
+#
+# submit a branch solution to the masterserver as a batch
+#
+def submit_solution(s, solution_file_str, use_crosstools):
+    if(not os.path.exists(solution_file_str)):
+        blog.error("Solution file not found.")
+        return -1
+    
+    blog.info("Parsing solution..")
+    solution_file = open(solution_file_str, "r")
+    sl = solution_file.read().split("\n") 
+
+    solution = [ ]
+
+    for l in sl:
+        if(len(l) == 0):
+            break 
+
+        if(l[0] != "#"):
+            pkgs = [ ]
+            split = l.strip().split(";")
+            for sp in split:
+                if(s != ""):
+                    pkgs.append(sp)
+            
+            solution.append(pkgs)
+
+    blog.info("Solution parsed!")
+    blog.info("Submitting solution..")
+    
+    resp = ""
+
+    if(use_crosstools):
+        resp = connect.send_msg(s, "SUBMIT_SOLUTION_CB {}".format(json.dumps(solution)))
+    else:
+        resp = connect.send_msg(s, "SUBMIT_SOLUTION_RB {}".format(json.dumps(solution)))
+
+    if(resp == "INV_SOL"):
+        blog.error("Attempted to submit invalid solution.")
+    elif(resp.split(" ")[0] == "PKG_BUILD_MISSING"):
+        blog.error("A required package build is missing: {}".format(resp.split(" ")[1]))
+    else:
+        blog.info("Batch queued.")
 

@@ -2,6 +2,8 @@ import json
 import os
 import time
 import selectors
+import shutil
+import hashlib
 
 import main
 from config import config
@@ -12,6 +14,8 @@ from package import build
 from manager import queue
 from manager import jobs
 from dependency import dependency
+from overwatch import overwatch
+from bsocket import server
 
 def handle_command(manager, client, command):
     cmd_header_loc = command.find(" ")
@@ -70,6 +74,9 @@ def handle_command_untrusted(manager, client, cmd_header, cmd_body):
             elif(cmd_body == "BUILD"):
                 blog.info("Machine type assigned. Client '{}' is authenticated as build client type.".format(client.get_identifier()))
                 client.client_type = "BUILD"
+                blog.debug("Launching overwatch thread for new client..")
+                overwatch.check_buildbot_alive(manager, client)
+                blog.debug("Overwatch ready.")
             else:
                 return "INV_MACHINE_TYPE"
 
@@ -99,7 +106,12 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
         if(cmd_body in storage.packages):
             blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
-            return storage.get_json_bpb(cmd_body)
+            
+            pkg_build = storage.get_json_bpb(cmd_body)
+            if(pkg_build is None):
+                return "INV_PKG"
+            else:
+                return pkg_build
         else:
             return "INV_PKG_NAME"
 
@@ -114,9 +126,10 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return "INV_PKG_BUILD"
 
         bpb = build.parse_build_json(json_bpb)
-        if(bpb.name == "" or bpb.version == "" or bpb.real_version == ""):
+         
+        if(build.validate_pkgbuild(bpb) != 0):
             return "INV_PKG_BUILD"
-
+        
         tdir = storage.create_stor_directory(bpb.name)
 
         bpb_file = os.path.join(tdir, "package.bpb")
@@ -237,7 +250,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             # calculate deps array
             dependency_array = res.get_deps_array()
-            
+
             # get array of job objects
             jobs = dependency.get_job_array(manager, client, dependency_array)
             
@@ -347,6 +360,51 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "CANCEL_ALL_QUEUED_JOBS"):
         manager.cancel_all_queued_jobs()
         return "JOBS_CANCELED"
+    
+    #
+    # Releasebuild a solution
+    #
+    elif(cmd_header == "SUBMIT_SOLUTION_RB"):
+        if(cmd_body == ""):
+            return "INV_SOL"
+        
+        solution = json.loads(cmd_body)
+        jobs, status = dependency.job_arr_from_solution(manager, client, solution, False)
+       
+        if(jobs is None):
+            return "PKG_BUILD_MISSING {}".format(status)
+
+        for job in jobs:
+            manager.add_job_to_queue(job)
+
+        # queue every job
+        for job in jobs:
+            manager.get_queue().add_to_queue(job)
+
+        return "BATCH_QUEUED"
+
+    #
+    # Releasebuild a solution
+    #
+    elif(cmd_header == "SUBMIT_SOLUTION_CB"):
+        if(cmd_body == ""):
+            return "INV_SOL"
+        
+        solution = json.loads(cmd_body)
+        jobs, status = dependency.job_arr_from_solution(manager, client, solution, True)
+       
+        if(jobs is None):
+            return "PKG_BUILD_MISSING {}".format(status)
+
+        for job in jobs:
+            manager.add_job_to_queue(job)
+
+        # queue every job
+        for job in jobs:
+            manager.get_queue().add_to_queue(job)
+
+        return "BATCH_QUEUED"
+
 
     #
     # Invalid command
@@ -371,13 +429,25 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
     # Build client sends ready signal
     #
     elif(cmd_header == "SIG_READY"):
-        # check if cli just finished a job or not
+        # check if client just finished a job or not
         job = manager.get_job_by_client(client)
         if(not job is None):
             blog.info("Build job '{}' completed.".format(job.get_jobid()))
             if(job.get_status() == "BUILD_FAILED"):
                 job.set_status("FAILED")
             else:
+                stor = packagestorage.storage()
+                
+                blog.info("Hashing package..")
+                md5_hash = hashlib.md5()
+                hash_file = open(job.file_name, "rb")
+
+                # read chunk by chunk
+                for chunk in iter(lambda: hash_file.read(4096), b""):
+                    md5_hash.update(chunk)
+
+                blog.info("Deploying package to storage..")
+                shutil.move(job.file_name, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
                 job.set_status("COMPLETED")
 
             manager.move_inactive_job(job)
@@ -387,7 +457,21 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
         client.is_ready = True
         manager.queue.notify_ready()
+
         return None
+
+    #
+    # PONG from buildbot!
+    #
+    elif(cmd_header == "PONG"):
+        blog.debug("Got PONG from {}.".format(client.get_identifier()))
+        client.is_ready = True
+        client.alive = True
+
+        # notify queue, because we might have got a job while sending keepalive
+        manager.queue.notify_ready()
+        return "CMD_ACK"
+
     
     #
     # Status update from assigned job: Job accepted by buildbot
@@ -477,11 +561,9 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         if(not job is None):
             job.set_status("UPLOADING")
             job.job_accepted = True
-            
             job.file_size = int(cmd_body)
-            
-            stor = packagestorage.storage()
-            job.file_name = stor.add_package(job.pkg_payload)
+            job.file_name = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.build_pkg_name, job.job_id))
+
 
             client.file_transfer_mode = True
             return "ACK_FILE_TRANSFER"
@@ -494,7 +576,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             return "EMPTY_SYS_EVENT"
 
         blog.info("Received System Event report from {}.".format(client.get_identifier()))
-        manager.system_events.append("{} => {}".format(client.get_identifier(), cmd_body))
+        manager.report_system_event(client.get_identifier(), cmd_body)
+
         return "RECV_SYS_EVENT"
 
     #

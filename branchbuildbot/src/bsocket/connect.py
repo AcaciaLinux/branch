@@ -1,6 +1,7 @@
 import socket
 import main
 import os
+import time
 
 from log import blog
 
@@ -10,6 +11,12 @@ from log import blog
 def connect(host, port, name, authkey, cltype):
     blog.info("Connecting to server...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+
     try:
         s.connect((host, port))
     except ConnectionRefusedError:
@@ -108,28 +115,32 @@ def send_msg(socket, cmd):
     return data
 
 #
-# send file
+# sends a file to the server using socket sendfile function
 #
 def send_file(socket, filename):
     file = open(filename, "rb")
 
-    blog.info("Uploading file to masterserver...")
-
-    bytes_sent = 0
     file_size = os.path.getsize(filename)
+    bytes_sent = 0
+    start_time = time.time()
+    elapsed_time = 0
 
     while True:
-        print("{} bytes / {} bytes".format(bytes_sent, file_size))
-        bytes_read = file.read(4096)
-        bytes_sent += len(bytes_read)
+        # Use sendfile to transfer the contents of the file
+        # directly to the network buffer
+        bytes_sent += socket.sendfile(file, bytes_sent, file_size - bytes_sent)
 
-        # we are done reading
-        if(not bytes_read):
+        # Print progress report every 10 seconds
+        elapsed_time += time.time() - start_time
+        start_time = time.time()
+        if(elapsed_time > 10):
+            speed = bytes_sent / elapsed_time / 1024
+            blog.info("{:.2f} KB / {:.2f} KB, {:.2f} KB/sec".format(bytes_sent / 1024, file_size / 1024, speed))
+            elapsed_time = 0  # Reset elapsed time
+
+        # we are done sending
+        if(bytes_sent == file_size):
             break
-
-        socket.sendall(bytes_read)
-   
-    print()
+    
     res = recv_only(socket)
     return res
-

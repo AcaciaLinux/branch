@@ -6,9 +6,12 @@ from manager import client
 from manager import manager
 from _thread import *
 import threading
+import os
+import shutil
 
 # Initialize DefaultSelector
 sel = selectors.DefaultSelector()
+STAGING_AREA = "staging"
 
 def init_server(addr, port):
     blog.info("Socket server initializing.")
@@ -16,11 +19,21 @@ def init_server(addr, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+    # tcp keepalive
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 5)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+
     blog.debug("Binding socket server to {} port {}".format(addr, port))
     s.bind((addr, port))
     
     blog.debug("Setting listening type to 5")
     s.listen(5)
+
+    blog.debug("Checking pkg-staging area")
+    if(not os.path.exists(STAGING_AREA)):
+        os.mkdir(STAGING_AREA)
 
     blog.debug("Listening for clients..")
     while True:
@@ -43,7 +56,16 @@ def threaded_client_handler(client_socket):
             receive_file(client_socket, _client)
         else:
             blog.debug("Receiving initial message from client..")
-            data = receive_data(_client)
+            data = None
+            try:
+                data = receive_data(_client)
+            except ConnectionResetError:
+                blog.warn("Connection to client reset. Handling disconnect..")
+                _client.handle_disconnect()
+            except TimeoutError:
+                blog.warn("Connection to client timed out. Handling disconnect..")
+                _client.handle_disconnect()
+
             if(data is None or data == b""):
                 _client.handle_disconnect()
                 break
@@ -84,7 +106,7 @@ def threaded_client_handler(client_socket):
             else:
                 blog.debug("Client disconnected.")
                 _client.handle_disconnect()
-
+    
     blog.debug("Client thread exiting.")
 
 #

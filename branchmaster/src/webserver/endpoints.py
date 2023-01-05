@@ -407,6 +407,7 @@ def get_endpoint_json_pkglist(httphandler):
             "version": meta.get_version(real_version),
             "description": meta.get_description(),
             "dependencies": meta.get_dependencies(real_version),
+            "hash": meta.get_hash(real_version),
             "url": url
         }
 

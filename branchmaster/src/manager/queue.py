@@ -18,17 +18,23 @@ class queue():
     def job_is_blocked(self, job):
         for blocker in job.blocked_by:
             sjob = self.manager.get_job_by_id(blocker)
-            if(not sjob in self.manager.completed_jobs):
-                blog.debug("Job is currently blocked: {}".format(job.build_pkg_name))
+           
+            if(not sjob in manager.manager.completed_jobs):
+                blog.debug("Job is currently blocked: {}. Blocked by: ".format(sjob))
                 return True
             else:
+                blog.debug("Job is unblocked, ready to queue: {}".format(job.build_pkg_name))
                 return False
 
     #
-    # Called when a controller requests RELEASE_BUILD
+    # Called when a controller requests BUILD
     #
     def add_to_queue(self, job):
         
+        if(self.job_is_blocked(job)):
+            blog.debug("Job is blocked, adding to queue..")
+            return "BUILD_REQ_QUEUED"
+
         # We have a build server ready immediately, no need to queue..
         if(not len(self.manager.get_ready_build_clients()) == 0):
             blog.info("Build request was immediately handled by a ready build client.")

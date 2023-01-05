@@ -22,6 +22,9 @@ class BPBOpts():
     def get_json(self):
         return json.dumps(self.__dict__)
 
+#
+# parse json pkgbuild
+#
 def parse_build_json(json_obj):
     BPBopts = BPBOpts()
 
@@ -37,7 +40,9 @@ def parse_build_json(json_obj):
     BPBopts.build_script = json_obj['build_script']
     return BPBopts
     
-
+#
+# parse a build file
+#
 def parse_build_file(pkg_file):
     if(not os.path.exists(pkg_file)):
         blog.error("This does not appear to be a package directory.")
@@ -118,6 +123,9 @@ def parse_bpb_str_array(string):
     blog.debug("Parsed values: {}".format(vals))
     return vals
 
+#
+# creates a pkgbuild directory
+#
 def create_pkg_workdir(pkg_opts):
     if(os.path.exists(pkg_opts.name)):
         blog.warn("Overwriting local version of package build with checked out version..")
@@ -128,6 +136,10 @@ def create_pkg_workdir(pkg_opts):
     pkg_file = os.path.join(wkdir, "package.bpb")
     write_build_file(pkg_file, pkg_opts)
 
+
+#
+# write build file to disk
+#
 def write_build_file(file, pkg_opts):
     bpb_file = open(file, "w")
     bpb_file.write("name={}\n".format(pkg_opts.name))
@@ -155,3 +167,8 @@ def write_build_file(file, pkg_opts):
         bpb_file.write("\n")
 
     bpb_file.write("}")
+
+
+#
+#
+#

@@ -17,6 +17,23 @@ class web_auth():
     def __init__(self):
         blog.debug("Initializing web_auth object")
 
+    
+    #
+    # clear out dead keys
+    #
+    def clear_dead_keys(self):
+        blog.debug("Clearing dead keys..")
+        curr_time = time.time()
+
+        revoked_keys = 0
+
+        for k in web_auth.authorized_keys:
+            # key has expired
+            if((curr_time - k.timestamp) > 900):
+                web_auth.authorized_keys.remove(k)
+                revoked_keys += 1
+        
+        blog.debug("Cleared {} dead keys.".format(revoked_keys))
 
     #
     # check if a user / phash pair match
@@ -47,6 +64,9 @@ class web_auth():
     #
     def validate_key(self, key_id):
         blog.debug("Key validation requested.")
+        
+        self.clear_dead_keys()
+        
         key_obj = None
 
         # does key exist

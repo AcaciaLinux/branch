@@ -13,6 +13,7 @@ class branch_meta():
         
         self.versions = { }
         self.version_dependencies = { }
+        self.version_hashes = { }
     
     def read_file(self, file):
         file = open(file, 'r')
@@ -22,6 +23,7 @@ class branch_meta():
         self.description = json_obj['description']
         self.versions = json_obj['versions']
         self.version_dependencies = json_obj['version_dependencies']
+        self.version_hashes = json_obj['version_hashes']
 
     def write_file(self, file):
         json_obj = json.dumps(self.__dict__, indent=4)
@@ -44,9 +46,12 @@ class branch_meta():
     def get_dependencies(self, real_version):
         return self.version_dependencies[real_version]
 
+    def get_hash(self, real_version):
+        return self.version_hashes[real_version]
+
     def get_version_dict(self):
         return self.versions
-
+    
 class storage():
 
     packages = [ ]
@@ -80,7 +85,7 @@ class storage():
     # and creates the branch meta file
     # Returns the target path for the package.
     #
-    def add_package(self, package_build):
+    def add_package(self, package_build, package_hash):
         pkg_root = os.path.join(PACKAGE_DIRECTORY, package_build.name)
     
         meta_file = os.path.join(pkg_root, "branch.meta")
@@ -97,6 +102,7 @@ class storage():
             meta.description = package_build.description
             meta.versions[package_build.real_version] = package_build.version
             meta.version_dependencies[package_build.real_version] = package_build.dependencies
+            meta.version_hashes[package_build.real_version] = package_hash
             meta.write_file(meta_file)
 
             os.mkdir(pkg_target_dir)
@@ -122,6 +128,7 @@ class storage():
             meta.description = package_build.description
             meta.versions[package_build.real_version] = package_build.version
             meta.version_dependencies[package_build.real_version] = package_build.dependencies
+            meta.version_hashes[package_build.real_version] = package_hash
             meta.write_file(meta_file)
 
         self.index()
