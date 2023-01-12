@@ -2,6 +2,7 @@ import uuid
 
 from log import blog
 from manager import manager
+from threading import Lock
 
 class Client():
 
@@ -41,15 +42,22 @@ class Client():
         # client alive flag
         self.alive = True
 
+        # thread lock
+        self.lock = Lock()
+
         # register the client
         manager.manager().register_client(self)
- 
+
+
 
     #
     # receive data from manager
     #
     def receive_command(self, data):
-        return manager.manager().handle_command(self, data)
+        self.lock.acquire()
+        res = manager.manager().handle_command(self, data)
+        self.lock.release()
+        return res
 
     #
     # Get the clients identifier
@@ -65,16 +73,21 @@ class Client():
     # send_command to self
     #
     def send_command(self, message):
+        self.lock.acquire()
         message = "{} {}".format(len(message), message)
         self.sock.send(bytes(message, "UTF-8"))
         blog.debug("Message {} sent!".format(message))
+        sellf.lock.release()
 
     #
     # handle a clients disconnect.
     #
     def handle_disconnect(self):
+        self.lock.acquire()
         if(self.alive):
             blog.info("Client {} has disconnected.".format(self.get_identifier()))
             manager.manager().remove_client(self)
             self.sock.close()
             self.alive = False
+
+        self.lock.release()
