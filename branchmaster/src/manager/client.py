@@ -74,7 +74,7 @@ class Client():
         message = "{} {}".format(len(message), message)
         self.sock.send(bytes(message, "UTF-8"))
         blog.debug("Message {} sent!".format(message))
-        sellf.lock.release()
+        self.lock.release()
 
     #
     # handle a clients disconnect.
