@@ -13,7 +13,7 @@ def connect(host, port, name, authkey, cltype):
         s.connect((host, port))
     except ConnectionRefusedError:
         blog.error("Connection refused.")
-        exit(-1)
+        return None
 
     blog.info("Connection established!")
    
@@ -85,7 +85,7 @@ def recv_only(socket):
         return None
 
     while(len(data_trimmed) != cmd_bytes):
-        data_trimmed += socket.recv(8192).decode("utf-8")
+        data_trimmed += socket.recv(4096).decode("utf-8")
 
     return data_trimmed
 

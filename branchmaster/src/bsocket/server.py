@@ -79,7 +79,7 @@ def threaded_client_handler(client_socket):
                 break
             
             cmd_bytes = 0
-            data_trimmed = data_str[data_str.find(" ") + 1:len(data_str)]
+            data_trimmed = data[data_str.find(" ") + 1:len(data)]
             
             try:
                 cmd_bytes = int(data_str[0:data_str.find(" ")])
@@ -90,13 +90,15 @@ def threaded_client_handler(client_socket):
             blog.debug("Full message is {} bytes.".format(cmd_bytes))
 
             while(len(data_trimmed) != cmd_bytes):
-                data_trimmed += receive_data(_client).decode("utf-8")
+                data_trimmed += receive_data(_client)
         
             blog.debug("Received full message from client.")
-            
+           
+            data_trimmed_str = data_trimmed.decode("utf-8")
+
             if(data_trimmed):
-                blog.debug("Command from {}: {}".format(_client.get_identifier(), data_trimmed))
-                manager_res = _client.receive_command(data_trimmed)
+                blog.debug("Command from {}: {}".format(_client.get_identifier(), data_trimmed_str))
+                manager_res = _client.receive_command(data_trimmed_str)
 
                 if(manager_res is not None):
                     blog.debug("Sending message to client {}: {}".format(_client.get_identifier(), manager_res))
