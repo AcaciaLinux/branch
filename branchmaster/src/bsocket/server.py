@@ -97,9 +97,13 @@ def threaded_client_handler(client_socket):
             if(data_trimmed):
                 blog.debug("Command from {}: {}".format(_client.get_identifier(), data_trimmed))
                 manager_res = _client.receive_command(data_trimmed)
+
                 if(manager_res is not None):
                     blog.debug("Sending message to client {}: {}".format(_client.get_identifier(), manager_res))
+                    
+                    _client.lock.acquire()
                     client_socket.sendall("{} {}".format(len(manager_res), manager_res).encode("utf-8"))
+                    _client.lock.release()
                 else:
                     blog.debug("Got empty response from manager. Ignoring")
 

@@ -54,10 +54,7 @@ class Client():
     # receive data from manager
     #
     def receive_command(self, data):
-        self.lock.acquire()
-        res = manager.manager().handle_command(self, data)
-        self.lock.release()
-        return res
+        return manager.manager().handle_command(self, data)
 
     #
     # Get the clients identifier
