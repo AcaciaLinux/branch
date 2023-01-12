@@ -21,11 +21,7 @@ def connect(host, port, name, authkey, cltype):
         blog.info("Sending auth key..")
             
         cmd = "AUTH " + authkey
-        cmd = "{} {}".format(len(cmd), cmd)
-
-        s.sendall(bytes(cmd, "utf-8"))
-        
-        data = recv_only(s)
+        data = send_msg(s, cmd)
         
         if(data == "AUTH_OK"):
             blog.info("Authkey accepted.")
@@ -35,10 +31,8 @@ def connect(host, port, name, authkey, cltype):
 
     blog.info("Sending machine type..")
     cmd = "SET_MACHINE_TYPE " + cltype
-    cmd = "{} {}".format(len(cmd), cmd)
 
-    s.sendall(bytes(cmd, "utf-8"))
-    data = recv_only(s)
+    data = send_msg(s, cmd)
     
     if(data == "CMD_OK"):
         blog.info("Machine type granted.")
@@ -48,10 +42,8 @@ def connect(host, port, name, authkey, cltype):
 
     blog.info("Sending client name...")
     cmd = "SET_MACHINE_NAME " + name
-    cmd = "{} {}".format(len(cmd), cmd)
     
-    s.sendall(bytes(cmd, "utf-8"))
-    data = recv_only(s)
+    data = send_msg(s, cmd)
     
     if(data == "CMD_OK"):
         blog.info("Client name accepted.")
@@ -68,7 +60,7 @@ def recv_only(socket):
     data = None
 
     try:
-        data = socket.recv(8192)
+        data = socket.recv(4096)
     except ConnectionResetError:
         return None
 
@@ -76,8 +68,12 @@ def recv_only(socket):
     data_str_loc = data_str.find(" ")
     cmd_bytes = 0
 
-    data_trimmed = data_str[data_str_loc+1:len(data_str)]
+    data_trimmed = data[data_str_loc+1:len(data)]
     
+    if(data_str_loc == -1):
+        blog.error("Connection failed.")
+        return None
+
     try:
         cmd_bytes = int(data_str[0:data_str_loc])
     except ValueError:
@@ -85,9 +81,9 @@ def recv_only(socket):
         return None
 
     while(len(data_trimmed) != cmd_bytes):
-        data_trimmed += socket.recv(4096).decode("utf-8")
+        data_trimmed += socket.recv(4096)
 
-    return data_trimmed
+    return data_trimmed.decode("utf-8")
 
 #
 # send msg to server and read response

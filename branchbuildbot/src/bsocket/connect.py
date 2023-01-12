@@ -21,7 +21,7 @@ def connect(host, port, name, authkey, cltype):
         s.connect((host, port))
     except ConnectionRefusedError:
         blog.error("Connection refused.")
-        exit(-1)
+        return None
 
     blog.info("Connection established!")
    
@@ -29,11 +29,7 @@ def connect(host, port, name, authkey, cltype):
         blog.info("Sending auth key..")
             
         cmd = "AUTH " + authkey
-        cmd = "{} {}".format(len(cmd), cmd)
-
-        s.sendall(bytes(cmd, "utf-8"))
-        
-        data = recv_only(s)
+        data = send_msg(s, cmd)
         
         if(data == "AUTH_OK"):
             blog.info("Authkey accepted.")
@@ -43,10 +39,7 @@ def connect(host, port, name, authkey, cltype):
 
     blog.info("Sending machine type..")
     cmd = "SET_MACHINE_TYPE " + cltype
-    cmd = "{} {}".format(len(cmd), cmd)
-
-    s.sendall(bytes(cmd, "utf-8"))
-    data = recv_only(s)
+    data = send_msg(s, cmd)
     
     if(data == "CMD_OK"):
         blog.info("Machine type granted.")
@@ -56,10 +49,7 @@ def connect(host, port, name, authkey, cltype):
 
     blog.info("Sending client name...")
     cmd = "SET_MACHINE_NAME " + name
-    cmd = "{} {}".format(len(cmd), cmd)
-    
-    s.sendall(bytes(cmd, "utf-8"))
-    data = recv_only(s)
+    data = send_msg(s, cmd)
     
     if(data == "CMD_OK"):
         blog.info("Client name accepted.")
@@ -84,10 +74,10 @@ def recv_only(socket):
     data_str_loc = data_str.find(" ")
     cmd_bytes = 0
 
-    data_trimmed = data_str[data_str_loc+1:len(data_str)]
+    data_trimmed = data[data_str_loc+1:len(data)]
 
     if(data_str_loc == -1):
-        blog.info("Connection failed.")
+        blog.error("Connection failed.")
         return None
 
     try:
@@ -97,9 +87,9 @@ def recv_only(socket):
         return None
 
     while(len(data_trimmed) != cmd_bytes):
-        data_trimmed += socket.recv(4096).decode("utf-8")
+        data_trimmed += socket.recv(4096)
 
-    return data_trimmed
+    return data_trimmed.decode("utf-8")
 
 def send_only(socket, cmd):
     cmd = "{} {}".format(len(bytes(cmd, "utf-8")), cmd)
