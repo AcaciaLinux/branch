@@ -54,7 +54,14 @@ class Client():
     # receive data from manager
     #
     def receive_command(self, data):
-        return manager.manager().handle_command(self, data)
+        res = None
+        try:
+            res = manager.manager().handle_command(self, data)
+        except Exception as ex:
+            manager.manager().report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
+            res = "EXCEPTION_RAISED"
+        
+        return res
 
     #
     # Get the clients identifier
