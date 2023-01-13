@@ -121,7 +121,12 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
     elif(cmd_header == "SUBMIT_PACKAGE"):
         storage = pkgbuildstorage.storage()
 
-        json_bpb = json.loads(cmd_body)
+        json_bpb = None
+        try:
+            json_bpb = json.loads(cmd_body)
+        except Exception:
+            pass
+
         if(json_bpb is None):
             return "INV_PKG_BUILD"
 
