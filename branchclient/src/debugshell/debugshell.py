@@ -14,8 +14,13 @@ def run_shell(s):
 
     while True:
         print("[branch] ~> ", end = '')
-        line = input()
+        line = ""
         
+        try:
+            line = input()
+        except Exception:
+            return
+
         if(line == ""):
             continue
 
