@@ -30,8 +30,7 @@ def handle_command(socket, command):
             connect.send_msg(socket, "JOB_ACCEPTED")
             json_obj = json.loads(cmd_body)
 
-            job_id = json_obj['job_id']
-            blog.info("Got a job from masterserver. Job ID: '{}'. Using realroot".format(job_id))
+            blog.info("Got a job from masterserver. Using realroot")
 
             res = buildenv.setup_env(False) 
             if(res == -1):
@@ -122,7 +121,6 @@ def handle_command(socket, command):
             connect.send_msg(socket, "JOB_ACCEPTED")
             json_obj = json.loads(cmd_body)
 
-            job_id = json_obj['job_id']
             blog.info("Got a job from masterserver. Using crosstools.")
 
             res = buildenv.setup_env(True) 

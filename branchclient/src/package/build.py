@@ -17,8 +17,6 @@ class BPBOpts():
         self.description = ""
         self.build_script = [ ]
 
-        self.job_id = "job"
-
     def get_json(self):
         return json.dumps(self.__dict__)
 
