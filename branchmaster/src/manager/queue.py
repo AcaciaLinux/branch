@@ -8,16 +8,12 @@ from overwatch import overwatch
 
 class queue():
     
-    # static manager object
-    def __init__(self, mgr):
-        self.manager = mgr
-        
     #
     # Check if job is blocked
     #
     def job_is_blocked(self, job):
         for blocker in job.blocked_by:
-            sjob = self.manager.get_job_by_id(blocker)
+            sjob = manager.manager.get_job_by_id(blocker)
            
             if(not sjob in manager.manager.completed_jobs):
                 blog.debug("Job is currently blocked: {}. Blocked by: ".format(sjob))
@@ -36,17 +32,17 @@ class queue():
             return "BUILD_REQ_QUEUED"
 
         # We have a build server ready immediately, no need to queue..
-        if(not len(self.manager.get_ready_build_clients()) == 0):
+        if(not len(manager.manager.get_ready_build_clients()) == 0):
             blog.info("Build request was immediately handled by a ready build client.")
-            clients = self.manager.get_ready_build_clients()
+            clients = manager.manager.get_ready_build_clients()
         
             # get first ready build client, and submit
             cli = clients[0]
-            overwatch.check_accepted_timeout(self.manager, cli, job)
+            overwatch.check_accepted_timeout(cli, job)
             self.submit_build_cmd(cli, job)
  
-            self.manager.queued_jobs.remove(job)
-            self.manager.build_jobs.append(job)
+            manager.manager.queued_jobs.remove(job)
+            manager.manager.running_jobs.append(job)
 
             return "BUILD_REQ_SUBMIT_IMMEDIATELY"
         # We dont have a build server ready, we need to queue..
@@ -59,7 +55,7 @@ class queue():
     #
     def notify_ready(self):
         # no queue, idle bot..
-        if(not self.manager.queued_jobs):
+        if(not manager.manager.queued_jobs):
             blog.debug("A build client is ready, but is currently not needed.")
             return
 
@@ -69,7 +65,7 @@ class queue():
         unblocked_jobs = [ ]
 
         # find not blocked jobs
-        for sjob in self.manager.queued_jobs:
+        for sjob in manager.manager.queued_jobs:
             if(not self.job_is_blocked(sjob)):
                 unblocked_jobs.append(sjob)
        
@@ -79,7 +75,7 @@ class queue():
             return
 
         # find idle buildbots
-        for ready_client in self.manager.get_ready_build_clients():
+        for ready_client in manager.manager.get_ready_build_clients():
             # break if we have no unblocked jobs
             if(not unblocked_jobs):
                 break
@@ -91,12 +87,12 @@ class queue():
             del unblocked_jobs[0]
 
             # remove job from queued, add to building
-            self.manager.queued_jobs.remove(job)
-            self.manager.build_jobs.append(job)
+            manager.manager.queued_jobs.remove(job)
+            manager.manager.running_jobs.append(job)
 
             blog.debug("Submitting job to a ready buildbot.")
 
-            overwatch.check_accepted_timeout(self.manager, ready_client, job)
+            overwatch.check_accepted_timeout(ready_client, job)
             self.submit_build_cmd(ready_client, job)
 
 

@@ -47,7 +47,7 @@ class Client():
         self.lock = Lock()
 
         # register the client
-        manager.manager().register_client(self)
+        manager.manager.register_client(self)
 
 
 
@@ -57,9 +57,9 @@ class Client():
     def receive_command(self, data):
         res = None
         try:
-            res = manager.manager().handle_command(self, data)
+            res = manager.manager.handle_command(self, data)
         except Exception as ex:
-            manager.manager().report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
+            manager.manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
             blog.debug("An endpoint handler function raised an exception:")
             blog.debug("Traceback:")
             traceback.print_exc()
@@ -94,7 +94,7 @@ class Client():
         self.lock.acquire()
         if(self.alive):
             blog.info("Client {} has disconnected.".format(self.get_identifier()))
-            manager.manager().remove_client(self)
+            manager.manager.remove_client(self)
             self.sock.close()
             self.alive = False
 

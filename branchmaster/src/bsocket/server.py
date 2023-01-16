@@ -119,7 +119,7 @@ def threaded_client_handler(client_socket):
 # Receive a file from buildbot
 #
 def receive_file(socket, client):
-    job = manager.manager().get_job_by_client(client)
+    job = manager.manager.get_job_by_client(client)
     
     if(job is None):
         blog.error("Buildbot attempted to submit file while not having a job assigned?")

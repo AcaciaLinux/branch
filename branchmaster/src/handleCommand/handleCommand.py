@@ -75,7 +75,7 @@ def handle_command_untrusted(manager, client, cmd_header, cmd_body):
                 blog.info("Machine type assigned. Client '{}' is authenticated as build client type.".format(client.get_identifier()))
                 client.client_type = "BUILD"
                 blog.debug("Launching overwatch thread for new client..")
-                overwatch.check_buildbot_alive(manager, client)
+                overwatch.check_buildbot_alive(client)
                 blog.debug("Overwatch ready.")
             else:
                 return "INV_MACHINE_TYPE"

@@ -192,10 +192,9 @@ def build_endpoint(httphandler, form_data, post_data, use_crosstools):
         blog.info("Web client requested build for {}".format(pkgname))
          
         pkg = storage.get_bpb_obj(pkgname)
-        mgr = manager.manager()
 
         # get a job obj, use_crosstools = True
-        job = mgr.new_job(use_crosstools)
+        job = manager.manager.new_job(use_crosstools)
 
         # TODO: remove seperate build_pkg_name, because pkg contains it.
         job.build_pkg_name = pkg.name
@@ -203,7 +202,7 @@ def build_endpoint(httphandler, form_data, post_data, use_crosstools):
         job.requesting_client = "webclient"
         job.set_status("WAITING")
         
-        res = mgr.get_queue().add_to_queue(job)
+        res = manager.manager.get_queue().add_to_queue(job)
         httphandler.send_web_response(webstatus.SUCCESS, "Package build queued successfully: {}.".format(res))
     else:
         blog.info("Web client requested release build for invalid package.")
@@ -226,7 +225,7 @@ def clear_completed_jobs_endpoint(httphandler, form_data, post_data):
         
         return
     
-    manager.manager().clear_completed_jobs()  
+    manager.manager.clear_completed_jobs()  
     httphandler.send_web_response(webstatus.SUCCESS, "Completed jobs cleared successfully")
     
 
@@ -256,7 +255,7 @@ def viewjob_log_endpoint(httphandler, form_data, post_data):
         return
 
     jobid = post_data["jobid"]
-    job = manager.manager().get_job_by_id(jobid)
+    job = manager.manager.get_job_by_id(jobid)
         
     if(job is None):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "Invalid job id specified.")
@@ -337,7 +336,7 @@ def get_endpoint(httphandler, form_data):
 #
 # ENDPOINT /?get=joblist (GET)
 def get_endpoint_jobs(httphandler):
-    manager_obj = manager.manager()
+    manager_obj = manager.manager
 
     completed_jobs = manager_obj.get_completed_jobs()
     running_jobs = manager_obj.get_running_jobs()
@@ -374,8 +373,8 @@ def get_endpoint_pkgbuild(httphandler, form_data):
 # 
 # ENDPOINT /?get=clientlist
 def get_endpoint_clientlist(httphandler):
-    clients = manager.manager().get_controller_names()
-    buildbots = manager.manager().get_buildbot_names()
+    clients = manager.manager.get_controller_names()
+    buildbots = manager.manager.get_buildbot_names()
 
     _dict = {
         "controllers": clients,
