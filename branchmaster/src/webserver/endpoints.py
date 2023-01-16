@@ -2,11 +2,11 @@ from enum import Enum
 import json
 import os
 import re
+import blog
 
 from webserver import webauth
 from webserver import webserver
 from webserver import usermanager
-from log import blog
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager

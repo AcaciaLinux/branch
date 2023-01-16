@@ -1,6 +1,5 @@
 import os
-
-from log import blog
+import blog
 
 #Creates a branch package build file.
 def createbpb():

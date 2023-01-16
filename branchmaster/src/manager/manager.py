@@ -1,6 +1,6 @@
 import time
+import blog
 
-from log import blog
 from handleCommand import handleCommand 
 from manager import queue
 from manager import jobs

@@ -21,13 +21,12 @@ BRANCH_VERSION = "0.5"
 B_TYPE = "CONTROLLER"
 
 import argparse
+import blog
 
-from log import blog
 from debugshell import debugshell
 from commands import commands
 from config import config
 from bsocket import connect
-
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
@@ -54,7 +53,6 @@ def main():
     s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
 
     if(s is None):
-        blog.error("Connection refused.")
         return
 
     # init argparser

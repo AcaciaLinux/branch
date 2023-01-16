@@ -2,8 +2,7 @@ PACKAGE_DIRECTORY = "./packages/"
 
 import os
 import json
-
-from log import blog
+import blog
 
 class branch_meta():
 

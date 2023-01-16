@@ -1,5 +1,6 @@
+import blog
+
 from dependency import dependency
-from log import blog
 
 class node():
 

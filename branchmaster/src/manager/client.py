@@ -1,6 +1,6 @@
 import uuid
+import blog
 
-from log import blog
 from manager import manager
 from threading import Lock
 

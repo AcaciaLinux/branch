@@ -1,10 +1,9 @@
 import os
 import shutil
 import json
+import blog
 
-from log import blog
-
-class BPBOpts():
+class package_build():
     def __init__(self):
         self.name = ""
         self.version = ""
@@ -24,19 +23,19 @@ class BPBOpts():
 # parse json pkgbuild
 #
 def parse_build_json(json_obj):
-    BPBopts = BPBOpts()
+    pkgbuild = package_build()
 
-    BPBopts.name = json_obj['name']
-    BPBopts.real_version = json_obj['real_version']
-    BPBopts.version = json_obj['version']
-    BPBopts.source = json_obj['source']
-    BPBopts.extra_sources = json_obj['extra_sources']
-    BPBopts.description = json_obj['description']
-    BPBopts.dependencies = json_obj['dependencies']
-    BPBopts.build_dependencies = json_obj['build_dependencies']
-    BPBopts.cross_dependencies = json_obj['cross_dependencies']
-    BPBopts.build_script = json_obj['build_script']
-    return BPBopts
+    pkgbuild.name = json_obj['name']
+    pkgbuild.real_version = json_obj['real_version']
+    pkgbuild.version = json_obj['version']
+    pkgbuild.source = json_obj['source']
+    pkgbuild.extra_sources = json_obj['extra_sources']
+    pkgbuild.description = json_obj['description']
+    pkgbuild.dependencies = json_obj['dependencies']
+    pkgbuild.build_dependencies = json_obj['build_dependencies']
+    pkgbuild.cross_dependencies = json_obj['cross_dependencies']
+    pkgbuild.build_script = json_obj['build_script']
+    return pkgbuild
     
 #
 # parse a build file
@@ -49,7 +48,7 @@ def parse_build_file(pkg_file):
     build_file = open(pkg_file, "r")
     build_arr = build_file.read().split("\n")
 
-    BPBopts = BPBOpts()
+    pkgbuild = package_build()
 
     build_opts = False
     command = ""
@@ -66,7 +65,7 @@ def parse_build_file(pkg_file):
             if(len(prop) == 0):
                 continue;
 
-            BPBopts.build_script.append(prop)
+            pkgbuild.build_script.append(prop)
         else:
             prop_arr = prop.split("=")
             key = prop_arr[0]
@@ -81,27 +80,27 @@ def parse_build_file(pkg_file):
             val = prop_arr[1]
 
             if(key == "name"):
-                BPBopts.name = val
+                pkgbuild.name = val
             elif(key == "version"):
-                BPBopts.version = val
+                pkgbuild.version = val
             elif(key == "real_version"):
-                BPBopts.real_version = val
+                pkgbuild.real_version = val
             elif(key == "source"):
-                BPBopts.source = val
+                pkgbuild.source = val
             elif(key == "extra_sources"):
-                BPBopts.extra_sources = parse_bpb_str_array(val) 
+                pkgbuild.extra_sources = parse_bpb_str_array(val) 
             elif(key == "dependencies"):
-                BPBopts.dependencies = val
+                pkgbuild.dependencies = val
             elif(key == "description"):
-                BPBopts.description = val
+                pkgbuild.description = val
             elif(key == "builddeps"):
-                BPBopts.build_dependencies = val
+                pkgbuild.build_dependencies = val
             elif(key == "crossdeps"):
-                BPBopts.cross_dependencies = val
+                pkgbuild.cross_dependencies = val
             elif(key == "build"):
                 build_opts = True
    
-    return BPBopts
+    return pkgbuild
 
 #
 # Parses branchpackagebuild array formay:

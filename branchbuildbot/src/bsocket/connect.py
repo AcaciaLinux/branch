@@ -2,8 +2,7 @@ import socket
 import main
 import os
 import time
-
-from log import blog
+import blog
 
 #
 # connect to server, send type, authkey and name..

@@ -1,8 +1,8 @@
 import os
 import json
+import blog
 
 from buildenvmanager import buildenv
-from log import blog
 from package import build
 from bsocket import connect 
 from buildenvmanager import buildenv

@@ -1,7 +1,6 @@
 import tarfile
 import os
-
-from log import blog
+import blog
 
 class leafpkg():
     def __init__(self):

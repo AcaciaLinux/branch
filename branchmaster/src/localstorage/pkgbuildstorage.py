@@ -1,7 +1,7 @@
 import os
 import json
+import blog
 
-from log import blog
 from package import build
 
 class storage():

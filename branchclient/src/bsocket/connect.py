@@ -1,7 +1,6 @@
 import socket
 import main
-
-from log import blog
+import blog
 
 #
 # connect to server, send type, authkey and name..

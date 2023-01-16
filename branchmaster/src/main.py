@@ -20,7 +20,7 @@ BRANCH_VERSION = "0.5"
 
 import threading
 
-from log import blog
+import blog
 from config import config
 from bsocket import server
 from manager import manager

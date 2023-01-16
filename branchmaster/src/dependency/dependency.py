@@ -1,4 +1,4 @@
-from log import blog
+import blog
 from localstorage import pkgbuildstorage
 from dependency import node
 from manager import jobs

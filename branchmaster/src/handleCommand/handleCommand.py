@@ -4,10 +4,10 @@ import time
 import selectors
 import shutil
 import hashlib
-
 import main
+import blog
+
 from config import config
-from log import blog
 from localstorage import packagestorage 
 from localstorage import pkgbuildstorage
 from package import build

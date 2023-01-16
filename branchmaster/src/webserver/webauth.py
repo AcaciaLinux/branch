@@ -1,7 +1,7 @@
 import time
 import uuid
+import blog
 
-from log import blog
 from webserver import usermanager
 
 

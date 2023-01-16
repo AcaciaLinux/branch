@@ -20,15 +20,15 @@ BRANCH_VERSION = "0.5"
 
 B_TYPE = "BUILD"
 
-from log import blog
+import blog
+import argparse
+import os
+
 from package import build
 from bsocket import connect
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
 from config import config
-
-import argparse
-import os
 
 def main():
     print("Branch (BUILDBOT) - The AcaciaLinux package build system.")

@@ -5,8 +5,7 @@ import secrets
 import os
 import string
 import bcrypt
-
-from log import blog
+import blog
 
 #
 # usermanager class

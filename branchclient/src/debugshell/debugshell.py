@@ -1,7 +1,7 @@
 import socket
+import blog
 
 from bsocket import connect
-from log import blog
 
 #
 # Connect to server and run debug shell

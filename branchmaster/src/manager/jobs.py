@@ -1,6 +1,5 @@
 import uuid
-
-from log import blog
+import blog
 
 class jobs():
     def __init__(self, use_crosstools):

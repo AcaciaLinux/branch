@@ -1,8 +1,8 @@
 import main
 import json
 import os
+import blog
 
-from log import blog
 from bsocket import connect 
 from package import build 
 

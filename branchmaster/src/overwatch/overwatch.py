@@ -1,8 +1,8 @@
-# watches over buildbots
 import time
-from _thread import *
-from log import blog
+import blog
 import threading
+
+from _thread import *
 
 # Wait time in seconds for a buildbot response
 ACCEPTED_TIMEOUT=5

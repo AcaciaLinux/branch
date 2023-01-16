@@ -1,12 +1,11 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingMixIn
-from log import blog
-from config import config
-
+import blog
 import cgi
 import os
 import traceback
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+from config import config
 from webserver import endpoints
 
 #

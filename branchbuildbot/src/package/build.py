@@ -6,9 +6,9 @@ import shutil
 import tarfile
 import json
 import datetime
+import blog
 
 from buildenvmanager import buildenv
-from log import blog
 from package import leafpkg
 from bsocket import connect
 

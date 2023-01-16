@@ -2,8 +2,7 @@ import os
 import subprocess
 import shutil
 import json
-
-from log import blog
+import blog
 
 class package_build():
     def __init__(self):

@@ -1,7 +1,7 @@
 CONFIG_FILE = "/etc/branch/client.conf"
 
 import os
-from log import blog
+import blog
 
 class branch_options():
     serverport = 27015

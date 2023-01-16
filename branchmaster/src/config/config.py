@@ -1,7 +1,7 @@
 CONFIG_FILE = "/etc/branch/master.conf"
 
 import os
-from log import blog
+import blog
 
 class branch_options():
     port = 27015

@@ -1,8 +1,8 @@
 import os
 import shutil
 import time
+import blog
 
-from log import blog
 from pyleaf import pyleafcore
 from pathlib import Path
 from buildenvmanager import buildenv

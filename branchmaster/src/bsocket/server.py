@@ -1,7 +1,7 @@
 import selectors
 import socket
+import blog
 
-from log import blog
 from manager import client
 from manager import manager
 from _thread import *
