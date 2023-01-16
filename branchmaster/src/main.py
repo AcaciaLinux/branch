@@ -43,6 +43,9 @@ def main():
 
     blog.info("Loading masterserver configuration..")
     conf = config.branch_options()
+    if(conf.debuglog):
+        blog.enable_debug_level()
+        blog.debug("Debug log enabled.")
 
     # check for valid conf
     if(not conf.init_completed):

@@ -40,6 +40,9 @@ def main():
     # load config
     blog.info("Loading configuration file..")
     conf = config.branch_options()
+    if(conf.debuglog):
+        blog.enable_debug_level()
+        blog.debug("Debug log enabled.")
 
     # check for valid conf
     if(not conf.init_completed):
