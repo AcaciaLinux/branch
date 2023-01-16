@@ -1,5 +1,6 @@
 import uuid
 import blog
+import traceback
 
 from manager import manager
 from threading import Lock
@@ -59,6 +60,9 @@ class Client():
             res = manager.manager().handle_command(self, data)
         except Exception as ex:
             manager.manager().report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
+            blog.debug("An endpoint handler function raised an exception:")
+            blog.debug("Traceback:")
+            traceback.print_exc()
             res = "EXCEPTION_RAISED"
         
         return res

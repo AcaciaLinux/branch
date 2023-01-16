@@ -1,7 +1,7 @@
 import json
-import manager
 import blog
 
+from manager import manager
 from package import build
 from dependency import dependency
 from overwatch import overwatch
