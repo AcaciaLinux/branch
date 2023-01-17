@@ -5,6 +5,10 @@ import json
 import blog
 
 class package_build():
+    
+    #
+    # __init__ pkgbuild object
+    #
     def __init__(self):
         self.name = ""
         self.version = ""
@@ -16,10 +20,14 @@ class package_build():
         self.extra_sources = [ ]
         self.description = ""
         self.build_script = [ ]
-
+    
+    #
+    # get_json() build
+    #
     def get_json(self):
         return json.dumps(self.__dict__)
 
+    
 #
 # get pkgbuild object from json_object
 #

@@ -29,15 +29,18 @@ def handle_command(manager, client, command):
         cmd_header = command[0:cmd_header_loc]
         cmd_body = command[cmd_header_loc+1:len(command)]
 
+    match client.client_type:
+        case None:
+            return handle_command_untrusted(manager, client, cmd_header, cmd_body)
+        
+        case "CONTROLLER":
+            return handle_command_controller(manager, client, cmd_header, cmd_body)
     
-    if(client.client_type is None):
-        return handle_command_untrusted(manager, client, cmd_header, cmd_body)
-    elif(client.client_type == "CONTROLLER"):
-        return handle_command_controller(manager, client, cmd_header, cmd_body)
-    elif(client.client_type == "BUILD"):
-        return handle_command_build(manager, client, cmd_header, cmd_body)
-    else:
-        return None
+        case "BUILD":
+            return handle_command_build(manager, client, cmd_header, cmd_body)
+        
+        case other:
+            return None
   
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
     
