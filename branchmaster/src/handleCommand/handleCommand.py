@@ -40,17 +40,23 @@ def handle_command(manager, client, command):
         return None
   
 def handle_command_untrusted(manager, client, cmd_header, cmd_body):
-    bconf = config.branch_options()
-
     #
     # Used by a client to send it's auth key
     #
     if(cmd_header == "AUTH"):
+        if(config.config.get_config_option("Masterserver")["UntrustedClients"] == "True"):
+            return "UNTRUSTED_MODE"
+
         if(client.is_authenticated):
             return "ALREADY_AUTHENTICATED"
         else:
             blog.debug("Client '{}' authenticating with key: {}".format(client.get_identifier(), cmd_body))
-            if(cmd_body in bconf.authkeys):
+
+            # fetch auth keys from config
+            authkeys_str = config.config.get_config_option("Masterserver")["AuthKeys"]
+            authkeys = config.config.parse_str_array(authkeys_str)
+
+            if(cmd_body in authkeys):
                 client.is_authenticated = True
                 blog.info("Client authentication completed.")
                 return "AUTH_OK"
@@ -67,7 +73,7 @@ def handle_command_untrusted(manager, client, cmd_header, cmd_body):
         # Check if the server allows untrusted clients
         # or the client is authenticated
         #
-        if(client.is_authenticated or bconf.untrustedclients):
+        if(client.is_authenticated or (config.config.get_config_option("MasterServer")["UntrustedClients"] == "True")):
             if(cmd_body == "CONTROLLER"):
                 blog.info("Machine type assigned. Client '{}' is authenticated as controller client type.".format(client.get_identifier()))
                 client.client_type = "CONTROLLER"

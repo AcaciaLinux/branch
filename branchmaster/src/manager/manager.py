@@ -8,17 +8,9 @@ from manager import jobs
 class manager():
     
     #
-    # Init manager
-    #
-    def __init__(self):
-        if(manager.queue is None):
-            blog.debug("Generating static queue object!")
-            manager.queue = queue.queue() 
-
-    #
     # Static queue Object
     #
-    queue = None
+    queue = queue.queue()
 
     #
     # Currently connected clients

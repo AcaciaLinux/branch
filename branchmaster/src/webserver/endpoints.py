@@ -10,7 +10,6 @@ from webserver import usermanager
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager
-from config import config
 from package import build
 
 #

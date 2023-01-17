@@ -90,7 +90,7 @@ class web_server(BaseHTTPRequestHandler):
 
     # add CORS if needed
     def end_headers(self):
-        if(config.branch_options.send_cors_headers):
+        if(config.config.get_config_option("HTTPServer")["sendcorsheaders"] == "True"):
             blog.warn("Sending Access-Control-Allow-Origin: *")
             blog.warn("This should only be used for debugging purposes.")
 

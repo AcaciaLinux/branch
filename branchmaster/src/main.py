@@ -42,32 +42,35 @@ def main():
     blog.info("Masterserver initializing..")
 
     blog.info("Loading masterserver configuration..")
-    conf = config.branch_options()
-    if(conf.debuglog):
+    if(config.config.setup() != 0):
+        return -1
+
+    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
 
-    # check for valid conf
-    if(not conf.init_completed):
-        return -1
 
     blog.info("Loading user file..")
     userm = usermanager.usermanager()
 
-    blog.info("Launching webserver daemon on {} port {}..".format(conf.listenaddr, conf.httpport))
+    listen_addr = config.config.get_config_option("Masterserver")["ListenAddress"]   
+    listen_port = config.config.get_config_option("Masterserver")["ServerPort"]
+    http_port = config.config.get_config_option("HTTPServer")["HTTPPort"]
+
+    blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))
     endpoints.register_get_endpoints()
     endpoints.register_post_endpoints()
-    
-    web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(conf.listenaddr, int(conf.httpport)))
+
+    web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(listen_addr, int(http_port)))
     try:
         web_thread.start()
     except Exception as ex:
         blog.error("Webserver failed to start: {}".format(ex))
 
     blog.info("Launching branchmaster..")
-    blog.info("Serving on {} port {}".format(conf.listenaddr, conf.port))
+    blog.info("Serving on {} port {}".format(listen_addr, listen_port))
     
-    cli_thread = threading.Thread(target=server.init_server, daemon=True, args=(conf.listenaddr, int(conf.port)))
+    cli_thread = threading.Thread(target=server.init_server, daemon=True, args=(listen_addr, int(listen_port)))
     try:
         cli_thread.start()
     except Exception as ex:
