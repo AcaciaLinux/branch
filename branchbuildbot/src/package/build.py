@@ -40,7 +40,7 @@ def strip(root_dir):
         for file in files:
             file_abs = os.path.join(root, file)
             
-            # skip if symlink
+            # skip if symlink and dir
             if(not os.path.isfile(file_abs)):
                 continue
 

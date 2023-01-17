@@ -67,10 +67,6 @@ def parse_build_str(build_str):
                 build_opts = False
                 continue
             
-            # skip empty lines
-            if(len(prop) == 0):
-                continue;
-
             pkgbuild.build_script.append(prop)
         else:
             prop_arr = prop.split("=")
