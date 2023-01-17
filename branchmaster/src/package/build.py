@@ -20,11 +20,6 @@ class package_build():
     def get_json(self):
         return json.dumps(self.__dict__)
 
-    def get_name_json(self):
-        return {
-            "pkg_name": self.name
-        }
-
 #
 # get pkgbuild object from json_object
 #

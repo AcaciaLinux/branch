@@ -18,8 +18,6 @@
 BRANCH_CODENAME = "Questionable Ethics"
 BRANCH_VERSION = "0.5"
 
-B_TYPE = "CONTROLLER"
-
 import argparse
 import blog
 
@@ -34,26 +32,27 @@ def main():
     print("Version: " + BRANCH_VERSION + " (" + BRANCH_CODENAME + ")")
     print()
 
-    # check for TERM var
-    blog.initialize()
-
     # load config
     blog.info("Loading configuration file..")
-    conf = config.branch_options()
-    if(conf.debuglog):
-        blog.enable_debug_level()
-        blog.debug("Debug log enabled.")
-
-    # check for valid conf
-    if(not conf.init_completed):
+    if(config.config.setup() != 0):
         return -1
 
-    if(conf.authkey == "NONE"):
-        conf.authkey = None
-
+    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
+        blog.enable_debug_level()
+        blog.debug("Debug log enabled.")
     
+    authkey = config.config.get_config_option("Connection")["AuthKey"]
+    
+    # replace authkey NONE with None
+    if(authkey == "NONE"):
+        authkey = None
+    
+    server_address = config.config.get_config_option("Connection")["ServerAddress"]
+    server_port = config.config.get_config_option("Connection")["ServerPort"]
+    identifier = config.config.get_config_option("Connection")["Identifier"]
+
     # connect to server
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
+    s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
 
     if(s is None):
         return

@@ -37,8 +37,6 @@ def main():
     print()
     print()
 
-    # check for TERM var
-    blog.initialize()
     blog.info("Masterserver initializing..")
 
     blog.info("Loading masterserver configuration..")

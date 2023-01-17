@@ -18,8 +18,6 @@
 BRANCH_CODENAME = "Questionable Ethics"
 BRANCH_VERSION = "0.5"
 
-B_TYPE = "BUILD"
-
 import blog
 import argparse
 import os
@@ -36,21 +34,25 @@ def main():
     print("Version: "+ BRANCH_VERSION +" (" + BRANCH_CODENAME +")")
     print()
 
-    # check for TERM var
-    blog.initialize()
- 
     # load config
     blog.info("Loading configuration file..")
-    conf = config.branch_options()
-
-    if(conf.debuglog):
+    if(config.config.setup() != 0):
+        return -1
+ 
+    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
 
-    # check for valid conf
-    if(not conf.init_completed):
-        return -1
-     
+    authkey = config.config.get_config_option("Connection")["AuthKey"]
+    
+    # replace authkey NONE with None
+    if(authkey == "NONE"):
+        authkey = None
+
+    server_address = config.config.get_config_option("Connection")["ServerAddress"]
+    server_port = config.config.get_config_option("Connection")["ServerPort"]
+    identifier = config.config.get_config_option("Connection")["Identifier"]
+
     # init leafcore
     if(buildenv.init_leafcore() != 0):
         return -1
@@ -61,9 +63,9 @@ def main():
     blog.info("Checking build environments..")
     if(buildenv.check_buildenv() != 0):
         check_failed = True
- 
+  
     # establish socket connection
-    s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
+    s = connect.connect(server_address, server_port, identifier, authkey, "BUILD")
 
     if(s is None):
         blog.error("Connection refused.")

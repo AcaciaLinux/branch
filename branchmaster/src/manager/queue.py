@@ -26,7 +26,6 @@ class queue():
     # Called when a controller requests BUILD
     #
     def add_to_queue(self, job):
-        
         if(self.job_is_blocked(job)):
             blog.debug("Job is blocked, adding to queue..")
             return "BUILD_REQ_QUEUED"
@@ -91,7 +90,6 @@ class queue():
             manager.manager.running_jobs.append(job)
 
             blog.debug("Submitting job to a ready buildbot.")
-
             overwatch.check_accepted_timeout(ready_client, job)
             self.submit_build_cmd(ready_client, job)
 

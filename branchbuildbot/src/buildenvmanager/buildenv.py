@@ -90,7 +90,6 @@ def check_buildenv():
 
 # Checks if a binary on the host is accessible through the PATH variable
 def check_host_binary(binary):
-
     for path in os.environ["PATH"].split(":"):
         for root, dirs, files in os.walk(path):
             for file in files:
