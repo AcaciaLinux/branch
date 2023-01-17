@@ -73,7 +73,7 @@ def handle_command_untrusted(manager, client, cmd_header, cmd_body):
         # Check if the server allows untrusted clients
         # or the client is authenticated
         #
-        if(client.is_authenticated or (config.config.get_config_option("MasterServer")["UntrustedClients"] == "True")):
+        if(client.is_authenticated or (config.config.get_config_option("Masterserver")["UntrustedClients"] == "True")):
             if(cmd_body == "CONTROLLER"):
                 blog.info("Machine type assigned. Client '{}' is authenticated as controller client type.".format(client.get_identifier()))
                 client.client_type = "CONTROLLER"
