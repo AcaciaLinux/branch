@@ -37,6 +37,9 @@ class config():
         config["Leaf"] = {
             "PackagelistUrl": "https://api.AcaciaLinux.org/?get=packagelist"
         }
+        config["BuildOptions"] = {
+            "RealtimeBuildlog": False
+        }
         
         with open(CONFIG_FILE, "w") as default_conf_file:
             config.write(default_conf_file)

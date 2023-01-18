@@ -1,8 +1,7 @@
 import os
 import json
 import blog
-
-from package import build
+import packagebuild
 
 class storage():
 
@@ -46,7 +45,7 @@ class storage():
             return None
 
         pkg_path = self.get_pkg_build_file(name)
-        bpb = build.parse_build_file(pkg_path)
+        bpb = packagebuild.package_build.from_file(pkg_path)
         
         if(bpb is None):
             return None
@@ -64,8 +63,7 @@ class storage():
             return None
 
         pkg_path = self.get_pkg_build_file(name)
-        bpb = build.parse_build_file(pkg_path)
-        return bpb
+        return packagebuild.package_build.from_file(pkg_path)
     
     #
     # create a storage directory for a packagebuild 

@@ -55,6 +55,11 @@ def main():
 
     # init leafcore
     if(buildenv.init_leafcore() != 0):
+        s = connect.connect(server_address, server_port, identifier, authkey, "BUILD")
+        blog.info("Buildbot could not initialize leaf. Reporting system event.")
+        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
+        s.close()
+        blog.info("Disconnected. Cannot continue.")
         return -1
    
     check_failed = False
@@ -72,24 +77,24 @@ def main():
         return -1
 
     if(check_failed):
-        blog.info("Reporting system event.")
+        blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
         s.close()
-        blog.info("Disconnected.")
+        blog.info("Disconnected. Cannot continue.")
         return -1
 
     if (not buildenv.check_host_binary("chroot")):
         blog.error("'chroot' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
         s.close()
-        blog.info("Disconnected.")
+        blog.info("Disconnected. Cannot continue")
         return -1
 
     if (not buildenv.check_host_binary("strip")):
         blog.error("'strip' binary is missing. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
         s.close()
-        blog.info("Disconnected.")
+        blog.info("Disconnected. Cannot continue")
         return -1
 
     # Signal readyness to server

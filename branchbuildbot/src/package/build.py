@@ -15,22 +15,6 @@ from bsocket import connect
 EXECUTABLE_MAGIC_BYTES = b'\x7fELF'
 SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
 
-class package_build():
-    def __init__(self):
-        self.name = ""
-        self.version = ""
-        self.real_version = ""
-        self.dependencies = ""
-        self.build_dependencies = ""
-        self.cross_dependencies = ""
-        self.source = ""
-        self.extra_sources = [ ]
-        self.description = ""
-        self.build_script = [ ]
-
-    def get_json(self):
-        return json.dumps(self.__dict__)
-
 def strip(root_dir):
     blog.info("Stripping unneeded symbols from {}".format(root_dir))
 
@@ -298,41 +282,4 @@ def fetch_file(url):
     return 0
     
 
-def parse_build_json(json):
-    package_build_obj = package_build()
-
-    package_build_obj.name = json_get_key(json, "name")
-    package_build_obj.real_version = json_get_key(json, "real_version")
-    package_build_obj.version = json_get_key(json, "version")
-    package_build_obj.source = json_get_key(json, "source")
-    package_build_obj.extra_sources = json_get_key(json, "extra_sources")
-    package_build_obj.description = json_get_key(json, "description")
-    package_build_obj.dependencies = json_get_key(json, "dependencies")
-    package_build_obj.build_dependencies = json_get_key(json, "build_dependencies")
-    package_build_obj.cross_dependencies = json_get_key(json, "cross_dependencies")
-    package_build_obj.build_script = json_get_key(json, "build_script")
-    return package_build_obj
-
-#
-# Parses branchpackagebuild array format:
-# [a][b][c]
-#
-def parse_bpb_str_array(string):
-    vals = [ ]
-    buff = ""
-
-    for c in string:
-        if(c == ']'):
-            vals.append(buff)
-            buff = ""
-        elif(not c == '['):
-            buff = buff + c
-
-    return vals
-
-def json_get_key(json_obj, key):
-    try:
-        return json_obj[key]
-    except KeyError:
-        return "UNSET"
 

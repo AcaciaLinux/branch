@@ -51,13 +51,7 @@ def main():
     server_port = config.config.get_config_option("Connection")["ServerPort"]
     identifier = config.config.get_config_option("Connection")["Identifier"]
 
-    # connect to server
-    s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
-
-    if(s is None):
-        return
-
-    # init argparser
+     # init argparser
     argparser = argparse.ArgumentParser(description="The AcaciaLinux package build system.")
     argparser.add_argument("-ds", "--debugshell", help="Runs a debugshell on the remote server.", action="store_true")
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
@@ -113,9 +107,21 @@ def main():
         #if arg_val is True, theres no arg
         if(arg_val != None and arg_val != False):
             if(arg_val == True):
+                # connect to server
+                s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
+
+                if(s is None):
+                    return
+
                 func(s)
                 return
             else:
+                # connect to server
+                s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
+
+                if(s is None):
+                    return
+
                 func(s, arg_val)
                 return
 

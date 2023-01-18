@@ -6,11 +6,11 @@ import shutil
 import hashlib
 import main
 import blog
+import packagebuild
 
 from config import config
 from localstorage import packagestorage 
 from localstorage import pkgbuildstorage
-from package import build
 from manager import queue
 from manager import jobs
 from dependency import dependency
@@ -165,18 +165,18 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(json_bpb is None):
                 return "INV_PKG_BUILD"
 
-            bpb = build.parse_build_json(json_bpb)
+            pkgbuild = packagebuild.package_build.from_json(json_bpb)
              
-            if(build.validate_pkgbuild(bpb) != 0):
+            if(bpb.validate_pkgbuild()):
                 return "INV_PKG_BUILD"
             
-            tdir = storage.create_stor_directory(bpb.name)
+            tdir = storage.create_stor_directory(pkgbuild.name)
 
             bpb_file = os.path.join(tdir, "package.bpb")
             if(os.path.exists(bpb_file)):
                 os.remove(bpb_file)
            
-            build.write_build_file(bpb_file, bpb)
+            pkgbuild.write_build_file(bpb_file)
             return "CMD_OK"
      
         #

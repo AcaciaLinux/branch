@@ -2,9 +2,9 @@ import main
 import json
 import os
 import blog
+import packagebuild
 
 from bsocket import connect 
-from package import build 
 
 #
 # checkout package
@@ -23,14 +23,14 @@ def checkout_package(s, pkg_name):
 
 
     json_bpb = json.loads(bpb_resp)
-    bpb = build.parse_build_json(json_bpb)
+    bpb = packagebuild.package_build.from_json(json_bpb)
     build.create_pkg_workdir(bpb)
 
 #
 # Submit a package build from cwd to server
 #
 def submit_package(s):
-    bpb = build.parse_build_file("package.bpb")
+    bpb = packagebuild.package_build.from_file("package.bpb")
     if(bpb == -1):
         return -1
 

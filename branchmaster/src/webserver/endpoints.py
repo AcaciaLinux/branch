@@ -3,6 +3,7 @@ import json
 import os
 import re
 import blog
+import packagebuild
 
 from webserver import webauth
 from webserver import webserver
@@ -10,7 +11,6 @@ from webserver import usermanager
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager
-from package import build
 
 #
 # endpoint class with path and corresponding handler function
@@ -290,7 +290,7 @@ def submit_packagebuild_endpoint(httphandler, form_data, post_data):
     
     blog.debug("Checking submission..")
     storage = pkgbuildstorage.storage()
-    package_build = build.parse_build_str(post_data["packagebuild"])
+    package_build = packagebuild.package_build.from_string(post_data["packagebuild"])
 
     if(package_build.name == "" or package_build.version == "" or package_build.real_version == ""):
         httphandler.send_web_response(webstatus.SERV_FAILURE, "Missing values in package build")
@@ -303,7 +303,7 @@ def submit_packagebuild_endpoint(httphandler, form_data, post_data):
     if(os.path.exists(packagebuild_file)):
         os.remove(packagebuild_file)
    
-    build.write_build_file(packagebuild_file, package_build)
+    package_build.write_build_file(packagebuild_file)
     httphandler.send_web_response(webstatus.SUCCESS, "Package submission accepted.")
 
 
