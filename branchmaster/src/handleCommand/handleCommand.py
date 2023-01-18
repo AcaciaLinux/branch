@@ -155,19 +155,12 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         #
         case "SUBMIT_PACKAGE":
             storage = pkgbuildstorage.storage()
-
-            json_bpb = None
-            try:
-                json_bpb = json.loads(cmd_body)
-            except Exception:
-                pass
-
-            if(json_bpb is None):
+            
+            if(len(cmd_body) == 0):
                 return "INV_PKG_BUILD"
 
-            pkgbuild = packagebuild.package_build.from_json(json_bpb)
-             
-            if(bpb.validate_pkgbuild()):
+            pkgbuild = packagebuild.package_build.from_json(cmd_body)
+            if(not pkgbuild.is_valid()):
                 return "INV_PKG_BUILD"
             
             tdir = storage.create_stor_directory(pkgbuild.name)
