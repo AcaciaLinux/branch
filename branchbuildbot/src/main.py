@@ -49,12 +49,12 @@ def main():
         authkey = None
 
     server_address = config.config.get_config_option("Connection")["ServerAddress"]
-    server_port = config.config.get_config_option("Connection")["ServerPort"]
+    server_port = int(config.config.get_config_option("Connection")["ServerPort"])
     identifier = config.config.get_config_option("Connection")["Identifier"]
 
     # init leafcore
     if(buildenv.init_leafcore() != 0):
-        s = connect.connect(server_address, server_port, identifier, authkey, "BUILD")
+        s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
         blog.info("Buildbot could not initialize leaf. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
         s.close()
@@ -69,7 +69,7 @@ def main():
         check_failed = True
   
     # establish socket connection
-    s = connect.connect(server_address, server_port, identifier, authkey, "BUILD")
+    s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
 
     if(s is None):
         blog.error("Connection refused.")
@@ -129,7 +129,7 @@ def main():
             blog.info("Recreating build environment..")
             buildenv.check_buildenv()
             blog.info("Reconnecting..")
-            s = connect.connect(conf.serveraddr, conf.serverport, conf.identifier, conf.authkey, B_TYPE)
+            s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
         else:
             connect.send_msg(s, res)
 
