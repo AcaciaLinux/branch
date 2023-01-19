@@ -28,8 +28,6 @@ def handle_command(socket, command):
     if(cmd_header == "BUILD_PKG"):
         if(not cmd_body is None):
             connect.send_msg(socket, "JOB_ACCEPTED")
-            json_obj = json.loads(cmd_body)
-
             blog.info("Got a job from masterserver. Using realroot")
 
             res = buildenv.setup_env(False) 
@@ -47,7 +45,7 @@ def handle_command(socket, command):
                 os.mkdir(builddir)
 
             # parse the package build we got
-            package_build = packagebuild.package_build.from_json(json_obj)
+            package_build = packagebuild.package_build.from_json(cmd_body)
             
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")
@@ -119,8 +117,6 @@ def handle_command(socket, command):
     elif(cmd_header == "BUILD_PKG_CROSS"):
         if(not cmd_body is None):
             connect.send_msg(socket, "JOB_ACCEPTED")
-            json_obj = json.loads(cmd_body)
-
             blog.info("Got a job from masterserver. Using crosstools.")
 
             res = buildenv.setup_env(True) 
@@ -137,7 +133,7 @@ def handle_command(socket, command):
                 os.mkdir(builddir)
 
             # parse the package build we got
-            package_build = packagebuild.package_build.from_json(json_obj)
+            package_build = packagebuild.package_build.from_json(cmd_body)
             
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")

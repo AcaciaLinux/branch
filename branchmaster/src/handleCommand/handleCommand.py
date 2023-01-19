@@ -377,17 +377,6 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return "JOBS_CLEARED"
     
         #
-        # Get package info
-        # PACKAGE_INFO
-        #
-        case "PACKAGE_INFO":
-            stor = pkgbuildstorage.storage()
-            if(cmd_body in stor.packages):
-                return stor.get_json_bpb(cmd_body)
-            else:
-                return "INV_PKG"
-        
-        #
         # Cancel queued jobs
         # CANCEL_QUEUED_JOB <ID>
         #
