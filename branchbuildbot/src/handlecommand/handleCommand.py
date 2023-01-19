@@ -1,12 +1,13 @@
 import os
 import json
 import blog
+import leafpkg
+import packagebuild
 
 from buildenvmanager import buildenv
-from package import build
 from bsocket import connect 
 from buildenvmanager import buildenv
-from package import leafpkg
+from builder import builder
 
 def handle_command(socket, command):
 
@@ -47,13 +48,13 @@ def handle_command(socket, command):
                 os.mkdir(builddir)
 
             # parse the package build we got
-            package_build = build.parse_build_json(json_obj)
+            package_build = packagebuild.package_build.from_json(json_obj)
             
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")
     
             # run build step
-            res = build.build(builddir, package_build, socket, False)  
+            res = builder.build(builddir, package_build, socket, False)  
             
             if(res == "BUILD_COMPLETE"):
                 connect.send_msg(socket, "BUILD_COMPLETE")
@@ -137,13 +138,13 @@ def handle_command(socket, command):
                 os.mkdir(builddir)
 
             # parse the package build we got
-            package_build = build.parse_build_json(json_obj)
+            package_build = packagebuild.package_build.from_json(json_obj)
             
             # notify server build env is ready, about to start build
             connect.send_msg(socket, "BUILD_ENV_READY")
     
             # run build step
-            res = build.build(builddir, package_build, socket, True)  
+            res = builder.build(builddir, package_build, socket, True)  
             
             if(res == "BUILD_COMPLETE"):
                 connect.send_msg(socket, "BUILD_COMPLETE")

@@ -22,7 +22,6 @@ import blog
 import argparse
 import os
 
-from package import build
 from bsocket import connect
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
