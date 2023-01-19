@@ -236,12 +236,12 @@ def get_managed_pkgbuilds(s):
     return
 
 #
-# views dependency tree
+# Get all dependers by package name
 #
-def view_tree(s, pkg_name):
-    resp = connect.send_msg(s, "GET_TREE_STR {}".format(pkg_name))
+def view_dependers(s, pkg_name):
+    resp = connect.send_msg(s, "GET_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
-        blog.error("No such package available.")
+        blog.error("No such packagebuild available.")
     else:
         print(json.loads(resp))
 

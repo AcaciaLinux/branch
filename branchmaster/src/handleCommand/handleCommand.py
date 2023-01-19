@@ -258,19 +258,16 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return json.dumps(manager.system_events)
     
         #
-        # get dependency tree for a given package
-        # GET_TREE_STR <NAME>
+        # get dependenders for a given package
+        # GET_DEPENDERS <NAME>
         #
-        case "GET_TREE_STR":
+        case "GET_DEPENDERS":
             storage = pkgbuildstorage.storage()
 
             if(cmd_body in storage.packages):
                 blog.info("Calculating dependers for {}..".format(cmd_body))
-                
-                res = dependency.get_dependency_tree(cmd_body)
-                dependency_array = res.get_deps_array()
-
-                return json.dumps(res.get_tree_str())
+                dps = dependency.get_dependency_tree(cmd_body)
+                return json.dumps(dps.get_deps_array())
 
             else:
                 return "INV_PKG_NAME"
@@ -656,7 +653,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
             blog.info("Received System Event report from {}.".format(client.get_identifier()))
             manager.report_system_event(client.get_identifier(), cmd_body)
-
             return "RECV_SYS_EVENT"
 
         #

@@ -68,7 +68,7 @@ def main():
     argparser.add_argument("-caj", "--cancelalljobs", help="Cancels all currently queued jobs", action="store_true")
     argparser.add_argument("-cn", "--canceljob", help="Cancels a currently queued job.")
     argparser.add_argument("-sys", "--viewsyslog", help="Fetches buildbot system logs from the masterserver", action="store_true")
-    argparser.add_argument("-vt", "--viewtree", help="Fetches dependency tree for a given package")
+    argparser.add_argument("-vd", "--viewdependers", help="Fetches dependency tree for a given package")
     argparser.add_argument("-rd", "--rebuilddependers", help="Rebuild dependers of a given package")
     argparser.add_argument("-rbs", "--releasebuildsol", help="Submits a branch solution to the masterserver. (RELEASEBUILD)")
     argparser.add_argument("-cbs", "--crossbuildsol", help="Submits a branch solution to the masterserver. (CROSSBUILD)")
@@ -90,7 +90,7 @@ def main():
         "cancelalljobs": commands.cancel_all_queued_jobs,
         "canceljob": commands.cancel_queued_job,
         "viewsyslog": commands.view_sys_log,
-        "viewtree": commands.view_tree,
+        "viewdependers": commands.view_dependers,
         "rebuilddependers": commands.rebuild_dependers,
         "releasebuildsol": commands.submit_solution_rb,
         "crossbuildsol": commands.submit_solution_cb
