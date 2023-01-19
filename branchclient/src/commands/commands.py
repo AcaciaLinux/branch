@@ -258,7 +258,11 @@ def view_dependers(s, pkg_name):
     if(resp == "INV_PKG_NAME"):
         blog.error("No such packagebuild available.")
     else:
-        print(json.loads(resp))
+        blog.info("Available packagebuilds:")
+        for b in json.loads(resp):
+            print(b, end=", ")
+
+        print()
 
 #
 # rebuild dependers (auto calc)
