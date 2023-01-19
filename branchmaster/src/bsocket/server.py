@@ -104,8 +104,13 @@ def threaded_client_handler(client_socket):
                     blog.debug("Sending message to client {}: {}".format(_client.get_identifier(), manager_res))
                     
                     _client.lock.acquire()
-                    client_socket.sendall("{} {}".format(len(manager_res), manager_res).encode("utf-8"))
-                    _client.lock.release()
+                    try:
+                        client_socket.sendall("{} {}".format(len(manager_res), manager_res).encode("utf-8"))
+                        _client.lock.release()
+                    except BrokenPipeError:
+                        _client.lock.release()
+                        _client.handle_disconnect()
+
                 else:
                     blog.debug("Got empty response from manager. Ignoring")
 
