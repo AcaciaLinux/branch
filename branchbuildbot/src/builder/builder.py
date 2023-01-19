@@ -16,36 +16,109 @@ from bsocket import connect
 EXECUTABLE_MAGIC_BYTES = b'\x7fELF'
 SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
 
-def strip(root_dir):
-    blog.info("Stripping unneeded symbols from {}".format(root_dir))
+#
+# Handle a build request
+# 
+def handle_build_request(socket, cmd_body, use_crosstools):
+    # Something went horribly wrong..
+    if(cmd_body is None):
+        blog.error("Received empty command body on PKG_BUILD request. Returning to ready-state.")
+        connect.send_msg(socket, "BUILD_FAILED")
+        buildenv.clean_env()
+        return "SIG_READY"
 
-    stripped_files = []
+    # Notify Overwatch
+    connect.send_msg(socket, "JOB_ACCEPTED")
+    
+    # Setup buildenvironment
+    if(buildenv.setup_env(use_crosstools)  == -1):
+        connect.send_msg(socket, "BUILD_FAILED")
+        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
+        buildenv.drop_buildenv()
+        return None
 
-    for root, dir, files in os.walk(root_dir):
-        for file in files:
-            file_abs = os.path.join(root, file)
-            
-            # skip if symlink and dir
-            if(not os.path.isfile(file_abs)):
-                continue
+    # Get rootdir from buildenv
+    rootdir = buildenv.get_build_path()
+    
+    # create temp workdir directory
+    builddir = os.path.join(rootdir, "branchbuild/")
+    if(not os.path.exists(builddir)):
+        blog.warn("Unclean shutdown detected. Removing old build directory..")
+        os.mkdir(builddir)
+    
+    # parse the package build we got
+    pkgbuild = packagebuild.package_build.from_json(cmd_body)
+    
+    # validate..
+    if(not pkgbuild.is_valid()):
+        blog.warn("Invalid package build received from server. Rejected.")
+        return "BUILD_FAILED"
+    
+    # build environment is setup, package build is ready.
+    connect.send_msg(socket, "BUILD_ENV_READY")
 
-            # get file magic bytes
-            with open(file_abs, "rb") as f:
-                magic_bytes = f.read(4)
+    # get leafpkg
+    lfpkg = leafpkg.leafpkg()
+    lfpkg.name = pkgbuild.name
+    lfpkg.version = pkgbuild.version
+    lfpkg.real_version = pkgbuild.real_version
+    lfpkg.description = pkgbuild.description
+    lfpkg.dependencies = pkgbuild.dependencies
 
-                if(magic_bytes == EXECUTABLE_MAGIC_BYTES or magic_bytes == SHARED_LIB_MAGIC_BYTES):
-                    blog.debug("[strip] Stripping file {}!".format(file_abs))
-                    res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+    # run build step
+    if(build(builddir, pkgbuild, lfpkg, socket, use_crosstools) == "BUILD_COMPLETE"):
+        connect.send_msg(socket, "BUILD_COMPLETE")
+    else:
+        connect.send_msg(socket, "BUILD_FAILED")
+        buildenv.clean_env()
+        return "SIG_READY"
+    
+    # lfpkg pkg_file creation..
+    pkg_file = lfpkg.create_tar_package(builddir)
+   
+    # get file size
+    file_size = os.path.getsize(pkg_file)
+    blog.info("Package file size is {} bytes".format(file_size))
+    
+    res = connect.send_msg(socket, "FILE_TRANSFER_MODE {}".format(file_size))
 
-                    if (res.returncode == 0):
-                        blog.debug("[strip] {}".format(file_abs))
-                        stripped_files.append(file_abs)
-                else:
-                    blog.debug("[strip] Skipped file {}, not ELF binary!".format(file_abs))
+    # if we got any other response, we couldn't switch mode
+    if(not res == "ACK_FILE_TRANSFER"):
+        blog.error("Server did not switch to file upload mode: {}".format(res))
+        blog.error("Returning to ready-state.")
+        connect.send_msg(socket, "BUILD_FAILED")
 
-    return stripped_files
+        buildenv.clean_env()
+        return "SIG_READY"
 
-def build(directory, package_build_obj, socket, use_crosstools):
+    # send file over socket
+    res = connect.send_file(socket, pkg_file)            
+    
+    # Check for mode switch
+    if(res == "UPLOAD_ACK"):
+        blog.info("File upload completed!")
+    else:
+        blog.error("Uploading the package file failed.")
+        blog.error("Returning to ready-state")
+
+        connect.send_msg(socket, "BUILD_FAILED")
+        buildenv.clean_env()
+        return "SIG_READY"
+
+    
+    # Clean build environment..
+    buildenv.clean_env()
+    connect.send_msg(socket, "BUILD_CLEAN")
+
+    # We completed the build job. Send SIG_READY
+    blog.info("Build job completed.")
+    return "SIG_READY"
+
+
+#
+# Run a given pkgbuild 
+#
+def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     # directory we were called in, return after func returns
     call_dir = os.getcwd()
     # change to packagebuild directory
@@ -55,16 +128,8 @@ def build(directory, package_build_obj, socket, use_crosstools):
     build_dir = os.path.join(directory, "build")
     os.mkdir(build_dir)
 
-    # get leafpkg
-    lfpkg = leafpkg.leafpkg()
-    lfpkg.name = package_build_obj.name
-    lfpkg.version = package_build_obj.version
-    lfpkg.real_version = package_build_obj.real_version
-    lfpkg.description = package_build_obj.description
-    lfpkg.dependencies = package_build_obj.dependencies
-    
     # write leafpkg to disk
-    destdir = leafpkg.write_leaf_package_directory(lfpkg)
+    destdir = lfpkg.write_package_directory()
    
     # change to build directory
     os.chdir(build_dir)
@@ -281,6 +346,36 @@ def fetch_file(url):
     out_file.close()
     curl.close()
     return 0
-    
 
+#
+# Strips files in a given root_directory with ELF magic bytes
+#
+def strip(root_dir):
+    blog.info("Stripping unneeded symbols from {}".format(root_dir))
+
+    stripped_files = []
+
+    for root, dir, files in os.walk(root_dir):
+        for file in files:
+            file_abs = os.path.join(root, file)
+            
+            # skip if symlink and dir
+            if(not os.path.isfile(file_abs)):
+                continue
+
+            # get file magic bytes
+            with open(file_abs, "rb") as f:
+                magic_bytes = f.read(4)
+
+                if(magic_bytes == EXECUTABLE_MAGIC_BYTES or magic_bytes == SHARED_LIB_MAGIC_BYTES):
+                    blog.debug("[strip] Stripping file {}!".format(file_abs))
+                    res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+
+                    if (res.returncode == 0):
+                        blog.debug("[strip] {}".format(file_abs))
+                        stripped_files.append(file_abs)
+                else:
+                    blog.debug("[strip] Skipped file {}, not ELF binary!".format(file_abs))
+
+    return stripped_files
 

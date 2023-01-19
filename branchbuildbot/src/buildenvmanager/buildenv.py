@@ -240,6 +240,7 @@ def remount_env(use_crossroot):
     setup_kfs()
 
 def clean_env():
+    blog.info("Cleaning up build environment..")
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
