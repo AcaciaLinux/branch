@@ -6,7 +6,6 @@ import packagebuild
 
 from buildenvmanager import buildenv
 from bsocket import connect 
-from buildenvmanager import buildenv
 from builder import builder
 
 def handle_command(socket, command):
