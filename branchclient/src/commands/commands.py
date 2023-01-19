@@ -21,10 +21,25 @@ def checkout_package(s, pkg_name):
         blog.error("The package build is damaged and could not be checked out.")
         return
 
+    pkgbuild = packagebuild.package_build.from_json(bpb_resp)
 
-    json_bpb = json.loads(bpb_resp)
-    bpb = packagebuild.package_build.from_json(json_bpb)
-    build.create_pkg_workdir(bpb)
+    target_file = os.path.join(pkg_name, "package.bpb")
+    
+    if(not os.path.exists(pkg_name)):
+        os.mkdir(pkg_name)
+
+    if(os.path.exists(target_file)):
+        blog.warn("Checking out will overwrite your local working copy. Continue? (y/n)")
+        answ = input()
+        if(answ == "y"):
+            os.remove(target_file)
+        else:
+            blog.error("Aborted.")
+            return
+
+    pkgbuild.write_build_file(target_file)
+    blog.info("Successfully checkout out package {}".format(pkg_name))
+        
 
 #
 # Submit a package build from cwd to server
