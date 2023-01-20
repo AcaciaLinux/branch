@@ -278,7 +278,8 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
         for line in iter(pipe.readline, ''):
             sys.stdout.write(line)
             sys.stdout.flush()
-
+        
+        blog.info("REALTIME LOG COMPLETED")
     t = threading.Thread(target=print_output_realtime, args(proc.stdout,))
     
     # config check ..
@@ -289,7 +290,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     t.join()
 
     # stdout log
-    std_out_str = proc.stdout.read()
+    std_out_str = proc.stdout
     std_out = std_out_str.split("\n")
 
     # leaf log
