@@ -270,27 +270,37 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     blog.info("Build started on {}.".format(datetime.datetime.now()))
 
     blog.info("Building package...")
-    proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    
-    
-    def print_output_realtime(pipe):
-        blog.info("BUILD LOG:")
-        for line in iter(pipe.readline, ''):
-            sys.stdout.write(line)
-            sys.stdout.flush()
+    std_out_str = ""
+   
+    if(config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
+        proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        std_output = [ ]
         
-        blog.info("REALTIME LOG COMPLETED")
-    t = threading.Thread(target=print_output_realtime, args(proc.stdout,))
-    
-    # config check ..
-    if(True):
-        t.start()
+        def print_output_realtime(pipe):
+            blog.info("BUILD LOG:")
+            for line in iter(pipe.readline, ''):
+                std_output.append(line)
+                sys.stdout.write(line)
 
-    res = proc.wait()
-    t.join()
+            blog.info("REALTIME LOG THREAD EXITING")
+
+        t = threading.Thread(target=print_output_realtime, args=(proc.stdout,))
+        t.start()
+        
+        res = proc.wait()
+        t.join()
+
+        for line in std_output:
+            std_out_str = std_out_str + line
+
+    else:
+       proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        # stdout log
+        std_out_str = proc.stdout   
+
 
     # stdout log
-    std_out_str = proc.stdout
     std_out = std_out_str.split("\n")
 
     # leaf log
