@@ -1,0 +1,12 @@
+version: '3'
+services:
+  branch:
+    build: ./branch
+    container_name: branch
+    restart: unless-stopped
+    volumes:
+      - "./branchcfg:/etc/branch/" 
+      - "./branchworkdirectory:/branchworkdirectory"
+    ports:
+      - "8080:8080"
+      - "27015:27015"

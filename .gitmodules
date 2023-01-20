@@ -5,3 +5,6 @@
 [submodule "submodules/branchlog"]
 	path = submodules/branchlog
 	url = https://github.com/AcaciaLinux/branchlog
+[submodule "submodules/branchcommons"]
+	path = submodules/branchcommons
+	url = https://github.com/AcaciaLinux/branchcommons
