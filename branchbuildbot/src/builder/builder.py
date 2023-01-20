@@ -275,7 +275,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
   
     proc = None
 
-    if(config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
+    if(config.config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         std_output = [ ]
         
