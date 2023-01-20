@@ -48,6 +48,7 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     
     # parse the package build we got
     pkgbuild = packagebuild.package_build.from_json(cmd_body)
+    blog.debug("Parsed package build is: {}".format(pkgbuild.get_json()))
     
     # validate..
     if(not pkgbuild.is_valid()):
