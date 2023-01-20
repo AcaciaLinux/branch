@@ -195,17 +195,17 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
         if(package_build_obj.cross_dependencies != [ ]):
-            blog.info("Installing 'build' dependencies..")
+            blog.info("Falling back, no cross dependencies set. Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
             if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
                 os.chdir(call_dir)
                 deps_failed = True
         else:
-            blog.info("Installing 'cross' dependencies..")
+            blog.info("Installing 'cross' dependencies: {}".format(package_build_obj.cross_dependencies))
             if(buildenv.install_pkgs(package_build_obj.cross_dependencies) != 0):
                 os.chdir(call_dir)
                 deps_failed = True
     else:
-        blog.info("Installing 'build' dependencies..")
+        blog.info("Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
         if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
             os.chdir(call_dir)
             deps_failed = True
