@@ -9,6 +9,8 @@ import datetime
 import blog
 import packagebuild
 import leafpkg
+import threading
+import sys
 
 from buildenvmanager import buildenv
 from bsocket import connect
@@ -269,15 +271,25 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
     blog.info("Building package...")
     proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-    if(True):
-        for line in proc.stdout:
-            blog.info("[BUILDLOG] {}".format(line.strip()))
     
+    
+    def print_output_realtime(pipe):
+        blog.info("BUILD LOG:")
+        for line in iter(pipe.readline, ''):
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+    t = threading.Thread(target=print_output_realtime, args(proc.stdout,))
+    
+    # config check ..
+    if(True):
+        t.start()
+
     res = proc.wait()
+    t.join()
 
     # stdout log
-    std_out_str = proc.stdout
+    std_out_str = proc.stdout.read()
     std_out = std_out_str.split("\n")
 
     # leaf log
