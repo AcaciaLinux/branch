@@ -268,7 +268,13 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     blog.info("Build started on {}.".format(datetime.datetime.now()))
 
     blog.info("Building package...")
-    proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+    if(True):
+        for line in proc.stdout:
+            blog.info("[BUILDLOG] {}".format(line.strip()))
+    
+    res = proc.wait()
 
     # stdout log
     std_out_str = proc.stdout
@@ -304,7 +310,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     else:
         blog.warn("Log upload failed.")
 
-    if(proc.returncode != 0):
+    if(res != 0):
         blog.error("Package build script failed.")
         os.chdir(call_dir)
         return "BUILD_FAILED"
