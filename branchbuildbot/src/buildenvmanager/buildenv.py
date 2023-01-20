@@ -140,6 +140,16 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 
     Path(os.path.join(root_dir, "installed")).touch()
     blog.info("Realroot deployment completed.")
+    
+    resolv_conf = os.path.join(root_dir, "etc/resolv.conf")
+
+    if(os.path.exists(resolv_conf)):
+        os.remove(resolv_conf)
+    
+    with open(resolv_conf, "w") as f:
+        f.write("nameserver 1.1.1.1\n")
+    
+    blog.info("Resolver set.")
     return 0
 
 def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
@@ -161,6 +171,16 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
 
     Path(os.path.join(cross_dir, "installed")).touch()
     blog.info("Crossroot deployment completed.")
+
+    resolv_conf = os.path.join(cross_dir, "etc/resolv.conf")
+
+    if(os.path.exists(resolv_conf)):
+        os.remove(resolv_conf)
+    
+    with open(resolv_conf, "w") as f:
+        f.write("nameserver 1.1.1.1\n")
+    
+    blog.info("Resolver set.")
     return 0
 
 # first mount the overlayfs
