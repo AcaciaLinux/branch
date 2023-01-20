@@ -43,7 +43,6 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     # create temp workdir directory
     builddir = os.path.join(rootdir, "branchbuild/")
     if(not os.path.exists(builddir)):
-        blog.warn("Unclean shutdown detected. Removing old build directory..")
         os.mkdir(builddir)
     
     # parse the package build we got
