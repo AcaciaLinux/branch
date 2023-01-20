@@ -12,6 +12,7 @@ import leafpkg
 import threading
 import sys
 
+from config import config
 from buildenvmanager import buildenv
 from bsocket import connect
 
@@ -271,7 +272,9 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
     blog.info("Building package...")
     std_out_str = ""
-   
+  
+    proc = None
+
     if(config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         std_output = [ ]
@@ -287,14 +290,14 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
         t = threading.Thread(target=print_output_realtime, args=(proc.stdout,))
         t.start()
         
-        res = proc.wait()
+        proc.wait()
         t.join()
 
         for line in std_output:
             std_out_str = std_out_str + line
 
     else:
-       proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         # stdout log
         std_out_str = proc.stdout   
@@ -333,7 +336,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     else:
         blog.warn("Log upload failed.")
 
-    if(res != 0):
+    if(proc.returncode != 0):
         blog.error("Package build script failed.")
         os.chdir(call_dir)
         return "BUILD_FAILED"
