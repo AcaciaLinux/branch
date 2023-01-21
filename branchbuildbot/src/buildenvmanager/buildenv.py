@@ -2,8 +2,8 @@ import os
 import shutil
 import time
 import blog
+import pyleafcore
 
-from pyleafcore import *
 from pathlib import Path
 from buildenvmanager import buildenv
 from config import config
@@ -17,10 +17,11 @@ def init_leafcore():
 
     blog.debug("Initializing leafcore..")
     try:
-        leafcore_instance = Leafcore()
+        leafcore_instance = pyleafcore.Leafcore()
     except Exception as ex:
         blog.error("Failed to initialize leafcore. Exception raised: {}".format(ex))
         return -1
+
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOPROGRESS, True)

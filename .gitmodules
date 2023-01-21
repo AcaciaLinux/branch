@@ -11,3 +11,6 @@
 [submodule "submodules/submodules/branchcommons"]
 	path = submodules/submodules/branchcommons
 	url = https://github.com/AcaciaLinux/branchcommons
+[submodule "submodules/pyleaf"]
+	path = submodules/pyleaf
+	url = https://github.com/AcaciaLinux/pyleaf
