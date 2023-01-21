@@ -240,7 +240,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     build_sh.write("set -e\n")
 
     for line in package_build_obj.build_script:
-        build_sh.write(line)
+        build_sh.write(line.strip())
         build_sh.write("\n")
 
     build_sh.write("set +e\n")
