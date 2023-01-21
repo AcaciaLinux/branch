@@ -2,8 +2,8 @@ import os
 import shutil
 import time
 import blog
-import pyleafcore
 
+from pyleafcore import *
 from pathlib import Path
 from buildenvmanager import buildenv
 from config import config
@@ -17,7 +17,7 @@ def init_leafcore():
 
     blog.debug("Initializing leafcore..")
     try:
-        leafcore_instance = pyleafcore.Leafcore()
+        leafcore_instance = Leafcore()
     except Exception as ex:
         blog.error("Failed to initialize leafcore. Exception raised: {}".format(ex))
         return -1
