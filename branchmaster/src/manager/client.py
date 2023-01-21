@@ -92,10 +92,13 @@ class Client():
     #
     def handle_disconnect(self):
         self.lock.acquire()
-        if(self.alive):
+        
+        try:
             blog.info("Client {} has disconnected.".format(self.get_identifier()))
             manager.manager.remove_client(self)
             self.sock.close()
             self.alive = False
+        except Exception:
+            blog.debug("Dead client socket finally closed.")
 
         self.lock.release()

@@ -38,7 +38,7 @@ def check_accepted_timeout_thread(client, job):
         return
     
     blog.info("No response from buildbot received.")
-    blog.warn("Buildbot failed. Closing connection..")
+    blog.warn("Buildbot {} failed. Closing connection..".format(client.get_identifier()))
     
     # report system event
     manager.manager.report_system_event("Overwatch", "Buildbot {} kicked by Overwatch (Reason: No response)".format(client.get_identifier()))
@@ -51,7 +51,7 @@ def check_accepted_timeout_thread(client, job):
 # periodically pings a buildbot to make sure it's alive.
 #
 def check_buildbot_alive(client):
-    blog.debug("Overwatch checking if client {} is alive...".format(client.get_identifier()))
+    blog.debug("Overwatch thread for client {} launching...".format(client.get_identifier()))
     start_new_thread(check_buildbot_alive_thread, (client,))
 
 #
@@ -59,7 +59,7 @@ def check_buildbot_alive(client):
 #
 def check_buildbot_alive_thread(client):
     global PING_PONG_TIME
-    blog.debug("Watching {} ..".format(client.get_identifier()))
+    blog.debug("Ready! Watching {} ..".format(client.get_identifier()))
     
     while client.alive:
         # ping -> wait
@@ -74,7 +74,7 @@ def check_buildbot_alive_thread(client):
 
         time.sleep(PING_PONG_TIME)
     
-    blog.info("Buildbot {} disconnected.".format(client.get_identifier()))
+    blog.info("Connection to {} lost.".format(client.get_identifier()))
     client.handle_disconnect()
-    manager.manager.report_system_event("Overwatch", "Buildbot {} disconnected.".format(client.get_identifier()))
-    blog.info("Overwatch thread exiting.")
+    manager.manager.report_system_event("Overwatch", "Connection to {} lost. Disconnected.".format(client.get_identifier()))
+    blog.info("Overwatch thread for client {} terminating.".format(client.get_identifier()))

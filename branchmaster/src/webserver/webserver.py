@@ -138,7 +138,7 @@ class web_server(BaseHTTPRequestHandler):
                     blog.warn("Errors from the webserver are not fatal to the masterserver.")
                     blog.warn("Connection reset.")
                     
-                    if(config.branch_options.debuglog):
+                    if(config.config.get_config_option("Logger")["enabledebuglog"] == "True"):
                         blog.debug("Stacktrace:")
                         traceback.print_exc()
 
@@ -208,7 +208,7 @@ class web_server(BaseHTTPRequestHandler):
                     blog.warn("Errors from the webserver are not fatal to the masterserver.")
                     blog.warn("Connection reset.")
                     
-                    if(config.branch_options.debuglog):
+                    if(config.config.get_config_option("Logger")["enabledebuglog"] == "True"):
                         blog.debug("Stacktrace:")
                         traceback.print_exc()
 
