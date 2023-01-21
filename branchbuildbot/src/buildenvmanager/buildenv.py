@@ -3,7 +3,7 @@ import shutil
 import time
 import blog
 
-from pyleaf import pyleafcore
+from pyleafcore import *
 from pathlib import Path
 from buildenvmanager import buildenv
 from config import config
@@ -17,14 +17,15 @@ def init_leafcore():
 
     blog.debug("Initializing leafcore..")
     try:
-        leafcore_instance = pyleafcore.Leafcore()
+        leafcore_instance = Leafcore()
     except Exception as ex:
         blog.error("Failed to initialize leafcore. Exception raised: {}".format(ex))
         return -1
-    leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOASK, True)
-    leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
-    leafcore_instance.setBoolConfig(pyleafcore.LeafConfig_bool.CONFIG_NOPROGRESS, True)
-    leafcore_instance.setStringConfig(pyleafcore.LeafConfig_string.CONFIG_PKGLISTURL, config.config.get_config_option("Leaf")["PackagelistUrl"])
+
+    leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
+    leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
+    leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOPROGRESS, True)
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_PKGLISTURL, config.config.get_config_option("Leaf")["PackagelistUrl"])
     blog.debug("Leafcore initialized.")
     return 0
 
@@ -103,9 +104,9 @@ def install_pkgs(packages):
     global leafcore_instance
 
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
-    
+
     # set root dir properly
-    leafcore_instance.setRootDir(temp_dir)
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, temp_dir)
 
     leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
@@ -123,8 +124,8 @@ def install_pkgs(packages):
 
 def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
     global leafcore_instance
-    
-    leafcore_instance.setRootDir(root_dir)
+
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
     leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
@@ -155,7 +156,7 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
     global leafcore_instance
 
-    leafcore_instance.setRootDir(cross_dir)
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, cross_dir)
 
     leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
@@ -304,8 +305,8 @@ def clean_env():
 def upgrade_cross_root():
     root_dir = os.path.join(LAUNCH_DIR, "crosstools")
     global leafcore_instance
-    
-    leafcore_instance.setRootDir(root_dir)
+
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
     leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
@@ -325,8 +326,8 @@ def upgrade_cross_root():
 def upgrade_real_root():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     global leafcore_instance
-    
-    leafcore_instance.setRootDir(root_dir)
+
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
     leaf_error = leafcore_instance.a_update()
     if(leaf_error != 0):
