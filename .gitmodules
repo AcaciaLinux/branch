@@ -1,16 +1,10 @@
-[submodule "branchbuildbot/src/pyleaf"]
-	path = branchbuildbot/src/pyleaf
-	url = https://github.com/AcaciaLinux/pyleaf.git
-	shallow = true
 [submodule "submodules/branchlog"]
 	path = submodules/branchlog
 	url = https://github.com/AcaciaLinux/branchlog
 [submodule "submodules/branchcommons"]
 	path = submodules/branchcommons
 	url = https://github.com/AcaciaLinux/branchcommons
-[submodule "submodules/submodules/branchcommons"]
-	path = submodules/submodules/branchcommons
-	url = https://github.com/AcaciaLinux/branchcommons
 [submodule "submodules/pyleaf"]
 	path = submodules/pyleaf
 	url = https://github.com/AcaciaLinux/pyleaf
+	branch = dev
