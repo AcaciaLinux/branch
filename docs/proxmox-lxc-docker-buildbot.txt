@@ -1,4 +1,7 @@
 # Docker LXC for buildbot:
+# Add the following to your container configuration file
+# to allow privileged container nesting
+
 lxc.apparmor.profile: unconfined
 lxc.cgroup.devices.allow: a
 lxc.cap.drop:
