@@ -2,7 +2,8 @@ version: '3'
 services:
   buildbot:
     image: buildbot
-    container_name: branch
+    privileged: true
+    container_name: branchbuildbot
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
