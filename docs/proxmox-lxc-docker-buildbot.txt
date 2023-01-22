@@ -1,0 +1,4 @@
+# Docker LXC for buildbot:
+lxc.apparmor.profile: unconfined
+lxc.cgroup.devices.allow: a
+lxc.cap.drop:
