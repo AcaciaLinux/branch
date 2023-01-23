@@ -144,13 +144,12 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
         out_file = open(source_file, "wb")
 
-        blog.info("Setting up pycurl..")
+        blog.debug("Setting up pycurl..")
         curl = pycurl.Curl()
         curl.setopt(pycurl.URL, package_build_obj.source)
         curl.setopt(pycurl.FOLLOWLOCATION, 1)
         curl.setopt(pycurl.MAXREDIRS, 5)
         curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-        curl.setopt(pycurl.TIMEOUT, 300)
         curl.setopt(pycurl.NOSIGNAL, 1)
         curl.setopt(pycurl.WRITEDATA, out_file)
 
