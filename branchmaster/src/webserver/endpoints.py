@@ -311,9 +311,7 @@ def submit_packagebuild_endpoint(httphandler, form_data, post_data):
 # get endpoint main function
 #
 def get_endpoint(httphandler, form_data):
-    if(form_data["get"] == "leafpackagelist"):
-        get_endpoint_leaf_pkglist(httphandler)
-    elif(form_data["get"] == "packagelist"):
+    if(form_data["get"] == "packagelist"):
         get_endpoint_json_pkglist(httphandler)
     elif(form_data["get"] == "package"):
         get_endpoint_package(httphandler, form_data)
@@ -421,24 +419,6 @@ def get_endpoint_json_pkglist(httphandler):
 def get_endpoint_pkgbuildlist(httphandler):
     stor = pkgbuildstorage.storage()
     httphandler.send_web_response(webstatus.SUCCESS, stor.packages) 
-
-#
-# Endpoint specifically for leaf
-# returns non-json response
-#
-# fetches package list in csv format
-#
-# ENDPOINT: /?get=leafpackagelist (GET)
-def get_endpoint_leaf_pkglist(httphandler):
-    stor = packagestorage.storage()
-    meta_inf = stor.get_all_package_meta()
-    req_line = httphandler.headers._headers[0][1]
-    
-    for meta in meta_inf:
-        real_version = meta.get_latest_real_version()
-        url = "http://{}/?get=package&pkgname={}".format(req_line, meta.get_name())
-
-        httphandler.wfile.write(bytes("{};{};{};{};{};{}\n".format(meta.get_name(), real_version, meta.get_version(real_version), meta.get_description(), meta.get_dependencies(real_version), url), "utf-8"))
 
 #
 # Endpoint specifically for leaf.
