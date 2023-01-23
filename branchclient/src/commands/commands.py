@@ -3,8 +3,10 @@ import json
 import os
 import blog
 import packagebuild
+import time
 
 from bsocket import connect 
+from utils import inpututil
 
 #
 # checkout package
@@ -29,16 +31,12 @@ def checkout_package(s, pkg_name):
         os.mkdir(pkg_name)
 
     if(os.path.exists(target_file)):
-        blog.warn("Checking out will overwrite your local working copy. Continue? (y/n)")
-        answ = input()
-        if(answ == "y"):
-            os.remove(target_file)
-        else:
-            blog.error("Aborted.")
+        if(not inpututil.ask_choice("Checking out will overwrite your local working copy. Continue?")):
+            blog.error("Aborting.")
             return
 
     pkgbuild.write_build_file(target_file)
-    blog.info("Successfully checkout out package {}".format(pkg_name))
+    blog.info("Successfully checkout out package {}!".format(pkg_name))
         
 
 #
@@ -360,3 +358,60 @@ def submit_solution(s, solution_file_str, use_crosstools):
     else:
         blog.info("Batch queued.")
 
+#
+# Checkout, edit and resubmit a package
+#
+def edit_pkgbuild(s, pkg_name):
+    if(not "EDITOR" in os.environ):
+        blog.error("No editor set.")
+        return
+
+    bpb_resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkg_name))
+    
+    # check if package is valid
+    if(bpb_resp == "INV_PKG_NAME"):
+        blog.error("The specified package could not be found.")
+        return
+
+    if(bpb_resp == "INV_PKG"):
+        blog.error("The package build is damaged and could not be checked out.")
+        return
+    
+    # get pkgbuild object from json
+    pkgbuild = packagebuild.package_build.from_json(bpb_resp)
+
+    timestamp = time.time()
+    target_file = os.path.join("/tmp/", "tmp-edit-{}-{}".format(pkg_name, int(timestamp)))
+
+    pkgbuild.write_build_file(target_file)
+    blog.info("Successfully checkout out package {}".format(pkg_name))
+    blog.info("Launching editor..")
+    
+    editor = os.environ["EDITOR"]
+    os.system("{} {}".format(editor, target_file))
+
+
+    if(not inpututil.ask_choice("Commit changes to remote?")):
+        blog.error("Aborting.")
+        os.remove(target_file) 
+        return 
+
+    # read new pkgbuild from changed file
+    new_pkgbuild = packagebuild.package_build.from_file(target_file)
+    if(not new_pkgbuild.is_valid()):
+        blog.error("Local packagebuild validation failed. Aborting.")
+        os.remove(target_file)
+        return
+
+    json_str = new_pkgbuild.get_json()
+    resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
+   
+    if(resp == "INV_PKG_BUILD"):
+        blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
+    elif(resp == "CMD_OK"):
+        blog.info("Package submission accepted by server.")
+    else:
+        blog.error("An error occured: {}".format(resp))
+    
+    blog.info("Cleaning up..")
+    os.remove(target_file)
