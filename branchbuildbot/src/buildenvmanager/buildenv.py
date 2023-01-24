@@ -43,8 +43,16 @@ def drop_buildenv():
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
     
-    shutil.rmtree(root_dir)
-    shutil.rmtree(cross_dir)
+    try:
+        shutil.rmtree(root_dir)
+    except FileNotFoundError:
+        blog.info("No real root available.")
+
+    try:
+        shutil.rmtree(cross_dir)
+    except FileNotFoundError:
+        blog.info("No cross root available.")
+
 
 # checks if the build environment is setup
 def check_buildenv():
