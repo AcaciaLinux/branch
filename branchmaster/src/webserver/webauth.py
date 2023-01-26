@@ -7,7 +7,7 @@ from webserver import usermanager
 
 class web_auth():
 
-    # static class wars
+    # static class vars
     # key - timestamp of last access
     authorized_keys = [ ]
 
@@ -15,7 +15,7 @@ class web_auth():
     user_hash = { }
 
     def __init__(self):
-        blog.debug("Initializing web_auth object")
+        self.usermgr = usermanager.usermanager()
 
     
     #
@@ -40,7 +40,7 @@ class web_auth():
     #
     def validate_pw(self, user, phash):
         bhash = phash.encode("utf-8")
-        user_obj = usermanager.usermanager().get_user(user)
+        user_obj = self.usermgr.get_user(user)
         
         if(user_obj is None):
             blog.debug("No such user.")

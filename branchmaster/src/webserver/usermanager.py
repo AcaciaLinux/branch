@@ -13,7 +13,6 @@ import blog
 class usermanager():
     
     users = [ ]
-    initialized = False
 
     def __init__(self):
         blog.debug("Initializing user manager.")
@@ -37,8 +36,6 @@ class usermanager():
         for u in usermanager.users:
             if(u.name == username):
                 return False
-
-
 
         byte_array = password.encode('utf-8')
         salt = bcrypt.gensalt()

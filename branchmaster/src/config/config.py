@@ -33,6 +33,7 @@ class config():
             "UntrustedClients": False,
         }
         config["HTTPServer"] = {
+            "EnableWebServer": True,
             "HTTPPort": 8080,
             "SendCorsHeaders": False,
         }

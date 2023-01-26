@@ -47,35 +47,52 @@ def main():
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
 
-
-    blog.info("Loading user file..")
-    userm = usermanager.usermanager()
-
     listen_addr = config.config.get_config_option("Masterserver")["ListenAddress"]   
     listen_port = config.config.get_config_option("Masterserver")["ServerPort"]
     http_port = config.config.get_config_option("HTTPServer")["HTTPPort"]
 
-    blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))
-    endpoints.register_get_endpoints()
-    endpoints.register_post_endpoints()
+    blog.info("Loading user file..")
+    userm = usermanager.usermanager()
 
-    web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(listen_addr, int(http_port)))
-    try:
-        web_thread.start()
-    except Exception as ex:
-        blog.error("Webserver failed to start: {}".format(ex))
+    blog.info("Setting up webserver configuration..")   
+    webserver.WEB_CONFIG["logger_function_debug"] = blog.debug
+    webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
+    webserver.WEB_CONFIG["web_debug"] = config.config.get_config_option("Logger")["EnableDebugLog"] == "True" 
+    webserver.WEB_CONFIG["send_cors_headers"] = config.config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
 
-    blog.info("Launching branchmaster..")
-    blog.info("Serving on {} port {}".format(listen_addr, listen_port))
+    blog.info("Registering webserver endpoints..")
+    webserver.web_server.register_get_endpoints(
+            endpoints.branch_web_providers.get_get_providers())
+    webserver.web_server.register_post_endpoints(
+            endpoints.branch_web_providers.get_post_providers())
     
+    web_thread = None
+    if(config.config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
+        blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))
+        web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(listen_addr, int(http_port)))
+        try:
+            web_thread.start()
+        except Exception as ex:
+            blog.error("Webserver failed to start: {}".format(ex))
+    else:
+        blog.warn("Webserver disabled by configuration option.")
+
+    blog.info("Launching socket server..")
+    blog.info("Serving on {} port {}".format(listen_addr, listen_port))
+
     cli_thread = threading.Thread(target=server.init_server, daemon=True, args=(listen_addr, int(listen_port)))
     try:
         cli_thread.start()
     except Exception as ex:
-        blog.error("Socket-cli server failed to start: {}".format(ex))
-
-    web_thread.join()
+        blog.error("Socket server failed to start: {}".format(ex))
+    
+    blog.info("Branchmaster ready. Waiting for connections.")
+    manager.manager.report_system_event("Branchmaster", "Ready for connections.")
     cli_thread.join()
+    
+    if(not web_thread is None):
+        web_thread.join()
+
 
 if (__name__ == "__main__"):
     try:
