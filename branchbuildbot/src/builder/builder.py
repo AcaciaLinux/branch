@@ -253,12 +253,13 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     entry_sh_path = os.path.join(temp_root, "entry.sh")
     entry_sh = open(entry_sh_path, "w")
 
-    # export PKG_NAME, PKG_VERSION, PKG_REAL_VERSION and PKG_INSTALL_DIR
+    # export PKG_NAME, PKG_VERSION, PKG_REAL_VERSION, PKG_INSTALL_DIR and HOME
     entry_sh.write("cd /branchbuild/build/\n")
     entry_sh.write("export PKG_NAME={}\n".format(package_build_obj.name))
     entry_sh.write("export PKG_VERSION={}\n".format(package_build_obj.version))
     entry_sh.write("export PKG_REAL_VERSION={}\n".format(package_build_obj.real_version))
     entry_sh.write("export PKG_INSTALL_DIR={}\n".format(chroot_destdir))
+    entry_sh.write("export HOME=/root/\n")
     entry_sh.write("./build.sh\n")
     entry_sh.close()
 
