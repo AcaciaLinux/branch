@@ -97,7 +97,6 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
 
         for pk in line:
             job = jobs.jobs(use_crosstools)
-            job.build_pkg_name = pk
             job.pkg_payload = storage.get_bpb_obj(pk)
             
             if(job.pkg_payload is None):
@@ -129,7 +128,6 @@ def get_job_array(manager, client, dependencies):
     for dependency in dependencies:
         # do not use crosstools
         job = jobs.jobs(False)
-        job.build_pkg_name = dependency
         job.pkg_payload = stor.get_bpb_obj(dependency)
         job.requesting_client = client.get_identifier()
         job.set_status("WAITING")
@@ -143,7 +141,7 @@ def get_job_array(manager, client, dependencies):
 #
 def get_job_by_name(jobs, name):
     for job in jobs:
-        if(job.build_pkg_name == name):
+        if(job.pkg_payload.name == name):
             return job
 
 #

@@ -173,8 +173,6 @@ class branch_web_providers():
             # get a job obj, use_crosstools = True
             job = manager.manager.new_job(use_crosstools)
 
-            # TODO: remove seperate build_pkg_name, because pkg contains it.
-            job.build_pkg_name = pkg.name
             job.pkg_payload = pkg
             job.requesting_client = "webclient"
             job.set_status("WAITING")

@@ -189,8 +189,6 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 # get a job obj, crosstools = False
                 job = manager.new_job(False)
 
-                # TODO: remove seperate build_pkg_name, because pkg contains it.
-                job.build_pkg_name = pkg.name
                 job.pkg_payload = pkg
                 job.requesting_client = client.get_identifier()
                 job.set_status("WAITING")
@@ -220,8 +218,6 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 # get a job obj, use_crosstools = True
                 job = manager.new_job(True)
 
-                # TODO: remove seperate build_pkg_name, because pkg contains it.
-                job.build_pkg_name = pkg.name
                 job.pkg_payload = pkg
                 job.requesting_client = client.get_identifier()
                 job.set_status("WAITING")
@@ -626,7 +622,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                 job.set_status("UPLOADING")
                 job.job_accepted = True
                 job.file_size = int(cmd_body)
-                job.file_name = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.build_pkg_name, job.job_id))
+                job.file_name = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.job_id))
                 client.file_transfer_mode = True
                 return "ACK_FILE_TRANSFER"
             else:

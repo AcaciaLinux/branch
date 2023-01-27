@@ -18,7 +18,7 @@ class queue():
                 blog.debug("Job is currently blocked: {}. Blocked by: ".format(sjob))
                 return True
             else:
-                blog.debug("Job is unblocked, ready to queue: {}".format(job.build_pkg_name))
+                blog.debug("Job is unblocked, ready to queue: {}".format(job.pkg_payload.name))
                 return False
 
     #
