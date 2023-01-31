@@ -154,7 +154,7 @@ def get_job_by_id(jobs, jid):
             return job
 
 #
-# Returns all the jobs contained in the queue that matchon of the names in deps_array
+# Returns all the jobs contained in the queue that matches one of the names in deps_array
 #
 
 def package_dep_in_queue(in_queue: queue, deps_array):
