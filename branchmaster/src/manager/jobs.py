@@ -7,7 +7,6 @@ class jobs():
         # class members
         self.job_id = ""
         self.pkg_payload = None
-        self.build_pkg_name = ""
 
         self.requesting_client = ""
         self.client = None
