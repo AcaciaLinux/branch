@@ -174,6 +174,7 @@ def update_blockages(manager):
     blog.info("Recalculating blockages...")
 
     for job in manager.queued_jobs:
+        job.blocked_by = []
 
         # Select the correct dependency array
         if (job.use_crosstools):
