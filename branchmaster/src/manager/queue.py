@@ -2,7 +2,7 @@ import json
 import blog
 
 from manager import manager
-from dependency import dependency
+from dependency.dependency import update_blockages
 from overwatch import overwatch
 
 class queue():
@@ -11,15 +11,7 @@ class queue():
     # Check if job is blocked
     #
     def job_is_blocked(self, job):
-        for blocker in job.blocked_by:
-            sjob = manager.manager.get_job_by_id(blocker)
-           
-            if(not sjob in manager.manager.completed_jobs):
-                blog.debug("Job is currently blocked: {}. Blocked by: ".format(sjob))
-                return True
-            else:
-                blog.debug("Job is unblocked, ready to queue: {}".format(job.pkg_payload.name))
-                return False
+        return job.get_status() == "BLOCKED"
 
     #
     # Called when a controller requests BUILD
@@ -49,9 +41,14 @@ class queue():
             return "BUILD_REQ_QUEUED"
 
     #
-    # Called when we get SIG_READY from buildbot
+    # Updates the queue, this reevaluates blockages and dispatches jobs to buildbots
     #
-    def notify_ready(self):
+    def update(self):
+        blog.info("Updating queue...")
+
+        # Recalculate blocked jobs
+        update_blockages(manager.manager)
+
         # no queue, idle bot..
         if(not manager.manager.queued_jobs):
             blog.debug("A build client is ready, but is currently not needed.")
@@ -65,11 +62,16 @@ class queue():
         # find not blocked jobs
         for sjob in manager.manager.queued_jobs:
             if(not self.job_is_blocked(sjob)):
+                blog.debug("Job '{}' ({}) is able to be built now".format(sjob.pkg_payload.name, sjob.job_id))
                 unblocked_jobs.append(sjob)
-       
+
         # Notify that there are no jobs available
         if(not unblocked_jobs):
-            blog.info("No job available for client. All jobs are blocked or none is waiting.")
+            if(len(manager.manager.queued_jobs) > 0):
+                blog.error("STALL: Can't continue building, there are some jobs queued but they block eachother")
+                manager.manager.report_system_event("queue", "STALL: All queued build jobs are blocked by eachother")
+            else:
+                blog.info("No job available for client.")
             return
 
         # find idle buildbots
@@ -79,7 +81,6 @@ class queue():
                 break
 
             # get an unblocked job
-    
             # get head of list
             job = unblocked_jobs[0]
             del unblocked_jobs[0]
