@@ -2,6 +2,7 @@ import blog
 from localstorage import pkgbuildstorage
 from dependency import node
 from manager import jobs
+from manager import queue
 
 #
 # Get all dependencies in a list
@@ -152,3 +153,51 @@ def get_job_by_id(jobs, jid):
         if(job.job_id == jid):
             return job
 
+#
+# Returns all the jobs contained in the queue that matchon of the names in deps_array
+#
+
+def package_dep_in_queue(in_queue: queue, deps_array):
+    res = []
+
+    for searchJob in in_queue:
+        if (searchJob.pkg_payload.name in deps_array):
+            res.append(searchJob)
+
+    return res
+
+#
+# Updates every job in the queue and if it should be blocked by another one
+#
+
+def update_blockages(manager):
+    blog.info("Recalculating blockages...")
+
+    for job in manager.queued_jobs:
+
+        # Select the correct dependency array
+        if (job.use_crosstools):
+            dependencies = job.pkg_payload.cross_dependencies
+        else:
+            dependencies = job.pkg_payload.build_dependencies
+
+        # The queued jobs
+        for job_found in package_dep_in_queue(manager.queued_jobs, dependencies):
+            blog.debug("Job '{}' ({}) is blocked by queued job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
+            job.blocked_by.append(job_found.job_id)
+
+        # The running jobs
+        for job_found in package_dep_in_queue(manager.running_jobs, dependencies):
+            blog.debug("Job '{}' ({}) is blocked by running job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
+            job.blocked_by.append(job_found.job_id)
+
+        # Finished and "COMPLETED" jobs
+        for job_found in package_dep_in_queue(manager.completed_jobs, dependencies):
+            if (job_found.get_status() != "COMPLETED"):
+                blog.debug("Job '{}' ({}) is blocked by non-completed job '{}' ({}) [{}]".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id, job_found.get_status()))
+                job.blocked_by.append(job_found.job_id)
+
+        if (len(job.blocked_by) > 0):
+            job.set_status("BLOCKED")
+        else:
+            job.set_status("WAITING")
