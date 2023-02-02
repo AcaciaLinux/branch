@@ -150,14 +150,17 @@ class manager():
     def clear_completed_jobs():
         manager.completed_jobs = None
         manager.completed_jobs = [ ]
+        manager.get_queue().update()
 
     @staticmethod 
     def cancel_queued_job(job):
         manager.queued_jobs.remove(job)
+        manager.get_queue().update()
     
     @staticmethod
     def cancel_all_queued_jobs():
         manager.queued_jobs = [ ] 
+        manager.get_queue().update()
     
     @staticmethod
     def get_buildbot_names():
