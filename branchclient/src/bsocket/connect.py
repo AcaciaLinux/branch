@@ -29,7 +29,7 @@ def connect(host, port, name, authkey, cltype):
             return None
 
     blog.info("Sending machine type..")
-    cmd = "SET_MACHINE_TYPE " + cltype
+    cmd = "SET_MACHINE_TYPE {}".format(cltype)
 
     data = send_msg(s, cmd)
     
@@ -40,7 +40,7 @@ def connect(host, port, name, authkey, cltype):
         return None
 
     blog.info("Sending client name...")
-    cmd = "SET_MACHINE_NAME " + name
+    cmd = "SET_MACHINE_NAME {}".format(name)
     
     data = send_msg(s, cmd)
     

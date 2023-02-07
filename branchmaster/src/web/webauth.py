@@ -2,7 +2,7 @@ import time
 import uuid
 import blog
 
-from webserver import usermanager
+from web import usermanager
 
 
 class web_auth():

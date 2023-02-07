@@ -19,16 +19,16 @@ BRANCH_CODENAME = "Pre Release"
 BRANCH_VERSION = "0.6-pre"
 
 import threading
-
 import blog
+import webserver
+
 from config import config
 from bsocket import server
 from manager import manager
 from localstorage import pkgbuildstorage
 
-from webserver import usermanager
-from webserver import endpoints
-from webserver import webserver
+from web import usermanager
+from web import endpoints
 
 def main():
     print("Branch (SERVER) - The AcaciaLinux package build / distribution system.")

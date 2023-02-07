@@ -55,6 +55,7 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     # validate..
     if(not pkgbuild.is_valid()):
         blog.warn("Invalid package build received from server. Rejected.")
+        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed. The server sent us an invalid packagebuild."))
         return "BUILD_FAILED"
     
     # build environment is setup, package build is ready.
