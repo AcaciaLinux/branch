@@ -10,8 +10,8 @@ def connect(host, port, name, authkey, cltype):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((host, port))
-    except ConnectionRefusedError:
-        blog.error("Connection refused.")
+    except Exception:
+        blog.error("Could not connect.")
         return None
 
     blog.info("Connection established!")
