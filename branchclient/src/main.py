@@ -72,7 +72,8 @@ def main():
     argparser.add_argument("-rd", "--rebuilddependers", help="Rebuild dependers of a given package")
     argparser.add_argument("-rbs", "--releasebuildsol", help="Submits a branch solution to the masterserver. (RELEASEBUILD)")
     argparser.add_argument("-cbs", "--crossbuildsol", help="Submits a branch solution to the masterserver. (CROSSBUILD)")
-    argparser.add_argument("-e", "--edit", help="Edit a package build from the remote")
+    argparser.add_argument("-e", "--edit", help="Edit a package build from the remote server")
+    argparser.add_argument("-ex", "--export", help="Exports all managed pkgbuilds from the remote server") 
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -95,7 +96,8 @@ def main():
         "rebuilddependers": commands.rebuild_dependers,
         "releasebuildsol": commands.submit_solution_rb,
         "crossbuildsol": commands.submit_solution_cb,
-        "edit": commands.edit_pkgbuild
+        "edit": commands.edit_pkgbuild,
+        "export": commands.export
     }
 
     # parse arguments

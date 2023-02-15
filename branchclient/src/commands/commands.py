@@ -415,3 +415,48 @@ def edit_pkgbuild(s, pkg_name):
     
     blog.info("Cleaning up..")
     os.remove(target_file)
+
+def export(s, target_dir):
+    managed_packagebuilds = json.loads(connect.send_msg(s, "MANAGED_PKGBUILDS"))
+    blog.info("Checking out {} pkgbuilds..".format(len(managed_packagebuilds)))
+ 
+    if(os.path.exists(target_dir) and os.path.isdir(target_dir)):
+        blog.error("Target directory {} already exists.".format(target_dir))
+        return
+
+    pkgbuilds = [ ]
+
+    for pkgbuild_name in managed_packagebuilds:
+        blog.info("Checking out: {}".format(pkgbuild_name))
+        resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkgbuild_name))
+        
+        # check if package is valid
+        if(resp == "INV_PKG_NAME"):
+            blog.error("Packagebuild {} could not be found.".format(pkgbuild_name))
+            return
+
+        if(resp == "INV_PKG"):
+            blog.error("Packagebuild {} is damaged and could not be checked out.".format(pkgbuild_name))
+            return
+        
+        pkgbuilds.append(packagebuild.package_build.from_json(resp))
+   
+    blog.info("Saving packagebuilds to {}".format(target_dir))
+    try:
+        os.mkdir(target_dir)
+    except Exception:
+        blog.error("Could not create export directory.")
+        return
+
+    for pkgbuild in pkgbuilds:
+        target_sub_dir = os.path.join(target_dir, pkgbuild.name)
+        target_file = os.path.join(target_sub_dir, "package.bpb")
+        
+        try:
+            os.mkdir(target_sub_dir)
+            pkgbuild.write_build_file(target_file)
+        except Exception:
+            blog.error("Could not write to disk. Aborting")
+            return
+    
+    blog.info("Export completed.")
