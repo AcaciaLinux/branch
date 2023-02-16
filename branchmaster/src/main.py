@@ -66,6 +66,9 @@ def main():
     webserver.web_server.register_post_endpoints(
             endpoints.branch_web_providers.get_post_providers())
     
+    blog.info("Setting up local Packagebuild database..")
+    pkgbuildstorage.storage.populate()
+
     web_thread = None
     if(config.config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
         blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))

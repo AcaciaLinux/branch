@@ -1,78 +1,151 @@
 import os
-import json
 import blog
+import json
 import packagebuild
+import sqlite3
+from threading import Lock
 
 class storage():
-
-    def __init__(self):
-        if(not os.path.exists("./packagebuilds/")):
-            os.mkdir("./packagebuilds/")
-
-        # index local storage on init
-        blog.debug("Indexing local storage..")
-        self.packages = [ ]
-        pkg_num = self.index()
-        blog.debug("Found {} package(s)!".format(pkg_num))
     
-    #
-    # index the package build storage
-    #
-    def index(self):
-        # reset packagebuild list
-        self.packages = [ ]
-
-        dirs = [ f.path for f in os.scandir("./packagebuilds") if f.is_dir() ]
-        for dir in dirs:
-            if(os.path.exists(os.path.join(dir, "package.bpb"))):
-                pkg_name = os.path.basename(os.path.normpath(dir))
-                self.packages.append(pkg_name)
-        
-        return len(self.packages)
-
-    #
-    # get a package build file from localstorage
-    #
-    def get_pkg_build_file(self, name):
-        return os.path.join(os.path.join("./packagebuilds/", name), "package.bpb")
-
-    #
-    # get package build by name from localstorage
-    #
-    def get_json_bpb(self, name):
-        # check if package exists
-        if(not name in self.packages):
-            return None
-
-        pkg_path = self.get_pkg_build_file(name)
-        bpb = packagebuild.package_build.from_file(pkg_path)
-        
-        if(bpb is None):
-            return None
-        else:
-            return bpb.get_json()
-        
-        return bpb_json
-
-    #
-    # get a Package build object by name from localstorage
-    #
-    def get_bpb_obj(self, name):
-        # check if package exists
-        if(not name in self.packages):
-            return None
-
-        pkg_path = self.get_pkg_build_file(name)
-        return packagebuild.package_build.from_file(pkg_path)
+    # only one thread can access an sqlite object at a time
+    lock = Lock()
     
-    #
-    # create a storage directory for a packagebuild 
-    #
-    def create_stor_directory(self, name):
-        pkgs_dir = os.path.join(os.getcwd(), "./packagebuilds")
-        pkg_dir = os.path.join(pkgs_dir, name)
+    @staticmethod
+    def populate():
+        blog.debug("Acquiring Database lock")
+        
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            storage.lock.acquire()
+            cur = db_connection.cursor()
 
-        if(not os.path.exists(pkg_dir)):
-            os.mkdir(pkg_dir)
+            res = cur.execute("SELECT name FROM sqlite_master")
+            
+            existing_tables = res.fetchone()
+            if(existing_tables is None or "pkgbuilds" not in existing_tables):
+                blog.info("Creating table..")
+                cur.execute("CREATE TABLE IF NOT EXISTS pkgbuilds(name, real_version, version, source, extra_sources, description, dependencies, build_dependencies, cross_dependencies, buildscript)")
+                
+            blog.debug("Releasing Database lock")
+        except Exception as ex:
+            blog.error("Could not populate database: {}".format(ex))
 
-        return pkg_dir
+        storage.lock.release()
+       
+    @staticmethod
+    def get_packagebuild_obj(name):
+        blog.debug("Acquiring Database lock")
+        storage.lock.acquire()
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            cur = db_connection.cursor()
+            res = cur.execute("SELECT * FROM pkgbuilds WHERE name = ?", (name,))
+            pkgbuild_result = res.fetchone()
+
+            if(pkgbuild_result is None):
+                storage.lock.release()
+                return None
+        
+            pkgbuild_obj = packagebuild.package_build.from_list(pkgbuild_result)
+
+            blog.debug("Releasing Database lock")
+        except Exception as ex:
+            blog.error("Could not get packagebuild from database: {}".format(ex))
+
+        storage.lock.release()
+        return pkgbuild_obj
+
+    @staticmethod
+    def add_packagebuild_obj(pkgbuild_obj):
+        blog.info("Inserting pkgbuild to database: {}".format(pkgbuild_obj.name))
+        storage.lock.acquire()
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            
+            # remove packagebuild if it already exists
+            cur = db_connection.cursor()
+            res = cur.execute("DELETE FROM pkgbuilds WHERE name = ?", (pkgbuild_obj.name,))
+            db_connection.commit()
+
+            extra_sources = ""
+            for item in pkgbuild_obj.extra_sources:
+                extra_sources = "{}[{}]".format(extra_sources, item)
+
+            dependencies = ""
+            for item in pkgbuild_obj.dependencies:
+                dependencies = "{}[{}]".format(dependencies, item)
+
+            build_dependencies = ""
+            for item in pkgbuild_obj.build_dependencies:
+                build_dependencies = "{}[{}]".format(build_dependencies, item)
+
+            cross_dependencies = ""
+            for item in pkgbuild_obj.cross_dependencies:
+                cross_dependencies = "{}[{}]".format(cross_dependencies, item)
+            
+            buildscript = ""
+            
+            if(pkgbuild_obj.build_script != [ ]):
+                for i in range(0, len(pkgbuild_obj.build_script) - 2):
+                    buildscript = "{}{}\n".format(buildscript, pkgbuild_obj.build_script[i])
+                
+                # last line does not have a newline
+                buildscript = "{}{}".format(buildscript, pkgbuild_obj.build_script[len(pkgbuild_obj.build_script) - 1])
+
+            values = (pkgbuild_obj.name, pkgbuild_obj.real_version, pkgbuild_obj.version, pkgbuild_obj.source, extra_sources, pkgbuild_obj.description,
+                      dependencies, build_dependencies, cross_dependencies, buildscript)
+
+            # get a cursor
+            cur = db_connection.cursor()
+            cur.execute("INSERT INTO pkgbuilds VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+            db_connection.commit()
+        except Exception as ex:
+            blog.error("Could not insert to database: {}".format(ex))
+
+        storage.lock.release()
+
+    @staticmethod
+    def get_all_packagebuilds():
+        storage.lock.acquire()
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            
+            # remove packagebuild if it already exists
+            cur = db_connection.cursor()
+            res = cur.execute("SELECT * FROM pkgbuilds")
+            
+            pkgbuilds = [ ]
+
+            for match in res.fetchall():
+                pkgbuild_obj = packagebuild.package_build.from_list(match)
+                pkgbuilds.append(pkgbuild_obj)
+        except Exception as ex:
+            blog.error("Could not get all from database: {}".format(ex))
+
+        storage.lock.release()
+        return pkgbuilds
+
+    @staticmethod
+    def get_all_packagebuild_names():
+        storage.lock.acquire()
+        
+        names = [ ]
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            
+            # remove packagebuild if it already exists
+            cur = db_connection.cursor()
+            res = cur.execute("SELECT name FROM pkgbuilds")
+
+            for r in res.fetchall():
+                names.append(r[0])
+
+        except Exception as ex:
+            blog.error("Could not get all names from database.")
+    
+        storage.lock.release()
+        return names
+
+    @staticmethod
+    def remove_packagebuild():
+        blog.info("remove_packagebuild(): STUB")

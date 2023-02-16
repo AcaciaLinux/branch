@@ -136,26 +136,19 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # CHECKUT_PACKAGE <NAME>
         #  
         case "CHECKOUT_PACKAGE":
-            storage = pkgbuildstorage.storage()
-
-            if(cmd_body in storage.packages):
-                blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
-                
-                pkg_build = storage.get_json_bpb(cmd_body)
-                if(pkg_build is None):
-                    return "INV_PKG"
-                else:
-                    return pkg_build
-            else:
+            pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body).get_json()
+            
+            if(pkg_build is None):
                 return "INV_PKG_NAME"
+            else:
+                blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
+                return pkg_build
 
         #
         # submit a package build file
         # SUBMIT_PACKAGE <PAYLOAD>
         #
         case "SUBMIT_PACKAGE":
-            storage = pkgbuildstorage.storage()
-            
             if(len(cmd_body) == 0):
                 return "INV_PKG_BUILD"
 
@@ -163,13 +156,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(not pkgbuild.is_valid()):
                 return "INV_PKG_BUILD"
             
-            tdir = storage.create_stor_directory(pkgbuild.name)
-
-            bpb_file = os.path.join(tdir, "package.bpb")
-            if(os.path.exists(bpb_file)):
-                os.remove(bpb_file)
-           
-            pkgbuild.write_build_file(bpb_file)
+            pkgbuildstorage.storage.add_packagebuild_obj(pkgbuild)
             return "CMD_OK"
      
         #
@@ -177,29 +164,24 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # RELEASE_BUILD <NAME>
         #
         case "RELEASE_BUILD":
-            storage = pkgbuildstorage.storage()
-            if(cmd_body in storage.packages):
-                blog.info("Controller client requested release build for {}".format(cmd_body))
-                
-                pkg = storage.get_bpb_obj(cmd_body)
-
-                if(pkg is None):
-                    return "PKG_BUILD_DAMAGED"
-
-                # get a job obj, crosstools = False
-                job = manager.new_job(False)
-
-                job.pkg_payload = pkg
-                job.requesting_client = client.get_identifier()
-                job.set_status("WAITING")
-
-                res = manager.get_queue().add_to_queue(job)
-                manager.get_queue().update()
-                return res
-            else:
-                blog.info("Controller client requested release build for invalid package.")
+            if(len(cmd_body) == 0):
                 return "INV_PKG_NAME"
 
+            pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body)
+            
+            if(pkgbuild is None):
+                return "INV_PKG_NAME"
+
+            # get a job obj, crosstools = False
+            job = manager.new_job(False)
+
+            job.pkg_payload = pkgbuild
+            job.requesting_client = client.get_identifier()
+            job.set_status("WAITING")
+
+            res = manager.get_queue().add_to_queue(job)
+            manager.get_queue().update()
+            return res
 
 
         #
@@ -207,28 +189,25 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # CROSS_BUILD <NAME>
         #
         case "CROSS_BUILD":
-            storage = pkgbuildstorage.storage()
-            if(cmd_body in storage.packages):
-                blog.info("Controller client requested cross build for {}".format(cmd_body))
-                
-                pkg = storage.get_bpb_obj(cmd_body)
-            
-                if(pkg is None):
-                    return "PKG_BUILD_DAMAGED"
 
-                # get a job obj, use_crosstools = True
-                job = manager.new_job(True)
-
-                job.pkg_payload = pkg
-                job.requesting_client = client.get_identifier()
-                job.set_status("WAITING")
-
-                res = manager.get_queue().add_to_queue(job)
-                manager.get_queue().update()
-                return res
-            else:
-                blog.info("Controller client requested release build for invalid package.")
+            if(len(cmd_body) == 0):
                 return "INV_PKG_NAME"
+
+            pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body)
+            
+            if(pkgbuild is None):
+                return "INV_PKG_NAME"
+
+            # get a job obj, crosstools = False
+            job = manager.new_job(False)
+
+            job.pkg_payload = pkgbuild
+            job.requesting_client = client.get_identifier()
+            job.set_status("WAITING")
+
+            res = manager.get_queue().add_to_queue(job)
+            manager.get_queue().update()
+            return res
       
         #
         # Requests log for a package build
@@ -260,9 +239,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # GET_DEPENDERS <NAME>
         #
         case "GET_DEPENDERS":
-            storage = pkgbuildstorage.storage()
+            names = pkgbuildstorage.storage.get_all_packagebuild_names()
 
-            if(cmd_body in storage.packages):
+            if(cmd_body in names):
                 blog.info("Calculating dependers for {}..".format(cmd_body))
                 dps = dependency.get_dependency_tree(cmd_body)
                 return json.dumps(dps.get_deps_array())
@@ -276,9 +255,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # packages that depend on it
         #
         case "REBUILD_DEPENDERS":
-            storage = pkgbuildstorage.storage()
+            names = pkgbuildstorage.storage.get_all_packagebuild_names()
 
-            if(cmd_body in storage.packages):
+            if(cmd_body in names):
                 blog.info("Controller client requested rebuild including dependers for {}".format(cmd_body))
 
                 # get dependency tree
@@ -363,8 +342,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # MANAGED_PKGBUILDS
         #
         case "MANAGED_PKGBUILDS":
-            stor = pkgbuildstorage.storage()
-            return json.dumps(stor.packages)
+            return json.dumps(pkgbuildstorage.storage.get_all_packagebuild_names())
 
         #
         # Clear completed jobs

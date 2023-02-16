@@ -165,11 +165,10 @@ class branch_web_providers():
         pkgname = post_data["pkgname"]
 
         # request pkgbuild from branch manager
-        storage = pkgbuildstorage.storage()
-        if(pkgname in storage.packages):
+        if(pkgname in pkgbuildstorage.storage.get_all_packagebuilds()):
             blog.info("Web client requested build for {}".format(pkgname))
              
-            pkg = storage.get_bpb_obj(pkgname)
+            pkg = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
 
             # get a job obj, use_crosstools = True
             job = manager.manager.new_job(use_crosstools)
@@ -266,21 +265,14 @@ class branch_web_providers():
             return
         
         blog.debug("Checking submission..")
-        storage = pkgbuildstorage.storage()
+
         package_build = packagebuild.package_build.from_string(post_data["packagebuild"])
 
-        if(package_build.name == "" or package_build.version == "" or package_build.real_version == ""):
+        if(not package_build.is_valid()):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Missing values in package build")
             return
         
-        blog.debug("Writing package submission to disk..")
-        tdir = storage.create_stor_directory(package_build.name)
-
-        packagebuild_file = os.path.join(tdir, "package.bpb")
-        if(os.path.exists(packagebuild_file)):
-            os.remove(packagebuild_file)
-       
-        package_build.write_build_file(packagebuild_file)
+        pkgbuildstorage.storage.add_packagebuild_obj(package_build)
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package submission accepted.")
 
 
@@ -342,15 +334,12 @@ class branch_web_providers():
     # ENDPOINT /?get=packagebuild
     @staticmethod
     def get_endpoint_pkgbuild(httphandler, form_data):
-        storage = pkgbuildstorage.storage()
-        
         if("pkgname" not in form_data):
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data")
             return
-         
-        if(form_data["pkgname"] in storage.packages):
-            pkgbuild_file = open(storage.get_pkg_build_file(form_data["pkgname"]), "r")
-            httphandler.send_web_response(webserver.webstatus.SUCCESS, pkgbuild_file.read())
+
+        if(form_data["pkgname"] in pkgbuildstorage.storage.get_all_packagebuild_names()):
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, pkgbuildstorage.storage.get_packagebuild_obj(form_data["pkgname"]).get_string())
         else:
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid packagebuild name.")
 
@@ -409,8 +398,7 @@ class branch_web_providers():
     # ENDPOINT /?get=jsonpackagebuildlist (GET)
     @staticmethod
     def get_endpoint_pkgbuildlist(httphandler):
-        stor = pkgbuildstorage.storage()
-        httphandler.send_web_response(webserver.webstatus.SUCCESS, stor.packages) 
+        httphandler.send_web_response(webserver.webstatus.SUCCESS, pkgbuildstorage.storage.get_all_packagebuild_names())
 
     #
     # Endpoint specifically for leaf.
