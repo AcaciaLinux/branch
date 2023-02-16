@@ -194,6 +194,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 job.set_status("WAITING")
 
                 res = manager.get_queue().add_to_queue(job)
+                manager.get_queue().update()
                 return res
             else:
                 blog.info("Controller client requested release build for invalid package.")
@@ -223,6 +224,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 job.set_status("WAITING")
 
                 res = manager.get_queue().add_to_queue(job)
+                manager.get_queue().update()
                 return res
             else:
                 blog.info("Controller client requested release build for invalid package.")
@@ -499,7 +501,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             blog.info("Client {} is ready for commands.".format(client.get_identifier()))
 
             client.is_ready = True
-            manager.queue.notify_ready()
+            manager.queue.update()
 
             return None
 
@@ -513,7 +515,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             client.alive = True
 
             # notify queue, because we might have got a job while sending keepalive
-            manager.queue.notify_ready()
+            manager.queue.update()
             return "CMD_ACK"
 
         
