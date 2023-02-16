@@ -136,13 +136,13 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # CHECKUT_PACKAGE <NAME>
         #  
         case "CHECKOUT_PACKAGE":
-            pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body).get_json()
+            pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body)
             
             if(pkg_build is None):
                 return "INV_PKG_NAME"
             else:
                 blog.info("Client {} checked out package '{}'!".format(client.get_identifier(), cmd_body))
-                return pkg_build
+                return pkg_build.get_json()
 
         #
         # submit a package build file
