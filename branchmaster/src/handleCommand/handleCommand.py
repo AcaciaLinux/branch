@@ -396,6 +396,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             # queue every job
             for job in jobs:
                 manager.get_queue().add_to_queue(job)
+                manager.get_queue().update()
 
             return "BATCH_QUEUED"
 
@@ -419,6 +420,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             # queue every job
             for job in jobs:
                 manager.get_queue().add_to_queue(job)
+                manager.get_queue().update()
 
             return "BATCH_QUEUED"
     

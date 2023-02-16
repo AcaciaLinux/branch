@@ -8,29 +8,25 @@ from manager import queue
 # Get all dependencies in a list
 #
 def get_all_deps(pkg_name):
-    storage = pkgbuildstorage.storage()
-    
     calculated = [ ]
     deps = [ ]
-    res  = calculate_list(storage, pkg_name, calculated, deps)
+    res  = calculate_list(pkg_name, calculated, deps)
     return res
 
 #
 # Calculates a dependency tree and return its masternode object 
 #
 def get_dependency_tree(pkg_name):
-    storage = pkgbuildstorage.storage()
-
     masternode = node.node(pkg_name)
     calculated = [ ]
 
-    res = calculate_tree(storage, calculated, masternode)  
+    res = calculate_tree(calculated, masternode)  
     return masternode
 
 #
 # Returns a full depender tree
 #
-def calculate_tree(storage, calculated, masternode):
+def calculate_tree(calculated, masternode):
     # Ignore circular dependencies
     if(masternode.name in calculated):
         blog.debug("Already calculated dependencies skipped.")
@@ -40,8 +36,8 @@ def calculate_tree(storage, calculated, masternode):
     calculated.append(masternode.name)
     blog.debug("Finding dependers for {}...".format(masternode.name))
 
-    for pkg in storage.packages:
-        pkg_build = storage.get_bpb_obj(pkg)
+    for pkg in pkgbuildstorage.storage.get_all_packagebuild_names():
+        pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(pkg)
         
         if(masternode.name in pkg_build.build_dependencies):
             blog.debug("Adding to dependers.. {}".format(pkg))
@@ -52,13 +48,13 @@ def calculate_tree(storage, calculated, masternode):
             masternode.add_sub_node(newnode)
             
             # calculate dependencies for subnodes
-            calculate_tree(storage, calculated, newnode)
+            calculate_tree(calculated, newnode)
             continue
 
 #
 # Returns dependers as list
 #
-def calculate_list(storage, pkg_name, calculated, deps):
+def calculate_list(pkg_name, calculated, deps):
     if(pkg_name in calculated):
         blog.debug("Already calculated {}! Skipping calculation..".format(pkg_name))
         return
@@ -67,8 +63,8 @@ def calculate_list(storage, pkg_name, calculated, deps):
 
     blog.debug("Finding dependers (one level deep) for {}...".format(pkg_name))
 
-    for check_pkg in storage.packages:
-        pkg_build = storage.get_bpb_obj(check_pkg)
+    for check_pkg in pkgbuildstorage.storage.get_all_packagebuild_names():
+        pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(check_pkg)
         
         if(pkg_name in pkg_build.build_dependencies):
             if(not check_pkg in deps):
@@ -83,7 +79,7 @@ def calculate_list(storage, pkg_name, calculated, deps):
     calculated.append(pkg_name)
 
     for pkg in ldeps:
-        calculate_list(storage, pkg, calculated, deps)
+        calculate_list(pkg, calculated, deps)
         
     return deps
 
@@ -91,14 +87,12 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
     created_jobs = [ ]
     prev_jobs = [ ]
 
-    storage = pkgbuildstorage.storage()
-
     for line in solution:
         new_prev_jobs = [ ]
 
         for pk in line:
             job = jobs.jobs(use_crosstools)
-            job.pkg_payload = storage.get_bpb_obj(pk)
+            job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(pk)
             
             if(job.pkg_payload is None):
                 return None, pk
@@ -121,7 +115,6 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
 #
 def get_job_array(manager, client, dependencies):
     job_array = [ ]
-    stor = pkgbuildstorage.storage()
     
     if(dependencies is None):
         return None
@@ -129,7 +122,7 @@ def get_job_array(manager, client, dependencies):
     for dependency in dependencies:
         # do not use crosstools
         job = jobs.jobs(False)
-        job.pkg_payload = stor.get_bpb_obj(dependency)
+        job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(dependency)
         job.requesting_client = client.get_identifier()
         job.set_status("WAITING")
 
