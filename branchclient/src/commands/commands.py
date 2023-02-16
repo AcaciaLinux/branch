@@ -460,3 +460,27 @@ def export(s, target_dir):
             return
     
     blog.info("Export completed.")
+
+
+def _import(s, target_dir):
+    bpb_files = []
+    for root, dirs, files in os.walk(target_dir):
+        for file in files:
+            if file.endswith(".bpb"):
+                bpb_files.append(os.path.abspath(os.path.join(root, file)))    
+    
+    blog.info("Found {} package files to import.".format(len(bpb_files)))
+    if(not inpututil.ask_choice("Submit packages?")):
+        blog.error("Aborting.")
+        return
+
+    for path in bpb_files:
+        bpb = packagebuild.package_build.from_file(path)
+        
+        if(bpb == -1):
+            blog.error("Could not load packagebuild file: {}".format(path))
+            return -1
+         
+        resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(bpb.get_json()))
+    
+    blog.info("Import completed.")
