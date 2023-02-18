@@ -4,10 +4,10 @@ import re
 
 import blog
 import packagebuild
-import webserver
 
-from web import webauth
-from web import usermanager
+from branchweb import webserver
+from branchweb import webauth  
+
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager
@@ -50,9 +50,9 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication")
             return
         
-        if(webauth.web_auth().validate_pw(post_data["user"], post_data["pass"])):
+        if(webauth.web_auth.validate_pw(post_data["user"], post_data["pass"])):
             blog.debug("Authentication succeeded.")
-            key = webauth.web_auth().new_authorized_key()
+            key = webauth.web_auth.new_authorized_key()
             
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "{}".format(key.key_id))
         
@@ -70,7 +70,7 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
             return
         
-        if(webauth.web_auth().validate_key(post_data["authkey"])):
+        if(webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "Authentication succeeded.")
             
         else:
@@ -87,8 +87,8 @@ class branch_web_providers():
             return
 
         # check if logged in       
-        if(webauth.web_auth().validate_key(post_data["authkey"])):
-            webauth.web_auth().invalidate_key(post_data["authkey"])
+        if(webauth.web_auth.validate_key(post_data["authkey"])):
+            webauth.web_auth.invalidate_key(post_data["authkey"])
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "Logoff acknowledged.")
             
         else:
@@ -106,7 +106,7 @@ class branch_web_providers():
             return
 
         # check if logged in
-        if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
@@ -124,7 +124,7 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid username for account creation..")
             return
         
-        if(not usermanager.usermanager().add_user(cuser, cpass)):
+        if(not webauth.web_auth.usermgr.add_user(cuser, cpass)):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "User already exists.")
             return
 
@@ -151,7 +151,7 @@ class branch_web_providers():
             return
 
         # check if logged in
-        if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             
             return
@@ -196,7 +196,7 @@ class branch_web_providers():
             return
 
         # check if logged in
-        if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             
             return
@@ -217,7 +217,7 @@ class branch_web_providers():
             return
 
         # check if logged in
-        if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
             blog.debug("Missing authentication key")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             
@@ -254,7 +254,7 @@ class branch_web_providers():
             return
 
         # check if logged in
-        if(not webauth.web_auth().validate_key(post_data["authkey"])):
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
             blog.debug("Missing authentication key")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")        
             return

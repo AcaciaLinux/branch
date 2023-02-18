@@ -20,14 +20,13 @@ BRANCH_VERSION = "0.6-pre"
 
 import threading
 import blog
-import webserver
+from branchweb import webserver
+from branchweb import webauth
 
 from config import config
 from bsocket import server
 from manager import manager
 from localstorage import pkgbuildstorage
-
-from web import usermanager
 from web import endpoints
 
 def main():
@@ -51,14 +50,14 @@ def main():
     listen_port = config.config.get_config_option("Masterserver")["ServerPort"]
     http_port = config.config.get_config_option("HTTPServer")["HTTPPort"]
 
-    blog.info("Loading user file..")
-    userm = usermanager.usermanager()
-
     blog.info("Setting up webserver configuration..")   
     webserver.WEB_CONFIG["logger_function_debug"] = blog.debug
     webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
     webserver.WEB_CONFIG["web_debug"] = config.config.get_config_option("Logger")["EnableDebugLog"] == "True" 
     webserver.WEB_CONFIG["send_cors_headers"] = config.config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
+
+    blog.info("Setting up user manager..")
+    webauth.web_auth.setup_user_manager()
 
     blog.info("Registering webserver endpoints..")
     webserver.web_server.register_get_endpoints(
