@@ -40,6 +40,12 @@ class config():
         config["Logger"] = {
             "EnableDebugLog": False
         }
+        config["Deployment"] = { 
+            "CrosstoolsURL": "https://acacialinux.org/images/cross-toolchain/2022-11-26/acacia-glibc2.36-cross-toolchain.tar.xz",
+            "RealrootPackages": "[base][glibc][gcc][make][bash][sed][grep][gawk][coreutils][binutils][findutils][automake][autoconf][file][gzip][libtool][m4][groff][patch][texinfo]",
+            "DeployCrosstools": True,
+            "DeployRealroot": True
+        }
         
         with open(CONFIG_FILE, "w") as default_conf_file:
             config.write(default_conf_file)
