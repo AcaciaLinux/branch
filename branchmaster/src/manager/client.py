@@ -28,9 +28,6 @@ class Client():
         blog.debug("Initializing new client with UUID: {}".format(str(uid)))
         self.client_uuid = uid
 
-        # client thread
-        self.client_thread = None
-
         # client socket
         self.sock = sock
 

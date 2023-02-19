@@ -31,11 +31,11 @@ def handle_build_request(socket, cmd_body, use_crosstools):
         return "SIG_READY"
 
     # Notify Overwatch
-    connect.send_msg(socket, "JOB_ACCEPTED")
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE JOB_ACCEPTED")
     
     # Setup buildenvironment
     if(buildenv.setup_env(use_crosstools)  == -1):
-        connect.send_msg(socket, "BUILD_FAILED")
+        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_FAILED")
         connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
         buildenv.drop_buildenv()
         return None
@@ -55,11 +55,11 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     # validate..
     if(not pkgbuild.is_valid()):
         blog.warn("Invalid package build received from server. Rejected.")
-        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed. The server sent us an invalid packagebuild."))
+        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed. The received packagebuild is invalid."))
         return "BUILD_FAILED"
     
     # build environment is setup, package build is ready.
-    connect.send_msg(socket, "BUILD_ENV_READY")
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_ENV_READY")
 
     # get leafpkg
     lfpkg = leafpkg.leafpkg()
@@ -71,9 +71,9 @@ def handle_build_request(socket, cmd_body, use_crosstools):
 
     # run build step
     if(build(builddir, pkgbuild, lfpkg, socket, use_crosstools) == "BUILD_COMPLETE"):
-        connect.send_msg(socket, "BUILD_COMPLETE")
+        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_COMPLETE")
     else:
-        connect.send_msg(socket, "BUILD_FAILED")
+        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_FAILED")
         buildenv.clean_env()
         return "SIG_READY"
     
@@ -112,7 +112,7 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     
     # Clean build environment..
     buildenv.clean_env()
-    connect.send_msg(socket, "BUILD_CLEAN")
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_ENV_CLEAN")
 
     # We completed the build job. Send SIG_READY
     blog.info("Build job completed.")
@@ -122,25 +122,22 @@ def handle_build_request(socket, cmd_body, use_crosstools):
 #
 # Run a given pkgbuild 
 #
+
+# directory = build directory
 def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
-    # directory we were called in, return after func returns
-    call_dir = os.getcwd()
-    # change to packagebuild directory
-    os.chdir(directory)
-    
     # create build_dir
     build_dir = os.path.join(directory, "build")
     os.mkdir(build_dir)
 
     # write leafpkg to disk
-    destdir = lfpkg.write_package_directory()
-   
-    # change to build directory
-    os.chdir(build_dir)
+    destdir = lfpkg.write_package_directory(directory)
+
+    # status update
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE FETCHING_SOURCE")
 
     if(package_build_obj.source):
-        source_file = package_build_obj.source.split("/")[-1]
-        
+        source_file = os.path.join(build_dir, package_build_obj.source.split("/")[-1])
+
         blog.debug("Source file is: {}".format(source_file))
 
         out_file = open(source_file, "wb")
@@ -159,7 +156,6 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
             curl.perform()
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
-            os.chdir(call_dir)
             jlog = json.dumps(["Failed to fetch main source:", package_build_obj.source])
             res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
             return "BUILD_FAILED"
@@ -171,8 +167,8 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
         for extra_src in package_build_obj.extra_sources:
             blog.info("Fetching extra source: {}".format(extra_src))
-            if(fetch_file(extra_src) != 0):
-                os.chdir(call_dir)
+
+            if(fetch_file(build_dir, extra_src) != 0):
                 jlog = json.dumps(["Failed to fetch extra source:", extra_src])
                 res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
                 return "BUILD_FAILED"
@@ -182,35 +178,33 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
             if(tarfile.is_tarfile(source_file)):
                 blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
-                tar_obj = tar_file.extractall(".")
+                tar_obj = tar_file.extractall(build_dir)
             else:
                 blog.warn("Source is not a tar file. Manual extraction required in build script..")
 
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
-            os.chdir(call_dir)
             return "BUILD_FAILED"
     else:
         blog.warn("No source specified. Not fetching source.")
 
     deps_failed = False
-
+    
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE INSTALLING_DEPS")
+    
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
         if(package_build_obj.cross_dependencies == [ ]):
             blog.info("Falling back, no cross dependencies set. Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
             if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
-                os.chdir(call_dir)
                 deps_failed = True
         else:
             blog.info("Installing 'cross' dependencies: {}".format(package_build_obj.cross_dependencies))
             if(buildenv.install_pkgs(package_build_obj.cross_dependencies) != 0):
-                os.chdir(call_dir)
                 deps_failed = True
     else:
         blog.info("Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
         if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
-            os.chdir(call_dir)
             deps_failed = True
 
     if(deps_failed):
@@ -265,7 +259,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     entry_sh.close()
 
     # set executable bit on scripts
-    os.system("chmod +x build.sh")
+    os.system("chmod +x {}".format(os.path.join(build_dir, "build.sh")))
     os.system("chmod +x {}".format(entry_sh_path))
 
     blog.info("Chrooting to build environment...")
@@ -276,6 +270,8 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
   
     proc = None
 
+    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILDING")
+    
     if(config.config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         std_output = [ ]
@@ -317,6 +313,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     # strip unneeded symbols from binaries
     stripped_files = [ ]
     if(proc.returncode == 0):
+        connect.send_msg(socket, "REPORT_STATUS_UPDATE STRIP_BINS")
         stripped_files = strip(destdir)
 
     log = [ ]
@@ -339,13 +336,11 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
     if(proc.returncode != 0):
         blog.error("Package build script failed.")
-        os.chdir(call_dir)
         return "BUILD_FAILED"
 
     blog.info("Build completed successfully.")
 
     # change back to call_dir
-    os.chdir(call_dir)
     return "BUILD_COMPLETE"
 
 #
@@ -353,8 +348,9 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 # 0 success
 # -1 failure
 #
-def fetch_file(url):
-    source_file = url.split("/")[-1]
+def fetch_file(destdir, url):
+    source_file = os.path.join(destdir, url.split("/")[-1])
+    
     out_file = open(source_file, "wb")
 
     blog.info("Setting up pycurl..")
@@ -374,7 +370,7 @@ def fetch_file(url):
         blog.error("Fetching source failed. {}".format(ex))
         return -1
 
-    blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
+    blog.info("Source fetched to {}. File size on disk: {}".format(source_file, os.path.getsize(source_file)))
 
     out_file.close()
     curl.close()

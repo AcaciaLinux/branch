@@ -49,8 +49,6 @@ def threaded_client_handler(client_socket):
     _client = client.Client(client_socket)
     blog.info("New client initialized. UUID: {}".format(_client.get_identifier()))
 
-    _client.client_thread = threading.current_thread()
-
     while True:
         if(_client.file_transfer_mode):
             receive_file(client_socket, _client)

@@ -19,7 +19,6 @@ BRANCH_CODENAME = "Pre Release"
 BRANCH_VERSION = "0.6-pre"
 
 import blog
-import argparse
 import os
 
 from bsocket import connect
@@ -52,9 +51,20 @@ def main():
     server_port = int(config.config.get_config_option("Connection")["ServerPort"])
     identifier = config.config.get_config_option("Connection")["Identifier"]
 
+    # establish socket connection
+    s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
+
+    if(s is None):
+        blog.error("Connection refused.")
+        return -1
+
+    # provide system performance metrics
+    blog.info("Providing system information..")
+    # TODO 
+
+
     # init leafcore
     if(buildenv.init_leafcore() != 0):
-        s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
         blog.info("Buildbot could not initialize leaf. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
         s.close()
@@ -68,13 +78,6 @@ def main():
     if(buildenv.check_buildenv() != 0):
         check_failed = True
   
-    # establish socket connection
-    s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
-
-    if(s is None):
-        blog.error("Connection refused.")
-        return -1
-
     if(check_failed):
         blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
         connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))

@@ -112,24 +112,32 @@ def handle_command_from_server(command, s):
     if command == "BUILD_PKG" or command == "BUILD_PKG_CROSS":
         print("Got a build job from the server!")
 
+
         # send the "BUILD_ENV_READY" message to the server
         print("Reporting status update: BUILD_ENV_READY")
-        msg = "BUILD_ENV_READY"
+        msg = "REPORT_STATUS_UPDATE JOB_ACCEPTED"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         data = receive_data(s)
 
-        # wait a few seconds
-        #time.sleep(3)
+
+        # send the "BUILD_ENV_READY" message to the server
+        print("Reporting status update: BUILD_ENV_READY")
+        msg = "REPORT_STATUS_UPDATE BUILD_ENV_READY"
+        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+        data = receive_data(s)
+
 
         # send "BUILD_COMPLETE" to the server
         print("Reporting status update: BUILD_COMPLETE")
-        msg = "BUILD_COMPLETE"
+        msg = "REPORT_STATUS_UPDATE BUILD_COMPLETE"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
         data = receive_data(s)
         print(data)
 
-        # wait a few seconds
-        #time.sleep(3)
+        msg = "REPORT_STATUS_UPDATE SOND_GEHIRN"
+        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+        data = receive_data(s)
+        print(data)
         
         print("Reading file length..")
         # send "FILE_TRANSFER_MODE {byte-len}" to the server
@@ -168,9 +176,8 @@ def handle_command_from_server(command, s):
         
         print("File upload completed: UPLOAD_ACK")
 
-
         print("Reporting status update: BUILD_CLEAN")
-        msg = "BUILD_CLEAN"
+        msg = "REPORT_STATUS_UPDATE BUILD_CLEAN"
         s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
 
 

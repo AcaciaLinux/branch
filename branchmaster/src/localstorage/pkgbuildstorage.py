@@ -36,6 +36,7 @@ class storage():
     def get_packagebuild_obj(name):
         blog.debug("Acquiring Database lock")
         storage.lock.acquire()
+        pkgbuild_obj = None
         try:
             db_connection = sqlite3.connect("pkgbuild.db")
             cur = db_connection.cursor()
@@ -101,8 +102,10 @@ class storage():
             db_connection.commit()
         except Exception as ex:
             blog.error("Could not insert to database: {}".format(ex))
+            return False
 
         storage.lock.release()
+        return True
 
     @staticmethod
     def get_all_packagebuilds():

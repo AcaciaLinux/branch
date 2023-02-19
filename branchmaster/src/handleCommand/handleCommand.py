@@ -156,7 +156,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(not pkgbuild.is_valid()):
                 return "INV_PKG_BUILD"
             
-            pkgbuildstorage.storage.add_packagebuild_obj(pkgbuild)
+            if(not pkgbuildstorage.storage.add_packagebuild_obj(pkgbuild)):
+                return "INV_PKG_BUILD"
+
             return "CMD_OK"
      
         #
@@ -448,6 +450,14 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             client.client_name = cmd_body
             return "CMD_OK"
 
+        #
+        # Buildbot reported system information
+        # CPU, RAM, free disk space, hostname
+        #
+        case "SET_MACHINE_INFORMATION":
+             
+            return "CMD_OK"
+
         # 
         # Build client sends ready signal
         # SIG_READY
@@ -484,7 +494,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             manager.queue.update()
 
             return None
-
+        
         #
         # PONG from buildbot!
         # PONG
@@ -499,52 +509,41 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             return "CMD_ACK"
 
         
-        #
-        # Status update from assigned job: Job accepted by buildbot
-        # JOB_ACCEPTED
-        #
-        case "JOB_ACCEPTED":
+
+        case "REPORT_STATUS_UPDATE":
+            if(cmd_body == ""):
+                return "INV_CMD"
+            
             job = manager.get_job_by_client(client)
             
+            if(job is None):
+                return "NO_JOB"
 
-            if(not job is None):
-                blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
-                job.set_status("JOB_ACCEPTED")
-                job.job_accepted = True
-                return "STATUS_ACK"
+            match cmd_body:
 
-            return "NO_JOB"
+                #
+                # Initial status update, job accepted by buildbot.
+                # Set accepted flag
+                #
+                case "JOB_ACCEPTED":
+                    blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
+                    
+                    # set accepted flag for overwatch
+                    job.job_accepted = True
 
-        #
-        # Status update from assigned job: Build environment is ready
-        # BUILD_ENV_READY
-        #
-        case "BUILD_ENV_READY":
-            job = manager.get_job_by_client(client)
+                    job.set_status("JOB_ACCEPTED")
+                
+                #
+                # no special handling required, 
+                # informational status update
+                #
+                case other:
+                    blog.info("Build job '{}' on buildbot '{}' status update received: {}".format(job.get_jobid(), client.get_identifier(), cmd_body))
+                    job.set_status(cmd_body)
 
-            if(not job is None):
-                blog.info("Build job '{}' completed 'Setup Build Environment' step.".format(job.get_jobid()))
-                job.set_status("BUILD_ENV_READY")
-                job.job_accepted = True
-                return "STATUS_ACK"
+            
+            return "STATUS_ACK"
 
-            return "NO_JOB"
-
-        #
-        # Status update from assigned job: Build job completed.
-        # BUILD_COMPLETE
-        #
-        case "BUILD_COMPLETE":
-            job = manager.get_job_by_client(client)
-
-            if(not job is None):
-                blog.info("Build job '{}' completed 'Compile source' step.".format(job.get_jobid()))
-                job.set_status("BUILD_COMPLETE")
-                job.job_accepted = True
-                return "STATUS_ACK"
-
-            return "NO_JOB"
-        
         #
         # Receive log from buildbot
         # SUBMIT_LOG <LOG>
@@ -560,34 +559,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
             return "NO_JOB"
 
-        #
-        # Status update from assigned job: Build failed.
-        #
-        case "BUILD_FAILED":
-            job = manager.get_job_by_client(client)
-
-            if(not job is None):
-                blog.info("Build job '{}' failed 'Compile source' step.".format(job.get_jobid()))
-                job.set_status("BUILD_FAILED")
-                job.job_accepted = True
-            
-            return "STATUS_ACK"
-
-
-        #
-        # Status update from assigned job: Build environment clean up completed.
-        # BUILD_CLEAN
-        #
-        case "BUILD_CLEAN":
-            job = manager.get_job_by_client(client)
-
-            if(not job is None):
-                blog.info("Build job '{}' completed 'cleanup' step.".format(job.get_jobid()))
-                job.set_status("BUILD_CLEAN")
-                job.job_accepted = True
-
-            return "STATUS_ACK"
-        
         #
         # Switch connection to FILE_TRANSFER_MODE
         # FILE_TRANSFER_MODE <BYTES>
