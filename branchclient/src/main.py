@@ -75,6 +75,7 @@ def main():
     argparser.add_argument("-e", "--edit", help="Edit a package build from the remote server")
     argparser.add_argument("-ex", "--export", help="Exports all managed pkgbuilds from the remote server") 
     argparser.add_argument("-im", "--import", help="Imports all pkgbuilds from a given folder") 
+    argparser.add_argument("-ci", "--clientinfo", help="Get client information") 
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -99,7 +100,8 @@ def main():
         "crossbuildsol": commands.submit_solution_cb,
         "edit": commands.edit_pkgbuild,
         "export": commands.export,
-        "import": commands._import
+        "import": commands._import,
+        "clientinfo": commands.get_client_info
     }
 
     # parse arguments

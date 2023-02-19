@@ -1,6 +1,7 @@
 import uuid
 import blog
 import traceback
+import time
 
 from manager import manager
 from threading import Lock
@@ -46,7 +47,30 @@ class Client():
         # register the client
         manager.manager.register_client(self)
 
+        # connected at
+        self.connection_start_timestamp = time.time()
 
+    
+    #
+    # Set buildbot provided system info
+    #
+    def set_buildbot_sysinfo(self, info):
+        self.sysinfo = info 
+
+    #
+    # Get system info
+    #
+    def get_sysinfo(self):
+        sys_info = { }
+        sys_info["Connection timestamp"] = self.connection_start_timestamp
+
+        try:
+            for attr in self.sysinfo:
+                sys_info[attr] = self.sysinfo[attr]
+        except AttributeError:
+            pass
+
+        return sys_info
 
     #
     # receive data from manager

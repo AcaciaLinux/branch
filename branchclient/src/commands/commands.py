@@ -484,3 +484,18 @@ def _import(s, target_dir):
         resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(bpb.get_json()))
     
     blog.info("Import completed.")
+
+def get_client_info(s, client_name):
+    resp = connect.send_msg(s, "GET_CLIENT_INFO {}".format(client_name))
+    
+    if(resp == "INV_CLIENT_NAME"):
+        blog.error("No such client found.")
+        return
+
+    client_info = json.loads(resp)
+    
+    print()
+    print("Client information - {}".format(client_name))
+    print()
+    for attr in client_info:
+        print("{}: {}".format(attr, client_info[attr]))

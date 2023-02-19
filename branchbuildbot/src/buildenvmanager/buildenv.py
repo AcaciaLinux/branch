@@ -2,6 +2,8 @@ import os
 import shutil
 import time
 import blog
+import platform
+import psutil
 
 from pyleafcore import *
 from pathlib import Path
@@ -10,6 +12,24 @@ from config import config
 
 LAUNCH_DIR = os.getcwd()
 leafcore_instance = None
+
+def get_host_info():
+    info = { }
+
+    with open("/proc/cpuinfo", "r") as f:
+        file_info = f.readlines()
+
+    cpuinfo = [x.strip().split(":")[1] for x in file_info if "model name" in x]
+    info["Architecture"] = platform.machine()
+    info["Hostname"] = platform.node()
+    info["Host Python Version"] = platform.python_version()
+    info["Host Kernel"] = platform.system() + " " + platform.release()
+    info["Host Distribution"] = platform.freedesktop_os_release()["NAME"]
+    info["Host libc"] = platform.libc_ver()[0] + " " + platform.libc_ver()[1]
+    info["CPU count"] = psutil.cpu_count(logical=True)
+    info["CPU name"] = cpuinfo[0]
+    info["Memory available"] = "{}GB".format(round(psutil.virtual_memory().total / (1024*1024*1024), 2))
+    return info
 
 # leafcore init
 def init_leafcore():

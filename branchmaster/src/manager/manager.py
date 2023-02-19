@@ -43,6 +43,14 @@ class manager():
         return manager.client_array[uuid]
     
     @staticmethod
+    def get_client_by_name(name):
+        for client in manager.client_array:
+            if(client.get_identifier() == name):
+                return client
+
+        return None
+
+    @staticmethod
     def handle_command(client, command):
         blog.debug("Handling command from '{}': {}".format(client.get_identifier(), command))
         res = handleCommand.handle_command(manager(), client, command)

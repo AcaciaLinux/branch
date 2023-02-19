@@ -20,6 +20,7 @@ BRANCH_VERSION = "0.6-pre"
 
 import blog
 import os
+import json
 
 from bsocket import connect
 from handlecommand import handleCommand
@@ -60,8 +61,7 @@ def main():
 
     # provide system performance metrics
     blog.info("Providing system information..")
-    # TODO 
-
+    connect.send_msg(s, "SET_MACHINE_INFORMATION {}".format(json.dumps(buildenv.get_host_info())))
 
     # init leafcore
     if(buildenv.init_leafcore() != 0):

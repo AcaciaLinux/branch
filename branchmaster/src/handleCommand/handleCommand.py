@@ -425,7 +425,17 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 manager.get_queue().update()
 
             return "BATCH_QUEUED"
-    
+        
+        case "GET_CLIENT_INFO":
+            if(cmd_body == ""):
+                return "INV_CLIENT_NAME"
+
+            target_client = manager.get_client_by_name(cmd_body)
+            if(target_client == None):
+                return "INV_CLIENT_NAME"
+
+            return json.dumps(target_client.get_sysinfo())
+
         #
         # Invalid command
         #
@@ -455,7 +465,10 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         # CPU, RAM, free disk space, hostname
         #
         case "SET_MACHINE_INFORMATION":
-             
+            if(cmd_body == ""):
+                return "INV_CMD"
+
+            client.set_buildbot_sysinfo(json.loads(cmd_body))
             return "CMD_OK"
 
         # 
