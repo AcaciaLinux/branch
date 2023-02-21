@@ -410,61 +410,50 @@ class branch_web_providers():
     @staticmethod
     def get_endpoint_package(httphandler, form_data):
         stor = packagestorage.storage()
+
         
         package_file = None
         package_full_name = ""
 
         form_keys = form_data.keys()
-        if("pkgname" in form_keys):
-            
-            # Package exists
-            if(form_data["pkgname"] in stor.packages):
-
-                # Get the meta file for that package
-                meta = stor.get_meta_by_name(form_data["pkgname"])
-
-                # We have a version tag, get specific version.
-                if("version" in form_keys):
-
-                    # Construct the full package name
-                    package_full_name = form_data["pkgname"] + "-" + meta.get_version(form_data["version"])
-
-                    # Construct the package path
-                    package_file = stor.get_pkg_path(form_data["pkgname"], form_data["version"])
-
-                    # Could not find specified version, notify failure.
-                    if(package_file is None):
-                        httphandler.send_str_raw(404, "E_VERSION")
-                        return
-
-
-                # No version tag, get latest
-                else:
-                    # latest version, no version tag
-                    latest_version = meta.get_latest_real_version()
-
-                    # Construct the full package name
-                    package_full_name = form_data["pkgname"] + "-" + meta.get_version(latest_version)
-
-                    # Construct the package path
-                    package_file = stor.get_pkg_path(form_data["pkgname"], latest_version)
-
-                    # Could not find latest version (Shouldn't happen..?), notify failure.
-                    if(package_file is None):
-                        httphandler.send_str_raw(404, "E_VERSION")
-                        return 
-
-
-            # Package doesn't exist, notify failure
-            else:
-                httphandler.send_str_raw(404, "E_PACKAGE")
-                return
-
-        # No package name specified, notify failure
-        else:
+        
+        # missing post data
+        if(not "pkgname" in form_keys):
             httphandler.send_str_raw(400, "E_PKGNAME")
             return
-        
+
+        # Package doesn't exist
+        if(not form_data["pkgname"] in stor.packages):
+            httphandler.send_str_raw(404, "E_PACKAGE")
+            return
+            
+        # Get the meta file for that package
+        meta = stor.get_meta_by_name(form_data["pkgname"])
+
+        # We have a version tag, get specific version.
+        if("version" in form_keys):
+            # Construct the full package name
+            package_full_name = form_data["pkgname"] + "-" + meta.get_version(form_data["version"])
+
+            # Construct the package path
+            package_file = stor.get_pkg_path(form_data["pkgname"], form_data["version"])
+
+        # No version tag, get latest
+        else:
+            # latest version, no version tag
+            latest_version = meta.get_latest_real_version()
+
+            # Construct the full package name
+            package_full_name = form_data["pkgname"] + "-" + meta.get_version(latest_version)
+
+            # Construct the package path
+            package_file = stor.get_pkg_path(form_data["pkgname"], latest_version)
+
+            # Could not find latest version (Shouldn't happen..?), notify failure.
+            if(package_file is None):
+                httphandler.send_str_raw(404, "E_VERSION")
+                return 
+
         # Couldn't find package file..
         if(package_file is None):
             httphandler.send_str_raw(404, "E_PACKAGE")
@@ -472,9 +461,14 @@ class branch_web_providers():
 
         pfile = open(package_file, "rb")
 
+        # register a file lock
+        file_lock_id = packagestorage.storage.register_active_download(form_data["pkgname"])
+
         # Send the file to the client
         httphandler.send_file(pfile, os.path.getsize(package_file), package_full_name + ".lfpkg")
 
+        # unregister a file lock
+        packagestorage.storage.unregister_active_download(file_lock_id)
 
     #
     # / endpoint, returns html page

@@ -150,5 +150,27 @@ class storage():
         return names
 
     @staticmethod
-    def remove_packagebuild():
-        blog.info("remove_packagebuild(): STUB")
+    def remove_packagebuild(pkg_name):
+        storage.lock.acquire()
+
+        try:
+            db_connection = sqlite3.connect("pkgbuild.db")
+            
+            # remove packagebuild if it already exists
+            cur = db_connection.cursor()
+            res = cur.execute("SELECT name from pkgbuilds")
+            
+            # Delete packagebuild if it exists
+            for name in res.fetchall():
+                if(pkg_name == name[0]):
+                    cur.execute("DELETE FROM pkgbuilds WHERE name='{}'".format(pkg_name))
+                    blog.warn("Packagebuild deleted: {}".format(pkg_name))
+                    break
+
+            db_connection.commit()
+
+        except Exception as ex:
+            blog.error("Could not remove pkgbuild from database: {}".format(ex))
+
+
+        storage.lock.release()

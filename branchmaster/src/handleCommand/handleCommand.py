@@ -426,6 +426,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             return "BATCH_QUEUED"
         
+        #
+        # Get various client information
+        #
         case "GET_CLIENT_INFO":
             if(cmd_body == ""):
                 return "INV_CLIENT_NAME"
@@ -435,6 +438,44 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 return "INV_CLIENT_NAME"
 
             return json.dumps(target_client.get_sysinfo())
+
+        #
+        # Get locked packages (currently being downloaded)
+        #
+        case "GET_LOCKED_PACKAGES":
+            names = [ ]
+
+            for pkg in packagestorage.storage.locked_files:
+                if(not pkg.pkg_name in names):
+                    names.append(pkg.pkg_name)
+
+            return json.dumps(names)
+        
+        #
+        # Request a package / pkgbuild deletion.
+        #
+        case "DELETE_PKGBUILD":
+            if(cmd_body == ""):
+                return "INV_CMD"
+
+            if(not cmd_body in pkgbuildstorage.storage.get_all_packagebuild_names()):
+                return "INV_PKG_NAME"
+
+            blog.debug("Deleting packagebuild..")
+            pkgbuildstorage.storage.remove_packagebuild(cmd_body)
+
+            blog.debug("Deleting package..")
+            
+            # not locked, can delete
+            if(not packagestorage.storage.check_package_lock(cmd_body)):
+                packagestorage.storage().remove_package(cmd_body)
+            else:
+                blog.warn("Package requested for deletion is currently locked, added to deletion queue.")
+                packagestorage.storage.deletion_queue.append(cmd_body)
+
+            return "CMD_OK"
+
+
 
         #
         # Invalid command
