@@ -8,3 +8,6 @@
 	path = submodules/pyleaf
 	url = https://github.com/AcaciaLinux/pyleaf
 	branch = dev
+[submodule "submodules/branchweb"]
+	path = submodules/branchweb
+	url = https://github.com/AcaciaLinux/branchweb
