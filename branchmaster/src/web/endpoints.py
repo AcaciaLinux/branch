@@ -27,6 +27,8 @@ class branch_web_providers():
             "clearcompletedjobs": branch_web_providers.clear_completed_jobs_endpoint,
             "viewlog": branch_web_providers.viewjob_log_endpoint,
             "submitpackagebuild": branch_web_providers.submit_packagebuild_endpoint,
+            "cancelqueuedjob": branch_web_providers.cancel_queued_job_endpoint,
+            "cancelqueuedjobs": branch_web_providers.cancel_queued_jobs_endpoint
         }
         return post_providers
     
@@ -390,7 +392,49 @@ class branch_web_providers():
             dict_arr.append(_dict)
 
         httphandler.send_web_response(webserver.webstatus.SUCCESS, dict_arr)
+    
+    #
+    # Cancels all currently queued jobs 
+    #
+    # ENDPOINT /cancelqueuedjobs (POST)
+    @staticmethod
+    def cancel_queued_jobs_endpoint(httphandler, form_data, post_data):
+        if("authkey" not in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            return
         
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+        
+        manager.manager.cancel_all_queued_jobs()
+        httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting jobs cancelled.")
+
+    #
+    # Cancels a currently queued job 
+    #
+    # ENDPOINT /cancelqueuedjob (POST)
+    @staticmethod
+    def cancel_queued_job_endpoint(httphandler, form_data, post_data):
+        if("authkey" not in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            return
+        
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+            return
+
+        if(not "jobid" in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Job ID")
+            return
+        
+        job = manager.manager.get_job_by_id(post_data["jobid"])
+
+        if(job == None):
+            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid job ID.")
+            return 
+
+        manager.manager.cancel_queued_job(job)
+        httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting job cancelled.")
 
     #
     # Gets a list of all available package builds
