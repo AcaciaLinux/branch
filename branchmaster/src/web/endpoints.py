@@ -132,11 +132,11 @@ class branch_web_providers():
     
     @staticmethod 
     def crossbuild_endpoint(httphandler, form_data, post_data):
-        build_endpoint(httphandler, form_data, post_data, True)
+        branch_web_providers.build_endpoint(httphandler, form_data, post_data, True)
 
     @staticmethod
     def releasebuild_endpoint(httphandler, form_data, post_data):
-        build_endpoint(httphandler, form_data, post_data, False)
+        branch_web_providers.build_endpoint(httphandler, form_data, post_data, False)
 
     #
     # request a release/cross build from the server
