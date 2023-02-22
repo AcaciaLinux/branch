@@ -165,7 +165,7 @@ class branch_web_providers():
         pkgname = post_data["pkgname"]
 
         # request pkgbuild from branch manager
-        if(pkgname in pkgbuildstorage.storage.get_all_packagebuilds()):
+        if(any(pkgbuild.name == pkgname for pkgbuild in pkgbuildstorage.storage.get_all_packagebuilds())):
             blog.info("Web client requested build for {}".format(pkgname))
              
             pkg = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
