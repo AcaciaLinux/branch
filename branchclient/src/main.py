@@ -20,11 +20,10 @@ BRANCH_VERSION = "0.6-pre"
 
 import argparse
 import blog
+import branchclient
 
-from debugshell import debugshell
 from commands import commands
 from config import config
-from bsocket import connect
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
@@ -79,7 +78,7 @@ def main():
 
     # dictionary mapping arguments to functions
     arg_funcs = {
-        "debugshell": debugshell.run_shell,
+        "debugshell": commands.debug_shell,
         "checkout": commands.checkout_package,
         "submit": commands.submit_package,
         "releasebuild": commands.release_build,
@@ -114,23 +113,19 @@ def main():
         
         #if arg_val is True, theres no arg
         if(arg_val != None and arg_val != False):
+            
+            # connect to server
+            bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "CONTROLLER")
+            
+            if(not bc.ready):
+                return
+
+            # compare arg_val to True, because a str is also "true"
             if(arg_val == True):
-                # connect to server
-                s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
-
-                if(s is None):
-                    return
-
-                func(s)
+                func(bc)
                 return
             else:
-                # connect to server
-                s = connect.connect(server_address, int(server_port), identifier, authkey, "CONTROLLER")
-
-                if(s is None):
-                    return
-
-                func(s, arg_val)
+                func(bc, arg_val)
                 return
 
 if (__name__ == "__main__"):

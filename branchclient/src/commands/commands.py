@@ -5,14 +5,29 @@ import blog
 import packagebuild
 import time
 
-from bsocket import connect 
 from utils import inpututil
+
+def debug_shell(bc):
+    while True:
+        print("[branch-debug-shell] ==> ", end="")
+
+        line = ""
+        try:
+            line = input()
+        except Exception:
+            return
+
+        if(line == ""):
+            continue
+
+        data = bc.send_recv_msg(line)
+        print("[branch-response] ==> {}".format(data))
 
 #
 # checkout package
 #
-def checkout_package(s, pkg_name):
-    bpb_resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkg_name))
+def checkout_package(bc, pkg_name):
+    bpb_resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkg_name))
     
     # check if package is valid
     if(bpb_resp == "INV_PKG_NAME"):
@@ -24,7 +39,6 @@ def checkout_package(s, pkg_name):
         return
 
     pkgbuild = packagebuild.package_build.from_json(bpb_resp)
-
     target_file = os.path.join(pkg_name, "package.bpb")
     
     if(not os.path.exists(pkg_name)):
@@ -37,18 +51,17 @@ def checkout_package(s, pkg_name):
 
     pkgbuild.write_build_file(target_file)
     blog.info("Successfully checkout out package {}!".format(pkg_name))
-        
 
 #
 # Submit a package build from cwd to server
 #
-def submit_package(s):
+def submit_package(bc):
     bpb = packagebuild.package_build.from_file("package.bpb")
     if(bpb == -1):
         return -1
 
     json_str = bpb.get_json()
-    resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
+    resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(json_str))
    
     if(resp == "INV_PKG_BUILD"):
         blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
@@ -60,8 +73,8 @@ def submit_package(s):
 #
 # Request a release build from a specified package
 #
-def release_build(s, pkg_name):
-    resp = connect.send_msg(s, "RELEASE_BUILD {}".format(pkg_name))
+def release_build(bc, pkg_name):
+    resp = bc.send_recv_msg("RELEASE_BUILD {}".format(pkg_name))
 
     if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
         blog.info("The package build was immediately handled by a ready build bot.")
@@ -74,12 +87,8 @@ def release_build(s, pkg_name):
 #
 # Request a cross build from a specified package
 #
-def cross_build(s, pkg_name):
-    if(s is None):
-        blog.error("Connection refused.")
-        return
-
-    resp = connect.send_msg(s, "CROSS_BUILD {}".format(pkg_name))
+def cross_build(bc, pkg_name):
+    resp = bc.send_recv_msg("CROSS_BUILD {}".format(pkg_name))
 
     if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
         blog.info("The package build was immediately handled by a ready build bot.")
@@ -92,14 +101,14 @@ def cross_build(s, pkg_name):
 #
 # get job status from server
 #
-def build_status(s):
-    resp = connect.send_msg(s, "RUNNING_JOBS_STATUS")
+def build_status(bc):
+    resp = bc.send_recv_msg("RUNNING_JOBS_STATUS")
     running_jobs = json.loads(resp)
 
-    resp = connect.send_msg(s, "COMPLETED_JOBS_STATUS")
+    resp = bc.send_recv_msg("COMPLETED_JOBS_STATUS")
     completed_jobs = json.loads(resp)
 
-    resp = connect.send_msg(s, "QUEUED_JOBS_STATUS")
+    resp = bc.send_recv_msg("QUEUED_JOBS_STATUS")
     queued_jobs = json.loads(resp)
 
     if(running_jobs):
@@ -136,11 +145,11 @@ def build_status(s):
 #
 # Get connected buildbots / controllers
 #
-def client_status(s):
-    resp = connect.send_msg(s, "CONNECTED_CONTROLLERS")
+def client_status(bc):
+    resp = bc.send_recv_msg("CONNECTED_CONTROLLERS")
     controllers = json.loads(resp)
 
-    resp = connect.send_msg(s, "CONNECTED_BUILDBOTS")
+    resp = bc.send_recv_msg("CONNECTED_BUILDBOTS")
     buildbots = json.loads(resp)
     print()
 
@@ -160,8 +169,8 @@ def client_status(s):
 #
 # Cancel a job by id
 #
-def cancel_queued_job(s, job_id):
-    resp = connect.send_msg(s, "CANCEL_QUEUED_JOB {}".format(job_id))
+def cancel_queued_job(bc, job_id):
+    resp = bc.send_recv_msg(s, "CANCEL_QUEUED_JOB {}".format(job_id))
     
     if(resp == "INV_JOB_ID"):
         blog.error("No such job queued.")
@@ -173,15 +182,15 @@ def cancel_queued_job(s, job_id):
 #
 # Cancel all currently waiting jobs
 #
-def cancel_all_queued_jobs(s):
-    resp = connect.send_msg(s, "CANCEL_ALL_QUEUED_JOBS")
+def cancel_all_queued_jobs(bc):
+    resp = bc.send_recv_msg("CANCEL_ALL_QUEUED_JOBS")
     blog.info("Jobs canceled.") 
 
 #
 # Cancel 
 #
-def view_sys_log(s):
-    resp = connect.send_msg(s, "VIEW_SYS_EVENTS")
+def view_sys_log(bc):
+    resp = bc.send_recv_msg("VIEW_SYS_EVENTS")
     logs = json.loads(resp)
     
     if(len(logs) == 0):
@@ -195,8 +204,8 @@ def view_sys_log(s):
 #
 # get build log
 #
-def get_buildlog(s, job_id):
-    resp = connect.send_msg(s, "VIEW_LOG {}".format(job_id))
+def get_buildlog(bc, job_id):
+    resp = bc.send_recv_msg("VIEW_LOG {}".format(job_id))
     
     if(resp == "INV_JOB_ID" or resp == "NO_LOG"):
         blog.error("No build log available for specified job id. Is it still running?")
@@ -208,8 +217,8 @@ def get_buildlog(s, job_id):
     for line in log:
         print(line)
 
-def clear_completed_jobs(s):
-    resp = connect.send_msg(s, "CLEAR_COMPLETED_JOBS")
+def clear_completed_jobs(bc):
+    resp = bc.send_recv_msg("CLEAR_COMPLETED_JOBS")
 
     if(not resp == "JOBS_CLEARED"):
         blog.error("An error occurred: {}".format(resp))
@@ -217,9 +226,8 @@ def clear_completed_jobs(s):
 
     return
 
-def get_managed_packages(s):
-    resp = connect.send_msg(s, "MANAGED_PACKAGES")
-    
+def get_managed_packages(bc):
+    resp = bc.send_recv_msg("MANAGED_PACKAGES")
     jsonp = json.loads(resp)
 
     print("Managed packages:")
@@ -233,9 +241,8 @@ def get_managed_packages(s):
     print()
     return
 
-def get_managed_pkgbuilds(s):
-    resp = connect.send_msg(s, "MANAGED_PKGBUILDS")
-
+def get_managed_pkgbuilds(bc):
+    resp = bc.send_recv_msg("MANAGED_PKGBUILDS")
     jsonp = json.loads(resp)
 
     print("Managed pkgbuilds:\n")
@@ -251,8 +258,8 @@ def get_managed_pkgbuilds(s):
 #
 # Get all dependers by package name
 #
-def view_dependers(s, pkg_name):
-    resp = connect.send_msg(s, "GET_DEPENDERS {}".format(pkg_name))
+def view_dependers(pkg_name):
+    resp = bc.send_recv_msg(s, "GET_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
         blog.error("No such packagebuild available.")
     else:
@@ -265,8 +272,8 @@ def view_dependers(s, pkg_name):
 #
 # rebuild dependers (auto calc)
 #
-def rebuild_dependers(s, pkg_name):
-    resp = connect.send_msg(s, "REBUILD_DEPENDERS {}".format(pkg_name))
+def rebuild_dependers(bc, pkg_name):
+    resp = bc.send_recv_msg("REBUILD_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
         blog.error("No such package available.")
     elif(resp == "CIRCULAR_DEPENDENCY"):
@@ -277,11 +284,11 @@ def rebuild_dependers(s, pkg_name):
 #
 # difference between pkgs
 #
-def get_diff_pkg(s):
-    resp = connect.send_msg(s, "MANAGED_PACKAGES")
+def get_diff_pkg(bc):
+    resp = bc.send_recv_msg("MANAGED_PACKAGES")
     pkgs = json.loads(resp)
 
-    resp = connect.send_msg(s, "MANAGED_PKGBUILDS")
+    resp = bc.send_recv_msg("MANAGED_PKGBUILDS")
     pkg_builds = json.loads(resp)
 
     print("pkg / pkgbuild difference:\n")
@@ -305,19 +312,19 @@ def get_diff_pkg(s):
 #
 # submit a branch solution to the masterserver as a batch (CROSS BUILD)
 #
-def submit_solution_cb(s, solution_file_str):
-    submit_solution(s, solution_file_str, True) 
+def submit_solution_cb(bc, solution_file_str):
+    submit_solution(bc, solution_file_str, True) 
 
 #
 # submit a branch solution to the masterserver as a batch (RELEASE BUILD)
 #
-def submit_solution_rb(s, solution_file_str):
-    submit_solution(s, solution_file_str, False) 
+def submit_solution_rb(bc, solution_file_str):
+    submit_solution(bc, solution_file_str, False) 
 
 #
 # submit a branch solution to the masterserver as a batch
 #
-def submit_solution(s, solution_file_str, use_crosstools):
+def submit_solution(bc, solution_file_str, use_crosstools):
     if(not os.path.exists(solution_file_str)):
         blog.error("Solution file not found.")
         return -1
@@ -347,9 +354,9 @@ def submit_solution(s, solution_file_str, use_crosstools):
     resp = ""
 
     if(use_crosstools):
-        resp = connect.send_msg(s, "SUBMIT_SOLUTION_CB {}".format(json.dumps(solution)))
+        resp = bc.send_recv_msg("SUBMIT_SOLUTION_CB {}".format(json.dumps(solution)))
     else:
-        resp = connect.send_msg(s, "SUBMIT_SOLUTION_RB {}".format(json.dumps(solution)))
+        resp = bc.send_recv_msg("SUBMIT_SOLUTION_RB {}".format(json.dumps(solution)))
 
     if(resp == "INV_SOL"):
         blog.error("Attempted to submit invalid solution.")
@@ -361,12 +368,12 @@ def submit_solution(s, solution_file_str, use_crosstools):
 #
 # Checkout, edit and resubmit a package
 #
-def edit_pkgbuild(s, pkg_name):
+def edit_pkgbuild(bc, pkg_name):
     if(not "EDITOR" in os.environ):
         blog.error("No editor set.")
         return
 
-    bpb_resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkg_name))
+    bpb_resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkg_name))
     
     # check if package is valid
     if(bpb_resp == "INV_PKG_NAME"):
@@ -390,7 +397,6 @@ def edit_pkgbuild(s, pkg_name):
     editor = os.environ["EDITOR"]
     os.system("{} {}".format(editor, target_file))
 
-
     if(not inpututil.ask_choice("Commit changes to remote?")):
         blog.error("Aborting.")
         os.remove(target_file) 
@@ -404,7 +410,7 @@ def edit_pkgbuild(s, pkg_name):
         return
 
     json_str = new_pkgbuild.get_json()
-    resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(json_str))
+    resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(json_str))
    
     if(resp == "INV_PKG_BUILD"):
         blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
@@ -416,8 +422,8 @@ def edit_pkgbuild(s, pkg_name):
     blog.info("Cleaning up..")
     os.remove(target_file)
 
-def export(s, target_dir):
-    managed_packagebuilds = json.loads(connect.send_msg(s, "MANAGED_PKGBUILDS"))
+def export(bc, target_dir):
+    managed_packagebuilds = json.loads(bc.send_recv_msg("MANAGED_PKGBUILDS"))
     blog.info("Checking out {} pkgbuilds..".format(len(managed_packagebuilds)))
  
     if(os.path.exists(target_dir) and os.path.isdir(target_dir)):
@@ -428,7 +434,7 @@ def export(s, target_dir):
 
     for pkgbuild_name in managed_packagebuilds:
         blog.info("Checking out: {}".format(pkgbuild_name))
-        resp = connect.send_msg(s, "CHECKOUT_PACKAGE {}".format(pkgbuild_name))
+        resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkgbuild_name))
         
         # check if package is valid
         if(resp == "INV_PKG_NAME"):
@@ -462,7 +468,7 @@ def export(s, target_dir):
     blog.info("Export completed.")
 
 
-def _import(s, target_dir):
+def _import(bc, target_dir):
     bpb_files = []
     for root, dirs, files in os.walk(target_dir):
         for file in files:
@@ -481,12 +487,12 @@ def _import(s, target_dir):
             blog.error("Could not load packagebuild file: {}".format(path))
             return -1
          
-        resp = connect.send_msg(s, "SUBMIT_PACKAGE {}".format(bpb.get_json()))
+        resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(bpb.get_json()))
     
     blog.info("Import completed.")
 
-def get_client_info(s, client_name):
-    resp = connect.send_msg(s, "GET_CLIENT_INFO {}".format(client_name))
+def get_client_info(bc, client_name):
+    resp = bc.send_recv_msg("GET_CLIENT_INFO {}".format(client_name))
     
     if(resp == "INV_CLIENT_NAME"):
         blog.error("No such client found.")
