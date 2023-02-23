@@ -3,7 +3,7 @@ COPY branchbuildbot/ /branch/
 COPY branchlog /branchlog/
 COPY branchcommons /branchcommons/
 COPY pyleaf /pyleaf/
-RUN apk update && apk add python3-dev make python3 py3-pip make curl-dev libcurl gcc g++ clang musl-dev libarchive-dev ncurses ncurses-dev git cmake
+RUN apk update && apk add python3-dev make python3 py3-pip make curl-dev libcurl gcc g++ clang musl-dev libarchive-dev ncurses ncurses-dev git cmake libc-dev linux-headers
 RUN git clone https://github.com/AcaciaLinux/leaf -b dev --recursive && cd leaf && mkdir build && cd build && cmake .. && make -j12 && make install
 RUN pip install setuptools && pip install pycurl && pip install psutil
 RUN cd /branchlog/ && python3 setup.py sdist && pip install dist/branchlog-1.0.tar.gz
