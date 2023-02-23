@@ -87,7 +87,7 @@ class storage():
             buildscript = ""
             
             if(pkgbuild_obj.build_script != [ ]):
-                for i in range(0, len(pkgbuild_obj.build_script) - 2):
+                for i in range(0, len(pkgbuild_obj.build_script) - 1):
                     buildscript = "{}{}\n".format(buildscript, pkgbuild_obj.build_script[i])
                 
                 # last line does not have a newline
