@@ -28,7 +28,8 @@ class branch_web_providers():
             "viewlog": branch_web_providers.viewjob_log_endpoint,
             "submitpackagebuild": branch_web_providers.submit_packagebuild_endpoint,
             "cancelqueuedjob": branch_web_providers.cancel_queued_job_endpoint,
-            "cancelqueuedjobs": branch_web_providers.cancel_queued_jobs_endpoint
+            "cancelqueuedjobs": branch_web_providers.cancel_queued_jobs_endpoint,
+            "deletepackage": branch_web_providers.delete_package_endpoint
         }
         return post_providers
     
@@ -194,17 +195,53 @@ class branch_web_providers():
         if("authkey" not in post_data):
             blog.debug("Missing request data for authentication")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
-            
             return
 
         # check if logged in
         if(not webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
-            
             return
         
         manager.manager.clear_completed_jobs()  
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Completed jobs cleared successfully")
+
+    #
+    # Delete a specified packagebuild
+    #
+    # ENDPOINT /deletepackagebuild
+    @staticmethod
+    def delete_package_endpoint(httphandler, form_data, post_data):
+        if("authkey" not in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            return
+        
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+            return
+
+        if(not "pkgname" in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: pkgname")
+            return
+         
+        pkg_name = post_data["pkgname"]
+        
+        if(not pkg_name in pkgbuildstorage.storage.get_all_packagebuild_names()):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "No such pkgbuild found.")
+            return
+
+        blog.debug("Deleting packagebuild..")
+        pkgbuildstorage.storage.remove_packagebuild(pkg_name)
+        blog.debug("Deleting package..")
+        
+        # not locked, can delete
+        if(not packagestorage.storage.check_package_lock(pkg_name)):
+            packagestorage.storage().remove_package(pkg_name)
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Package and packagebuild deleted.")
+
+        else:
+            blog.warn("Package requested for deletion is currently locked, added to deletion queue.")
+            packagestorage.storage.deletion_queue.append(pkg_name)
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Package is currently locked. Added to deletion queue.")
 
     #
     # Returns a json joblist 
@@ -222,13 +259,11 @@ class branch_web_providers():
         if(not webauth.web_auth.validate_key(post_data["authkey"])):
             blog.debug("Missing authentication key")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
-            
             return
         
         if("jobid" not in post_data):
             blog.debug("Missing request data for viewlog")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: jobid")
-            
             return
 
         jobid = post_data["jobid"]
@@ -267,7 +302,6 @@ class branch_web_providers():
             return
         
         blog.debug("Checking submission..")
-
         package_build = packagebuild.package_build.from_string(post_data["packagebuild"])
 
         if(not package_build.is_valid()):
