@@ -4,7 +4,7 @@ import blog
 
 from builder import builder
 
-def handle_command(socket, command):
+def handle_command(bc, command):
 
     # Find the first space
     cmd_header_loc = command.find(" ")
@@ -26,14 +26,14 @@ def handle_command(socket, command):
         #
         case "BUILD_PKG":
             blog.info("Got a job from masterserver. Using realroot")
-            return builder.handle_build_request(socket, cmd_body, False)
+            return builder.handle_build_request(bc, cmd_body, False)
 
         #
         # Build a package using crosstools
         # 
         case "BUILD_PKG_CROSS":
             blog.info("Got a job from masterserver. Using crosstools")
-            return builder.handle_build_request(socket, cmd_body, True)
+            return builder.handle_build_request(bc, cmd_body, True)
         #
         # handles a ping request from overwatch
         #

@@ -11,10 +11,10 @@ import packagebuild
 import leafpkg
 import threading
 import sys
+import branchclient
 
 from config import config
 from buildenvmanager import buildenv
-from bsocket import connect
 
 EXECUTABLE_MAGIC_BYTES = b'\x7fELF'
 SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
@@ -22,21 +22,21 @@ SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
 #
 # Handle a build request
 # 
-def handle_build_request(socket, cmd_body, use_crosstools):
+def handle_build_request(bc, cmd_body, use_crosstools):
     # Something went horribly wrong..
     if(cmd_body is None):
         blog.error("Received empty command body on PKG_BUILD request. Returning to ready-state.")
-        connect.send_msg(socket, "BUILD_FAILED")
+        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
         buildenv.clean_env()
         return "SIG_READY"
 
     # Notify Overwatch
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE JOB_ACCEPTED")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE JOB_ACCEPTED")
     
     # Setup buildenvironment
     if(buildenv.setup_env(use_crosstools)  == -1):
-        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_FAILED")
-        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
+        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
         buildenv.drop_buildenv()
         return None
 
@@ -55,11 +55,11 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     # validate..
     if(not pkgbuild.is_valid()):
         blog.warn("Invalid package build received from server. Rejected.")
-        connect.send_msg(socket, "REPORT_SYS_EVENT {}".format("Build failed. The received packagebuild is invalid."))
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Build failed. The received packagebuild is invalid."))
         return "BUILD_FAILED"
     
     # build environment is setup, package build is ready.
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_ENV_READY")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_READY")
 
     # get leafpkg
     lfpkg = leafpkg.leafpkg()
@@ -70,10 +70,10 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     lfpkg.dependencies = pkgbuild.dependencies
 
     # run build step
-    if(build(builddir, pkgbuild, lfpkg, socket, use_crosstools) == "BUILD_COMPLETE"):
-        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_COMPLETE")
+    if(build(builddir, pkgbuild, lfpkg, bc, use_crosstools) == "BUILD_COMPLETE"):
+        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_COMPLETE")
     else:
-        connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_FAILED")
+        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
         buildenv.clean_env()
         return "SIG_READY"
     
@@ -84,19 +84,19 @@ def handle_build_request(socket, cmd_body, use_crosstools):
     file_size = os.path.getsize(pkg_file)
     blog.info("Package file size is {} bytes".format(file_size))
     
-    res = connect.send_msg(socket, "FILE_TRANSFER_MODE {}".format(file_size))
+    res = bc.send_recv_msg("FILE_TRANSFER_MODE {}".format(file_size))
 
     # if we got any other response, we couldn't switch mode
     if(not res == "ACK_FILE_TRANSFER"):
         blog.error("Server did not switch to file upload mode: {}".format(res))
         blog.error("Returning to ready-state.")
-        connect.send_msg(socket, "BUILD_FAILED")
+        bc.send_recv_msg("BUILD_FAILED")
 
         buildenv.clean_env()
         return "SIG_READY"
 
     # send file over socket
-    res = connect.send_file(socket, pkg_file)            
+    res = bc.send_file(pkg_file)
     
     # Check for mode switch
     if(res == "UPLOAD_ACK"):
@@ -105,14 +105,14 @@ def handle_build_request(socket, cmd_body, use_crosstools):
         blog.error("Uploading the package file failed.")
         blog.error("Returning to ready-state")
 
-        connect.send_msg(socket, "BUILD_FAILED")
+        bc.send_recv_msg("BUILD_FAILED")
         buildenv.clean_env()
         return "SIG_READY"
 
     
     # Clean build environment..
     buildenv.clean_env()
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILD_ENV_CLEAN")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_CLEAN")
 
     # We completed the build job. Send SIG_READY
     blog.info("Build job completed.")
@@ -124,7 +124,7 @@ def handle_build_request(socket, cmd_body, use_crosstools):
 #
 
 # directory = build directory
-def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
+def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     # create build_dir
     build_dir = os.path.join(directory, "build")
     os.mkdir(build_dir)
@@ -133,7 +133,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     destdir = lfpkg.write_package_directory(directory)
 
     # status update
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE FETCHING_SOURCE")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE FETCHING_SOURCE")
 
     if(package_build_obj.source):
         source_file = os.path.join(build_dir, package_build_obj.source.split("/")[-1])
@@ -157,7 +157,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
         except Exception as ex:
             blog.error("Fetching source failed. {}".format(ex))
             jlog = json.dumps(["Failed to fetch main source:", package_build_obj.source])
-            res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+            res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
             return "BUILD_FAILED"
 
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
@@ -170,7 +170,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
             if(fetch_file(build_dir, extra_src) != 0):
                 jlog = json.dumps(["Failed to fetch extra source:", extra_src])
-                res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+                res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
                 return "BUILD_FAILED"
 
         try:
@@ -190,7 +190,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
     deps_failed = False
     
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE INSTALLING_DEPS")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE INSTALLING_DEPS")
     
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
@@ -214,7 +214,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
         leaf_log_arr = leaf_log.split("\n")
         jlog = json.dumps(leaf_log_arr)
 
-        res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+        res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
         if(res == "LOG_OK"):
             blog.info("Log upload completed.")
         else:
@@ -270,7 +270,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
   
     proc = None
 
-    connect.send_msg(socket, "REPORT_STATUS_UPDATE BUILDING")
+    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILDING")
     
     if(config.config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -313,7 +313,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
     # strip unneeded symbols from binaries
     stripped_files = [ ]
     if(proc.returncode == 0):
-        connect.send_msg(socket, "REPORT_STATUS_UPDATE STRIP_BINS")
+        bc.send_recv_msg("REPORT_STATUS_UPDATE STRIP_BINS")
         stripped_files = strip(destdir)
 
     log = [ ]
@@ -328,7 +328,7 @@ def build(directory, package_build_obj, lfpkg, socket, use_crosstools):
 
     jlog = json.dumps(log)
 
-    res = connect.send_msg(socket, "SUBMIT_LOG {}".format(jlog))
+    res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
     if(res == "LOG_OK"):
         blog.info("Log upload completed.")
     else:

@@ -21,8 +21,8 @@ BRANCH_VERSION = "0.6-pre"
 import blog
 import os
 import json
+import branchclient
 
-from bsocket import connect
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
 from config import config
@@ -53,21 +53,20 @@ def main():
     identifier = config.config.get_config_option("Connection")["Identifier"]
 
     # establish socket connection
-    s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
+    bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
 
-    if(s is None):
-        blog.error("Connection refused.")
+    if(not bc.ready):
         return -1
 
     # provide system performance metrics
     blog.info("Providing system information..")
-    connect.send_msg(s, "SET_MACHINE_INFORMATION {}".format(json.dumps(buildenv.get_host_info())))
+    bc.send_recv_msg("SET_MACHINE_INFORMATION {}".format(json.dumps(buildenv.get_host_info())))
 
     # init leafcore
     if(buildenv.init_leafcore() != 0):
         blog.info("Buildbot could not initialize leaf. Reporting system event.")
-        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
-        s.close()
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
+        bc.disconnect()
         blog.info("Disconnected. Cannot continue.")
         return -1
    
@@ -80,28 +79,28 @@ def main():
   
     if(check_failed):
         blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
-        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
-        s.close()
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
+        bc.disconnect()
         blog.info("Disconnected. Cannot continue.")
         return -1
 
     if (not buildenv.check_host_binary("chroot")):
         blog.error("'chroot' binary is missing. Reporting system event.")
-        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
-        s.close()
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
+        bc.disconnect()
         blog.info("Disconnected. Cannot continue")
         return -1
 
     if (not buildenv.check_host_binary("strip")):
         blog.error("'strip' binary is missing. Reporting system event.")
-        connect.send_msg(s, "REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
-        s.close()
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
+        bc.disconnect()
         blog.info("Disconnected. Cannot continue")
         return -1
 
     # Signal readyness to server
     blog.info("Sending ready signal...")
-    res = connect.send_msg(s, "SIG_READY")
+    res = bc.send_recv_msg("SIG_READY")
 
     if(res == "CMD_OK"):
         blog.info("Server acknowleged ready signal.")
@@ -112,20 +111,20 @@ def main():
     # always wait for cmds from masterserver
     while True:
         blog.info("Waiting for commands from masterserver...")
-        cmd = connect.recv_only(s)
+        cmd = bc.recv_msg()
          
         # no data, server exited.
         if(cmd is None):
             blog.warn("Connection to server lost.")
-            s.close()
+            bc.disconnect
             return -1
 
         blog.debug("Handling command from server.. {}".format(cmd))
-        res = handleCommand.handle_command(s, cmd)
+        res = handleCommand.handle_command(bc, cmd)
 
         if(res == None):
             blog.error("Critical failure. Disconnecting..")
-            s.close()
+            bc.disconnect()
             blog.info("Attempting recovery..")
             blog.info("Dropping build environment..")
             buildenv.drop_buildenv()
@@ -134,7 +133,8 @@ def main():
             blog.info("Reconnecting..")
             s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
         else:
-            connect.send_msg(s, res)
+            res = bc.send_recv_msg(res)
+            blog.debug("Result from server: {}".format(res))
 
 if (__name__ == "__main__"):
     try:
