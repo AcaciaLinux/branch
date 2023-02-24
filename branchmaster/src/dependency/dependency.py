@@ -91,7 +91,7 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
         new_prev_jobs = [ ]
 
         for pk in line:
-            job = jobs.jobs(use_crosstools)
+            job = jobs.jobs(use_crosstools, True)
             job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(pk)
             
             if(job.pkg_payload is None):
@@ -165,33 +165,50 @@ def package_dep_in_queue(in_queue: queue, deps_array):
 
 def update_blockages(manager):
     blog.info("Recalculating blockages...")
+    
 
     for job in manager.queued_jobs:
-        job.blocked_by = []
 
-        # Select the correct dependency array
-        if (job.use_crosstools):
-            dependencies = job.pkg_payload.cross_dependencies
+        # If the job is created by a solution submission
+        # keep the explicitly defined blocking, but check if BLOCKED or WAITING
+        if(job.solution_mode):
+            blog.debug("Job is in solution mode. Keeping explicitly defined job-blocking.")
+            job.set_status("WAITING")
+    
+            for blocker in job.blocked_by:
+                if(any(queued_job.job_id == blocker for queued_job in manager.queued_jobs)):
+                    blog.debug("Job '{}' ({}) is blocked by queued job defined in solution.".format(job.pkg_payload.name, job.job_id))
+                    job.set_status("BLOCKED")
+                    break
+        
+        # Check if the job should be blocked
+        # by one of its dependencies.
         else:
-            dependencies = job.pkg_payload.build_dependencies
+            job.blocked_by = []
 
-        # The queued jobs
-        for job_found in package_dep_in_queue(manager.queued_jobs, dependencies):
-            blog.debug("Job '{}' ({}) is blocked by queued job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
-            job.blocked_by.append(job_found.job_id)
+            # Select the correct dependency array
+            if (job.use_crosstools):
+                dependencies = job.pkg_payload.cross_dependencies
+            else:
+                dependencies = job.pkg_payload.build_dependencies
 
-        # The running jobs
-        for job_found in package_dep_in_queue(manager.running_jobs, dependencies):
-            blog.debug("Job '{}' ({}) is blocked by running job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
-            job.blocked_by.append(job_found.job_id)
-
-        # Finished and "COMPLETED" jobs
-        for job_found in package_dep_in_queue(manager.completed_jobs, dependencies):
-            if (job_found.get_status() != "COMPLETED"):
-                blog.debug("Job '{}' ({}) is blocked by non-completed job '{}' ({}) [{}]".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id, job_found.get_status()))
+            # The queued jobs
+            for job_found in package_dep_in_queue(manager.queued_jobs, dependencies):
+                blog.debug("Job '{}' ({}) is blocked by queued job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
                 job.blocked_by.append(job_found.job_id)
 
-        if (len(job.blocked_by) > 0):
-            job.set_status("BLOCKED")
-        else:
-            job.set_status("WAITING")
+            # The running jobs
+            for job_found in package_dep_in_queue(manager.running_jobs, dependencies):
+                blog.debug("Job '{}' ({}) is blocked by running job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
+                job.blocked_by.append(job_found.job_id)
+
+            # Finished and "COMPLETED" jobs
+            for job_found in package_dep_in_queue(manager.completed_jobs, dependencies):
+                if (job_found.get_status() != "COMPLETED"):
+                    blog.debug("Job '{}' ({}) is blocked by non-completed job '{}' ({}) [{}]".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id, job_found.get_status()))
+                    job.blocked_by.append(job_found.job_id)
+
+            if (len(job.blocked_by) > 0):
+                job.set_status("BLOCKED")
+            else:
+                job.set_status("WAITING")

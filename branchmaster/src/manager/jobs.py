@@ -2,7 +2,7 @@ import uuid
 import blog
 
 class jobs():
-    def __init__(self, use_crosstools):
+    def __init__(self, use_crosstools, solution_mode=False):
 
         # class members
         self.job_id = ""
@@ -22,6 +22,8 @@ class jobs():
         self.job_id = str(uid)
         
         self.use_crosstools = use_crosstools
+        self.solution_mode = solution_mode
+
         self.build_log = None
         
         # set to true once a bot sends JOB_ACCEPTED response
