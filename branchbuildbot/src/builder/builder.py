@@ -90,7 +90,7 @@ def handle_build_request(bc, cmd_body, use_crosstools):
     if(not res == "ACK_FILE_TRANSFER"):
         blog.error("Server did not switch to file upload mode: {}".format(res))
         blog.error("Returning to ready-state.")
-        bc.send_recv_msg("BUILD_FAILED")
+        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
 
         buildenv.clean_env()
         return "SIG_READY"
@@ -158,7 +158,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
             blog.error("Fetching source failed. {}".format(ex))
             jlog = json.dumps(["Failed to fetch main source:", package_build_obj.source])
             res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-            return "BUILD_FAILED"
+            return "REPORT_STATUS_UPDATE BUILD_FAILED"
 
         blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
 
@@ -171,7 +171,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
             if(fetch_file(build_dir, extra_src) != 0):
                 jlog = json.dumps(["Failed to fetch extra source:", extra_src])
                 res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-                return "BUILD_FAILED"
+                return "REPORT_STATUS_UPDATE BUILD_FAILED"
 
         try:
             # check if file is tarfile and extract if it is
@@ -184,7 +184,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
 
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
-            return "BUILD_FAILED"
+            return "REPORT_STATUS_UPDATE BUILD_FAILED"
     else:
         blog.warn("No source specified. Not fetching source.")
 
@@ -222,7 +222,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         
         blog.debug("Clearing leaf logs..")
         buildenv.clear_leaf_logs()
-        return "BUILD_FAILED"
+        return "REPORT_STATUS_UPDATE BUILD_FAILED"
 
     blog.info("Package build will run in: {}".format(build_dir))
     blog.info("Package destination is: {}".format(destdir))
@@ -341,7 +341,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     blog.info("Build completed successfully.")
 
     # change back to call_dir
-    return "BUILD_COMPLETE"
+    return "REPORT_STATUS_UPDATE BUILD_COMPLETE"
 
 #
 # download a file from web
