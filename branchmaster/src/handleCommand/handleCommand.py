@@ -529,18 +529,23 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                     
                     blog.info("Hashing package..")
                     md5_hash = hashlib.md5()
-                    hash_file = open(job.file_name, "rb")
+                    hash_file = open(job.client.file_target, "rb")
 
                     # read chunk by chunk
                     for chunk in iter(lambda: hash_file.read(4096), b""):
                         md5_hash.update(chunk)
 
                     blog.info("Deploying package to storage..")
-                    shutil.move(job.file_name, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
+                    shutil.move(job.client.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
                     job.set_status("COMPLETED")
 
                 manager.move_inactive_job(job)
-            
+ 
+            # we are done, reset
+            client.file_transfer_mode = False
+            client.file_target = None
+            client.file_target_bytes = 0          
+
             client.send_command("CMD_OK")
             blog.info("Client {} is ready for commands.".format(client.get_identifier()))
 
@@ -618,8 +623,10 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         # FILE_TRANSFER_MODE <BYTES>
         #
         case "FILE_TRANSFER_MODE":
+            byte_count = 0
+
             try:
-                int(cmd_body)
+                byte_count = int(cmd_body)
             except Exception:
                 return "BYTE_COUNT_ERR"
 
@@ -627,10 +634,10 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
             if(not job is None):
                 job.set_status("UPLOADING")
-                job.job_accepted = True
-                job.file_size = int(cmd_body)
-                job.file_name = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.job_id))
+
                 client.file_transfer_mode = True
+                client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.job_id))
+                client.file_target_bytes = byte_count
                 return "ACK_FILE_TRANSFER"
             else:
                 return "NO_JOB"

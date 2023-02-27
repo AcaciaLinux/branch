@@ -9,18 +9,18 @@ from threading import Lock
 class Client():
 
     def __init__(self, sock):
-        # uuid
-        self.client_uuid = None
+        
+        # file transfer mode
+        self.file_transfer_mode = False
+        self.file_target = None
+        self.file_target_bytes = 0
 
         # controller or build
         self.client_type = None
 
         # clear name to identify in log
         self.client_name = None
-
-        # file transfer mode
-        self.file_transfer_mode = False
-
+      
         # is authenticated
         self.is_authenticated = False
 

@@ -119,38 +119,33 @@ def threaded_client_handler(client_socket):
     blog.debug("Client thread exiting.")
 
 #
-# Receive a file from buildbot
+# Receive a file from client
 #
 def receive_file(socket, client):
-    job = manager.manager.get_job_by_client(client)
-    
-    if(job is None):
-        blog.error("Buildbot attempted to submit file while not having a job assigned?")
-        return
-
-    out_file = open(job.file_name, "wb")
+    out_file = open(client.file_target, "wb")
     data_len = 0
 
-    blog.info("File transfer started from {}. Receiving {} bytes from buildbot..".format(client.get_identifier(), job.file_size))
+    blog.info("File transfer started from {}. Receiving {} bytes from client..".format(client.get_identifier(), client.file_target_bytes))
     
-    while(job.file_size != data_len):
+    while(not client.file_target_bytes == data_len):
         data = socket.recv(4096)
         if(data == b""):
             break
 
         data_len += len(data)
         out_file.write(data)
-
-    if(data_len == job.file_size):
-        blog.info("Received {} bytes. File upload successful".format(job.file_size))
-        out_file.close()
-
-        client.file_transfer_mode = False
+    
+    if(data_len == client.file_target_bytes):
+        blog.info("Received {} bytes. File upload successful".format(client.file_target_bytes))
         client.send_command("UPLOAD_ACK")
         blog.info("File upload completed.")
     else:
-        blog.warn("File upload failed, because the client disconnected.")
-        client.file_transfer_mode = False
+        blog.warn("File upload failed. The client disconnected before completion.")
+        
+    client.file_transfer_mode = False
+    out_file.close()
+    
+
 
 def receive_data(client):
     try:

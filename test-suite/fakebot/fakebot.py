@@ -14,193 +14,99 @@ ALWAYS_IGNORE_COMMANDS=False
 import random
 import os
 import socket
+import blog
 import time
 import sys
+import branchclient
 
 def handshake(host, port, authkey):
-    cltype = "BUILD"
-
-    # connect to the server
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.connect((host, port))
-    except ConnectionRefusedError:
-        print("Connection refused.")
-        return -1
-
-    print("Connection established!")
-
-    # send the authentication key if one is provided
-    if(authkey is not None):
-        print("Sending auth key..")
-            
-        cmd = "AUTH " + authkey
-        cmd = "{} {}".format(len(cmd), cmd)
-
-        s.sendall(bytes(cmd, "utf-8"))
-        
-        data = receive_data(s)
-        
-        if(data == "AUTH_OK"):
-            print("Authkey accepted.")
-        elif(data == "UNTRUSTED_MODE"):
-            print("Authkey ignored.")
-        else:
-            print("An error occured: {}".format(data))
-            return None
-
-    # send the machine type to the server
-    print("Sending machine type..")
-    cmd = "SET_MACHINE_TYPE " + cltype
-    cmd = "{} {}".format(len(cmd), cmd)
-
-    s.sendall(bytes(cmd, "utf-8"))
-    data = receive_data(s)
+    return branchclient.branchclient(host, port, "FAKE_BOT", authkey, "BUILD")
     
-    if(data == "CMD_OK"):
-        print("Machine type granted.")
-    else:
-        print("An error occured: {}".format(data))
-        return None
-
-    # send the client name to the server
-    print("Sending client name...")
-    cmd = "SET_MACHINE_NAME FAKE_BOT_DO_NOT_USE"
-    cmd = "{} {}".format(len(cmd), cmd)
-    
-    s.sendall(bytes(cmd, "utf-8"))
-    data = receive_data(s)
-    
-    if(data == "CMD_OK"):
-        print("Client name accepted.")
-    else:
-        print("An error occured: {}".format(data))
-        return None
-
-    return s
-
-def receive_commands(s):
-    cmd = "REPORT_SYS_EVENT Failed to upgrade real root, manual intervention required."
-    cmd = "{} {}".format(len(cmd), cmd)
-
-    s.sendall(bytes(cmd, "utf-8"))
-
-    print("Sending ready signal..")
+def receive_commands(bc):
+    blog.info("Sending ready signal..")
     # send the "SIG_READY" message to the server
-    msg = "SIG_READY"
-    s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-    
-    l = receive_data(s)
+    data = bc.send_recv_msg("SIG_READY")
 
-
-    print("Ready! Waiting for commands.")
+    blog.info("Ready! Waiting for commands.")
     
     if ALWAYS_IGNORE_COMMANDS:
         time.sleep(5000000)
 
     # enter a loop to continuously receive messages from the server
     while True:
-        data = receive_data(s)
-        handle_command_from_server(data, s)
+        data = bc.recv_msg()
+        handle_command_from_server(data, bc)
 
-def handle_command_from_server(command, s):
+def handle_command_from_server(command, bc):
     # check if the received command is "BUILD_PKG"
-    print(command)
+    blog.info("GOT: " + command)
 
-    if command == "PING":
-        msg = "PONG"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+    cmd_head = command.split(" ")[0]
 
-    if command == "BUILD_PKG" or command == "BUILD_PKG_CROSS":
-        print("Got a build job from the server!")
+    if cmd_head == "PING":
+        bc.send_recv_msg("PONG")
 
-
-        # send the "BUILD_ENV_READY" message to the server
-        print("Reporting status update: BUILD_ENV_READY")
-        msg = "REPORT_STATUS_UPDATE JOB_ACCEPTED"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-        data = receive_data(s)
-
+    elif cmd_head == "BUILD_PKG" or cmd_head == "BUILD_PKG_CROSS":
+        blog.info("Got a build job from the server!")
 
         # send the "BUILD_ENV_READY" message to the server
-        print("Reporting status update: BUILD_ENV_READY")
-        msg = "REPORT_STATUS_UPDATE BUILD_ENV_READY"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-        data = receive_data(s)
+        blog.info("Reporting status update: BUILD_ENV_READY")
+        data = bc.send_recv_msg("REPORT_STATUS_UPDATE JOB_ACCEPTED")
+        blog.info(data)
 
+    
+        # send the "BUILD_ENV_READY" message to the server
+        blog.info("Reporting status update: BUILD_ENV_READY")
+        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_READY")
+        blog.info(data)
 
         # send "BUILD_COMPLETE" to the server
-        print("Reporting status update: BUILD_COMPLETE")
-        msg = "REPORT_STATUS_UPDATE BUILD_COMPLETE"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-        data = receive_data(s)
-        print(data)
+        blog.info("Reporting status update: BUILD_COMPLETE")
+        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_COMPLETE")
+        blog.info(data)
 
-        msg = "REPORT_STATUS_UPDATE SOND_GEHIRN"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-        data = receive_data(s)
-        print(data)
-        
-        print("Reading file length..")
-        # send "FILE_TRANSFER_MODE {byte-len}" to the server
-        with open("bla.bin", "rb") as f:
-            byte_len = len(f.read())
+        blog.info("Reading file length..")
 
-        print("Reporting status update: FILE_TRANSFER_MODE")
-        msg = "FILE_TRANSFER_MODE {}".format(byte_len)
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-        
-        data = receive_data(s)
-        print("Server switched to FT-mode")
+        blog.info("Reporting status update: FILE_TRANSFER_MODE {}".format(os.path.getsize("bla.bin")))
+        data = bc.send_recv_msg("FILE_TRANSFER_MODE {}".format(os.path.getsize("bla.bin")))
+        blog.info(data)
+
+        blog.info("Server switched to FT-mode")
 
         # send the file to the server
-        print("Uploading fakepackage..")
+        blog.info("Uploading fakepackage..")
 
         fakepac = open("bla.bin", "rb")
 
         all_len = 0
+        
+        f_u_res = ""
 
         if UPLOAD_DATA:
-            print("UPLOADING RANDOM BINARY DATA!")
-            s.sendfile(open("bla.bin", "rb"))
+            blog.info("UPLOADING RANDOM BINARY DATA!")
+            f_u_res = bc.send_file("bla.bin")
         
         # TODO: fix this properly..
         if ALWAYS_STALL_UPLOAD:
-            print("SET TO ALWAYS STALL UPLOAD!")
+            blog.info("SET TO ALWAYS STALL UPLOAD!")
             time.sleep(500000)
-
-        data = receive_data(s)
+        
+        blog.info(f_u_res)
+        
 
         # check if the server acknowledged the file upload
-        if data != "UPLOAD_ACK":
-            print("Error: file upload not acknowledged by the server.")
+        if f_u_res != "UPLOAD_ACK":
+            blog.info("Error: file upload not acknowledged by the server.")
             return
         
-        print("File upload completed: UPLOAD_ACK")
+        blog.info("File upload completed: UPLOAD_ACK")
 
-        print("Reporting status update: BUILD_CLEAN")
-        msg = "REPORT_STATUS_UPDATE BUILD_CLEAN"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
+        blog.info("Reporting status update: BUILD_CLEAN")
+        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_CLEAN")
 
+        blog.info("Reporting READY signal")
+        bc.send_recv_msg("SIG_READY")
 
-        print("Reporting READY signal")
-        msg = "SIG_READY"
-        s.sendall(bytes("{} {}".format(len(msg), msg), "utf-8"))
-
-
-
-# receive_data
-def receive_data(sock):
-    data = sock.recv(1024).decode("utf-8")
-    print("data received:")
-    print(data)
-
-
-    #TODO: this will break for longer commands, fix?
-    byte_len = data.split(" ")[0]
-    data = data.split(" ")[1]
-
-    return data
 
 # reads from stdin
 def read_stdin():
@@ -236,42 +142,37 @@ def main():
     else:
         host, port, authkey = read_argv()
 
-    print("FAKE BUILDBOT STARTING!")
-    print("DEBUG PURPOSES ONLY!")
-    print("DO NOT CONNECT THIS CLIENT TO A PRODUCTION SERVER!")
-    print("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
+    blog.info("FAKE BUILDBOT STARTING!")
+    blog.info("DEBUG PURPOSES ONLY!")
+    blog.info("DO NOT CONNECT THIS CLIENT TO A PRODUCTION SERVER!")
+    blog.info("Copyright (c) zimsneexh 2022 (https://zsxh.eu/)")
+        
+    blog.enable_debug_level()
 
-    #time.sleep(3)
-
-    print("Generating random binary data to submit as package..")
+    blog.info("Generating random binary data to submit as package..")
     write_random_file()
 
-    print("Picked up configuration: ")
+    blog.info("Picked up configuration: ")
     print("Host:", host)
     print("Port:", port)
     print("Authkey:", authkey)
 
-    print("Handshaking..")
-    s = None
+    blog.info("Handshaking..")
+    bc = None
 
     if AUTO_RECONNECT:
         while True:
-            s = handshake(host, int(port), authkey)
-            if(s == -1):
+            bc = handshake(host, int(port), authkey)
+            if(bc == -1):
                 time.sleep(20)
             else:
                 break
 
     else:
-        s = handshake(host, int(port), authkey)
-
-    if(s == -1):
-        return -1
-
-    s = handshake(host, int(port), authkey)
+        bc = handshake(host, int(port), authkey)
     
-    print("Ready to receive commands!")
-    receive_commands(s)
+    blog.info("Ready to receive commands!")
+    receive_commands(bc)
 
 if __name__ == "__main__":
     main()
