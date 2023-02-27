@@ -63,6 +63,9 @@ class Client():
     def get_sysinfo(self):
         sys_info = { }
         sys_info["Connection timestamp"] = self.connection_start_timestamp
+        
+        if(self.client_type == "BUILD"):
+            sys_info["Timed out commands [recovered]"] = self.failed_commands
 
         try:
             for attr in self.sysinfo:
