@@ -542,7 +542,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                 manager.move_inactive_job(job)
  
             # we are done, reset
-            client.file_transfer_mode = False
             client.file_target = None
             client.file_target_bytes = 0          
 

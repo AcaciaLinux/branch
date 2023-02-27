@@ -13,10 +13,6 @@ class jobs():
         self.job_status = ""
         self.blocked_by = [ ] 
 
-        # ft mode
-        self.file_name = None
-        self.file_size = None
-
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
