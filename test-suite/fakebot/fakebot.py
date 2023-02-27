@@ -43,6 +43,8 @@ def handshake(host, port, authkey):
         
         if(data == "AUTH_OK"):
             print("Authkey accepted.")
+        elif(data == "UNTRUSTED_MODE"):
+            print("Authkey ignored.")
         else:
             print("An error occured: {}".format(data))
             return None
