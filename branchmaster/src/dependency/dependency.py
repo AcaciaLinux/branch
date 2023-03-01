@@ -1,88 +1,52 @@
 import blog
 from localstorage import pkgbuildstorage
-from dependency import node
 from manager import jobs
 from manager import queue
 
 #
-# Get all dependencies in a list
+# Gets all depender names
 #
-def get_all_deps(pkg_name):
-    calculated = [ ]
-    deps = [ ]
-    res  = calculate_list(pkg_name, calculated, deps)
-    return res
-
-#
-# Calculates a dependency tree and return its masternode object 
-#
-def get_dependency_tree(pkg_name):
-    masternode = node.node(pkg_name)
-    calculated = [ ]
-
-    res = calculate_tree(calculated, masternode)  
-    return masternode
-
-#
-# Returns a full depender tree
-#
-def calculate_tree(calculated, masternode):
-    # Ignore circular dependencies
-    if(masternode.name in calculated):
-        blog.debug("Already calculated dependencies skipped.")
-        return None
-   
-    # Add self to already calculated packages.
-    calculated.append(masternode.name)
-    blog.debug("Finding dependers for {}...".format(masternode.name))
-
-    for pkg in pkgbuildstorage.storage.get_all_packagebuild_names():
-        pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(pkg)
-        
-        if(masternode.name in pkg_build.build_dependencies):
-            blog.debug("Adding to dependers.. {}".format(pkg))
-            
-            # Add sub node
-            newnode = node.node(pkg)
-            newnode.blocked_by = masternode
-            masternode.add_sub_node(newnode)
-            
-            # calculate dependencies for subnodes
-            calculate_tree(calculated, newnode)
-            continue
-
-#
-# Returns dependers as list
-#
-def calculate_list(pkg_name, calculated, deps):
-    if(pkg_name in calculated):
-        blog.debug("Already calculated {}! Skipping calculation..".format(pkg_name))
-        return
+def find_dependers(pkgs, pkgname, visited):
+    release_build = [ ]
+    cross_build = [ ]
     
-    ldeps = [ ]
+    # iterate through all pkgbuilds.
+    for pkg in pkgs:
 
-    blog.debug("Finding dependers (one level deep) for {}...".format(pkg_name))
+        # if the package has cross_dependencies set, use cross deps
+        if(pkg.cross_dependencies == [ ]):
+            blog.debug("Cross dependency not set for {}, using build_dependencies.".format(pkg.name))
 
-    for check_pkg in pkgbuildstorage.storage.get_all_packagebuild_names():
-        pkg_build = pkgbuildstorage.storage.get_packagebuild_obj(check_pkg)
-        
-        if(pkg_name in pkg_build.build_dependencies):
-            if(not check_pkg in deps):
-                blog.debug("Adding to dependers.. {}".format(check_pkg))
-                deps.append(check_pkg)
-                ldeps.append(check_pkg)
-            else:
-                blog.debug("Already in dependers.. {}".format(check_pkg))
+            if(pkgname in pkg.build_dependencies):
+                if(pkg.name not in visited):
+                    blog.debug("Adding package {} to releasebuilds".format(pkg.name))
+                    visited.add(pkg.name)
+                    release_build.append(pkg.name)
 
-            continue
+                    r,c = find_dependers(pkgs, pkg.name, visited) 
+                    release_build.extend(r)
+                else:
+                    blog.error("Circular dependency. {} indirectly depends on itself!".format(pkg.name))
 
-    calculated.append(pkg_name)
+        # if the package has release dependecies set, use release deps
+        else:
+            blog.debug("Cross dependency set. Using cross_dependencies")
+            if(pkgname in pkg.cross_dependencies):
+                if(not pkg.name in visited):
+                    blog.debug("Adding package {} to crossbuilds".format(pkg.name))
+                    visited.add(pkg.name)
+                    cross_build.append(pkg.name)
 
-    for pkg in ldeps:
-        calculate_list(pkg, calculated, deps)
-        
-    return deps
+                    r,c = find_dependers(pkgs, pkg.name, visited)
+                    cross_build.extend(c)
+                else:
+                    blog.warn("Circular dependency. {} indirectly depends on itself!".format(pkg.name))
+    
+    return release_build, cross_build
 
+#
+# Create jobs from a solution
+#
 def job_arr_from_solution(manager, client, solution, use_crosstools):
     created_jobs = [ ]
     prev_jobs = [ ]
@@ -111,45 +75,8 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
     return created_jobs, ""
 
 #
-# Get job array
-#
-def get_job_array(manager, client, dependencies):
-    job_array = [ ]
-    
-    if(dependencies is None):
-        return None
-
-    for dependency in dependencies:
-        # do not use crosstools
-        job = jobs.jobs(False)
-        job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(dependency)
-        job.requesting_client = client.get_identifier()
-        job.set_status("WAITING")
-
-        job_array.append(job)
-
-    return job_array
-
-#
-# Find a job by name in a jobs array
-#
-def get_job_by_name(jobs, name):
-    for job in jobs:
-        if(job.pkg_payload.name == name):
-            return job
-
-#
-# Find a job by job id in a jobs array
-#
-def get_job_by_id(jobs, jid):
-    for job in jobs:
-        if(job.job_id == jid):
-            return job
-
-#
 # Returns all the jobs contained in the queue that matches one of the names in deps_array
 #
-
 def package_dep_in_queue(in_queue: queue, deps_array):
     res = []
 
@@ -162,7 +89,6 @@ def package_dep_in_queue(in_queue: queue, deps_array):
 #
 # Updates every job in the queue and if it should be blocked by another one
 #
-
 def update_blockages(manager):
     blog.info("Recalculating blockages...")
     

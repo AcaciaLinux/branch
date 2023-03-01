@@ -273,13 +273,17 @@ def view_dependers(pkg_name):
 # rebuild dependers (auto calc)
 #
 def rebuild_dependers(bc, pkg_name):
+    start_time = int(time.time_ns() / 1000000000)
+
+    blog.info("Calculating dependers.. This may take a few moments")
     resp = bc.send_recv_msg("REBUILD_DEPENDERS {}".format(pkg_name))
+    
+    end_time = int(time.time_ns() / 1000000000)
+
     if(resp == "INV_PKG_NAME"):
         blog.error("No such package available.")
-    elif(resp == "CIRCULAR_DEPENDENCY"):
-        blog.error("Circular dependency detected. The requested batch build contains a circular dependency and could not be submitted.")
-    elif(resp == "BATCH_QUEUED"):
-        blog.info("Batch queued successfully.")
+    elif(resp == "CMD_OK"):
+        blog.info("Batch queued successfully. Dependers resolved in {}s".format((end_time - start_time)))
 
 #
 # difference between pkgs

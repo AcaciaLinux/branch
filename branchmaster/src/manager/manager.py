@@ -168,7 +168,6 @@ class manager():
     @staticmethod
     def cancel_all_queued_jobs():
         manager.queued_jobs = [ ] 
-        manager.get_queue().update()
     
     @staticmethod
     def get_buildbot_names():

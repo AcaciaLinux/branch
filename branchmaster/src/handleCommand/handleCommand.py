@@ -242,54 +242,67 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         #
         case "GET_DEPENDERS":
             names = pkgbuildstorage.storage.get_all_packagebuild_names()
+            pkgs = pkgbuildstorage.storage.get_all_packagebuilds()
 
             if(cmd_body in names):
-                blog.info("Calculating dependers for {}..".format(cmd_body))
-                dps = dependency.get_dependency_tree(cmd_body)
-                return json.dumps(dps.get_deps_array())
+                res = dependency.find_dependers(pkgs, cmd_body)
+                return json.dumps(res)
 
             else:
                 return "INV_PKG_NAME"
-
+        
 
         #
-        # Rebuild specified package plus all
-        # packages that depend on it
+        #
         #
         case "REBUILD_DEPENDERS":
             names = pkgbuildstorage.storage.get_all_packagebuild_names()
+            pkgs = pkgbuildstorage.storage.get_all_packagebuilds()
 
-            if(cmd_body in names):
-                blog.info("Controller client requested rebuild including dependers for {}".format(cmd_body))
-
-                # get dependency tree
-                res = dependency.get_dependency_tree(cmd_body)
-
-                # calculate deps array
-                dependency_array = res.get_deps_array()
-
-                # get array of job objects
-                jobs = dependency.get_job_array(manager, client, dependency_array)
-                
-                # calculate blockers on tree
-                res.calc_blockers(jobs)
-                
-                if(not dependency.get_job_by_name(jobs, cmd_body).blocked_by == [ ]):
-                    blog.info("Circular dependency detected in packagebuilds. Cannot queue batch job.")
-                    return "CIRCULAR_DEPENDENCY"
-                
-                # add jobs to manager
-                for job in jobs:
-                    manager.add_job_to_queue(job)
-
-                # queue every job
-                for job in jobs:
-                    manager.get_queue().add_to_queue(job)
-                
-                return "BATCH_QUEUED"
-            else:
-                blog.info("Controller client requested release build for invalid package.")
+            if(not cmd_body in names):
                 return "INV_PKG_NAME"
+            
+            release_build, cross_build = dependency.find_dependers(pkgs, cmd_body, set())
+
+            # start node
+            start_pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(cmd_body)
+            if(start_pkgbuild.cross_dependencies == [ ]):
+                release_build.append(start_pkgbuild.name)
+            else:
+                cross_build.append(start_pkgbuild.name)
+
+
+            for dep in release_build:
+                pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(dep)
+                blog.info("Creating releasebuild job for {}".format(pkgbuild.name))
+                
+                # get a job obj, crosstools = False
+                job = manager.new_job(False)
+
+                job.pkg_payload = pkgbuild
+                job.requesting_client = client.get_identifier()
+                job.set_status("WAITING")
+
+                manager.add_job_to_queue(job)
+                blog.info("Adding to queue")
+            
+            for dep in cross_build:
+                pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(dep)
+                blog.info("Creating crossbuild job for {}".format(pkgbuild.name))
+                
+                # get a job obj, crosstools = True
+                job = manager.new_job(True)
+
+                job.pkg_payload = pkgbuild
+                job.requesting_client = client.get_identifier()
+                job.set_status("WAITING")
+
+                manager.add_job_to_queue(job)
+            
+            manager.get_queue().update()
+            return "CMD_OK"
+
+
 
         #
         # Get all completed build jobs 
