@@ -2,6 +2,7 @@ import blog
 from localstorage import pkgbuildstorage
 from manager import jobs
 from manager import queue
+from manager import manager
 
 #
 # Gets all depender names
@@ -89,11 +90,11 @@ def package_dep_in_queue(in_queue: queue, deps_array):
 #
 # Updates every job in the queue and if it should be blocked by another one
 #
-def update_blockages(manager):
+def update_blockages():
     blog.info("Recalculating blockages...")
     
 
-    for job in manager.queued_jobs:
+    for job in manager.manager.queued_jobs:
 
         # If the job is created by a solution submission
         # keep the explicitly defined blocking, but check if BLOCKED or WAITING
@@ -102,7 +103,7 @@ def update_blockages(manager):
             job.set_status("WAITING")
     
             for blocker in job.blocked_by:
-                if(any(queued_job.job_id == blocker for queued_job in manager.queued_jobs)):
+                if(any(queued_job.job_id == blocker for queued_job in manager.manager.queued_jobs)):
                     blog.debug("Job '{}' ({}) is blocked by queued job defined in solution.".format(job.pkg_payload.name, job.job_id))
                     job.set_status("BLOCKED")
                     break
@@ -119,17 +120,17 @@ def update_blockages(manager):
                 dependencies = job.pkg_payload.build_dependencies
 
             # The queued jobs
-            for job_found in package_dep_in_queue(manager.queued_jobs, dependencies):
+            for job_found in package_dep_in_queue(manager.manager.queued_jobs, dependencies):
                 blog.debug("Job '{}' ({}) is blocked by queued job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
                 job.blocked_by.append(job_found.job_id)
 
             # The running jobs
-            for job_found in package_dep_in_queue(manager.running_jobs, dependencies):
+            for job_found in package_dep_in_queue(manager.manager.running_jobs, dependencies):
                 blog.debug("Job '{}' ({}) is blocked by running job '{}' ({})".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id))
                 job.blocked_by.append(job_found.job_id)
 
             # Finished and "COMPLETED" jobs
-            for job_found in package_dep_in_queue(manager.completed_jobs, dependencies):
+            for job_found in package_dep_in_queue(manager.manager.completed_jobs, dependencies):
                 if (job_found.get_status() != "COMPLETED"):
                     blog.debug("Job '{}' ({}) is blocked by non-completed job '{}' ({}) [{}]".format(job.pkg_payload.name, job.job_id, job_found.pkg_payload.name, job_found.job_id, job_found.get_status()))
                     job.blocked_by.append(job_found.job_id)

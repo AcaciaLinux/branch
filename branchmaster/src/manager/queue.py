@@ -47,7 +47,7 @@ class queue():
         blog.info("Updating queue...")
 
         # Recalculate blocked jobs
-        update_blockages(manager.manager)
+        update_blockages()
 
         # no queue, idle bot..
         if(not manager.manager.queued_jobs):

@@ -6,6 +6,7 @@ import shutil
 import hashlib
 import main
 import blog
+import uuid
 import packagebuild
 
 from config import config
