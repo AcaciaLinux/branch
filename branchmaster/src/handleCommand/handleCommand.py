@@ -519,7 +519,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             manager.add_pending_extra_source(extra_source_pending(client, _id, file_name, desc))
 
-            client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.es".format(_id, desc))
+            client.file_target = os.path.join(server.STAGING_AREA, "{}.es".format(_id))
             client.file_target_bytes = byte_count
             client.file_transfer_mode = True
             return "CMD_OK"
@@ -537,7 +537,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                     pending_extra_src = pes
                     break
             
-            target_file = os.path.join(server.STAGING_AREA, "{}-{}.es".format(pending_extra_src.id, pending_extra_src.desc))
+            target_file = os.path.join(server.STAGING_AREA, "{}.es".format(pending_extra_src.id))
             
             _bytes = [ ]
 
