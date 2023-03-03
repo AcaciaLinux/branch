@@ -5,6 +5,8 @@ import packagebuild
 import sqlite3
 from threading import Lock
 
+PKG_BUILD_STORAGE_FILE="pkgbuild.db"
+
 class storage():
     
     # only one thread can access an sqlite object at a time
@@ -15,7 +17,7 @@ class storage():
         blog.debug("Acquiring Database lock")
         
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             storage.lock.acquire()
             cur = db_connection.cursor()
 
@@ -38,7 +40,7 @@ class storage():
         storage.lock.acquire()
         pkgbuild_obj = None
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             cur = db_connection.cursor()
             res = cur.execute("SELECT * FROM pkgbuilds WHERE name = ?", (name,))
             pkgbuild_result = res.fetchone()
@@ -61,7 +63,7 @@ class storage():
         blog.info("Inserting pkgbuild to database: {}".format(pkgbuild_obj.name))
         storage.lock.acquire()
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
             # remove packagebuild if it already exists
             cur = db_connection.cursor()
@@ -111,7 +113,7 @@ class storage():
     def get_all_packagebuilds():
         storage.lock.acquire()
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
             # remove packagebuild if it already exists
             cur = db_connection.cursor()
@@ -134,7 +136,7 @@ class storage():
         
         names = [ ]
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
             # remove packagebuild if it already exists
             cur = db_connection.cursor()
@@ -154,7 +156,7 @@ class storage():
         storage.lock.acquire()
 
         try:
-            db_connection = sqlite3.connect("pkgbuild.db")
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
             # remove packagebuild if it already exists
             cur = db_connection.cursor()

@@ -110,6 +110,14 @@ class Client():
         self.sock.send(bytes(message, "UTF-8"))
         blog.debug("Message {} sent!".format(message))
         self.lock.release()
+    
+    #
+    # Send a byte-like object to client
+    #
+    def send_file(self, blob):
+        self.lock.acquire()
+        self.sock.send(blob)
+        self.lock.release()
 
     #
     # handle a clients disconnect.

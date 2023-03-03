@@ -28,6 +28,11 @@ class manager():
     # Array of system Events
     #
     system_events = [ ]
+
+    #
+    # Extra sources currently uploading
+    #
+    pending_extra_sources = [ ]
     
     @staticmethod
     def get_queue():
@@ -184,4 +189,15 @@ class manager():
         current_time = time.strftime("%H:%M:%S %d-%m-%Y", time.localtime())
         manager.system_events.append("[{}] {} => {}".format(current_time, issuer, event))
 
+    
+    @staticmethod
+    def get_pending_extra_sources():
+        return manager.pending_extra_sources
+    
+    @staticmethod
+    def add_pending_extra_source(pending_extra_src):
+        manager.pending_extra_sources.append(pending_extra_src)
 
+    @staticmethod
+    def remove_pending_extra_source(pending_extra_src):
+        manager.pending_extra_sources.remove(pending_extra_src)

@@ -10,6 +10,7 @@ import uuid
 import packagebuild
 
 from config import config
+from localstorage import extrasourcestorage
 from localstorage import packagestorage 
 from localstorage import pkgbuildstorage
 from manager import queue
@@ -489,7 +490,81 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             return "CMD_OK"
 
+        #
+        # Receive extra sources from buildbot
+        #
+        # TRANSFER_EXTRA_SOURCE BYTES DESCRIPTION FILENAME
+        case "TRANSFER_EXTRA_SOURCE":
+            cmd_body_split = cmd_body.split(" ")
+            byte_count = 0
 
+            try:
+                byte_count = int(cmd_body_split[0])
+            except Exception:
+                return "BYTE_COUNT_ERR"
+            
+            _id = uuid.uuid4()
+            desc = cmd_body_split[1]
+            file_name = cmd_body_split[2]
+
+            #
+            # Extra Source pending class
+            #
+            class extra_source_pending():
+                def __init__(self, client, _id, file_name, desc):
+                    self.client = client
+                    self.id = _id
+                    self.desc = desc
+                    self.file_name = file_name
+
+            manager.add_pending_extra_source(extra_source_pending(client, _id, file_name, desc))
+
+            client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.es".format(_id, desc))
+            client.file_target_bytes = byte_count
+            client.file_transfer_mode = True
+            return "CMD_OK"
+        
+        #
+        # Called when a client completes an extra source upload
+        # adds the specified extra source to the database
+        #
+        case "COMPLETE_TRANSFER":
+            pending_extra_src = None
+
+            # find correct pending job
+            for pes in manager.get_pending_extra_sources():
+                if(pes.client.client_uuid == client.client_uuid):
+                    pending_extra_src = pes
+                    break
+            
+            target_file = os.path.join(server.STAGING_AREA, "{}-{}.es".format(pending_extra_src.id, pending_extra_src.desc))
+            
+            _bytes = [ ]
+
+            with open(target_file, "rb") as _file:
+                _bytes = _file.read()
+
+            if(not extrasourcestorage.storage.add_extrasource(str(pending_extra_src.id), pending_extra_src.file_name, pending_extra_src.desc, _bytes)):
+                return "ERR_COULD_NOT_INSERT"
+
+            manager.remove_pending_extra_source(pending_extra_src)
+            return "CMD_OK"
+
+        #
+        # Get all managed extra sources
+        #
+        case "GET_MANAGED_EXTRA_SOURCES":
+            return json.dumps(extrasourcestorage.storage.get_all_extrasources())
+
+        #   
+        # Deletes an extra source by id
+        #
+        case "REMOVE_EXTRA_SOURCE":
+            if(cmd_body == ""):
+                return "INV_ES_NAME"
+                
+            extrasourcestorage.storage.remove_extrasource_by_id(cmd_body)
+            return "CMD_OK"
 
         #
         # Invalid command
@@ -564,7 +639,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
             client.is_ready = True
             manager.queue.update()
-
             return None
         
         #
@@ -666,6 +740,29 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             blog.info("Received System Event report from {}.".format(client.get_identifier()))
             manager.report_system_event(client.get_identifier(), cmd_body)
             return "RECV_SYS_EVENT"
+    
+        #
+        # Checkout extra source from
+        # masterserver.
+        #
+        # EXTRA_SOURCE_INFO -> FT_OK -> send_file() -> wait for ACK -> DOWNLOAD_COMPLETED
+        case "EXTRA_SOURCE_INFO":
+            if(cmd_body == ""):
+                return "INV_CMD"
+            
+            blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)
+            if(blob is None):
+                return "INV_EXTRA_SOURCE"
+            
+            extra_source_info = extrasourcestorage.storage.get_extra_source_info_by_id(cmd_body)
+
+            data_info = {
+                "filename": extra_source_info.file_name
+                "filesize": extra_source_info.file_size
+                "datalen": len(blob)
+            }
+
+            return json.dumps(data_info) 
 
         #
         # Invalid command

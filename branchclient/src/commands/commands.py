@@ -509,3 +509,29 @@ def get_client_info(bc, client_name):
     print()
     for attr in client_info:
         print("{}: {}".format(attr, client_info[attr]))
+
+
+
+def transfer_extra_source(bc, file_path):
+    blog.info("Loading extra source..")
+    
+    byte_count = os.path.getsize(file_path)
+    
+    blog.info("Enter a description: ")
+    description = input()
+
+    resp = bc.send_recv_msg("TRANSFER_EXTRA_SOURCE {} {}".format(byte_count, description))
+
+    if(not resp == "CMD_OK"):
+        blog.error("Could not switch to file transfer mode.")
+
+    blog.info("File transfer setup completed.")
+    blog.info("Sending file..")
+    bc.send_file(file_path)
+    
+    resp = bc.send_recv_msg("COMPLETE_TRANSFER")
+
+    if(not resp == "CMD_OK"):
+        blog.error("Received error response from server: {}".format(resp))
+    else:
+        blog.info("File transfer completed.")

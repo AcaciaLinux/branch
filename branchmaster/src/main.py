@@ -20,13 +20,14 @@ BRANCH_VERSION = "0.6-pre"
 
 import threading
 import blog
+
 from branchweb import webserver
 from branchweb import webauth
-
 from config import config
 from bsocket import server
 from manager import manager
 from localstorage import pkgbuildstorage
+from localstorage import extrasourcestorage
 from web import endpoints
 
 def main():
@@ -35,6 +36,8 @@ def main():
     print("Version: "+ BRANCH_VERSION +" (" + BRANCH_CODENAME +")")
     print()
     print()
+    
+    
 
     blog.info("Masterserver initializing..")
 
@@ -67,6 +70,12 @@ def main():
     
     blog.info("Setting up local Packagebuild database..")
     pkgbuildstorage.storage.populate()
+
+    blog.info("Setting up local Extrasource database..")
+    extrasourcestorage.storage.populate()
+    
+    blob = extrasourcestorage.storage.get_extra_source_blob_by_id("a8a9308e-3283-43d3-9f97-10c365ad92ea")
+    print(blob)
 
     web_thread = None
     if(config.config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
