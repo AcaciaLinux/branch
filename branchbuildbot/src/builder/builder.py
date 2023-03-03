@@ -70,7 +70,7 @@ def handle_build_request(bc, cmd_body, use_crosstools):
     lfpkg.dependencies = pkgbuild.dependencies
 
     # run build step
-    if(build(builddir, pkgbuild, lfpkg, bc, use_crosstools) == "BUILD_COMPLETE"):
+    if(build(builddir, pkgbuild, lfpkg, bc, use_crosstools) == "REPORT_STATUS_UPDATE BUILD_COMPLETE"):
         bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_COMPLETE")
     else:
         bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
@@ -299,6 +299,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         # stdout log
         std_out_str = proc.stdout   
 
+    blog.info("Build complete.")
 
     # stdout log
     std_out = std_out_str.split("\n")
@@ -336,11 +337,9 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
 
     if(proc.returncode != 0):
         blog.error("Package build script failed.")
-        return "BUILD_FAILED"
+        return "REPORT_STATUS_UPDATE BUILD_FAILED"
 
     blog.info("Build completed successfully.")
-
-    # change back to call_dir
     return "REPORT_STATUS_UPDATE BUILD_COMPLETE"
 
 #
