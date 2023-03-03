@@ -510,17 +510,24 @@ def get_client_info(bc, client_name):
     for attr in client_info:
         print("{}: {}".format(attr, client_info[attr]))
 
-
-
 def transfer_extra_source(bc, file_path):
     blog.info("Loading extra source..")
-    
+
+    file_name = os.path.basename(file_path)
+    blog.info("Will commit as filename: {}".format(file_name))
+
     byte_count = os.path.getsize(file_path)
     
     blog.info("Enter a description: ")
     description = input()
 
-    resp = bc.send_recv_msg("TRANSFER_EXTRA_SOURCE {} {}".format(byte_count, description))
+    info_dict = {
+        "description": description,
+        "filename": file_name,
+        "filelen": byte_count
+    }
+
+    resp = bc.send_recv_msg("TRANSFER_EXTRA_SOURCE {}".format(json.dumps(info_dict)))
 
     if(not resp == "CMD_OK"):
         blog.error("Could not switch to file transfer mode.")
@@ -535,3 +542,21 @@ def transfer_extra_source(bc, file_path):
         blog.error("Received error response from server: {}".format(resp))
     else:
         blog.info("File transfer completed.")
+
+def view_extra_sources(bc):
+    blog.info("Fetching available extra sources.")
+
+    resp = json.loads(bc.send_recv_msg("GET_MANAGED_EXTRA_SOURCES"))
+    print ("\n\n{:<40} {:<15} {:<40}".format("ID", "FILENAME", "DESCRIPTION"))
+
+    for es in resp:
+        print ("{:<40} {:<15} {:<40}".format(es["id"], es["filename"], es["description"]))
+
+
+def remove_extra_source(bc, es_id):
+    resp = bc.send_recv_msg("REMOVE_EXTRA_SOURCE {}".format(es_id))
+
+    if(resp == "CMD_OK"):
+        blog.info("Extra source deleted.")
+    else:
+        blog.error("Could not delete extra source.")

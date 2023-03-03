@@ -8,11 +8,17 @@ from threading import Lock
 EXTRA_SOURCE_STORAGE_FILE="extrasources.db"
 
 class extra_source_info():
-    def __init__(_id, filename, filesize):
+    def __init__(self, _id, filename, description):
         self.id = _id
         self.filename = filename
-        self.filesize = filesize
-
+        self.description = description
+    
+    def get_json(self):
+        return {
+                "id": self.id,
+                "filename": self.filename,
+                "description": self.description
+        }
 
 class storage():
     
@@ -78,7 +84,7 @@ class storage():
                 es_info.append(extra_source_info(entry[0], entry[1], entry[2]))
 
         except Exception as ex:
-            blog.error("Could not get all extrasources from database.")
+            blog.error("Could not get all extrasources from database: {}".format(ex))
     
         storage.lock.release()
         return es_info
@@ -92,12 +98,12 @@ class storage():
             db_connection = sqlite3.connect(EXTRA_SOURCE_STORAGE_FILE)
             
             cur = db_connection.cursor()
-            res = cur.execute("SELECT id, filename, desc FROM extrasources WHERE id = {}".format(target_id)).fetchone()
+            res = cur.execute("SELECT id, filename, desc FROM extrasources WHERE id = '{}'".format(target_id)).fetchone()
             
             es_info = extra_source_info(res[0], res[1], res[2])
 
         except Exception as ex:
-            blog.error("Could not get all extrasources from database.")
+            blog.error("Could not get extrasource from database: {}".format(ex))
     
         storage.lock.release()
         return es_info

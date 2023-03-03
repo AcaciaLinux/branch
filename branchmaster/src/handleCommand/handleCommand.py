@@ -495,17 +495,17 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         #
         # TRANSFER_EXTRA_SOURCE BYTES DESCRIPTION FILENAME
         case "TRANSFER_EXTRA_SOURCE":
-            cmd_body_split = cmd_body.split(" ")
+            file_info = json.loads(cmd_body)
             byte_count = 0
 
             try:
-                byte_count = int(cmd_body_split[0])
+                byte_count = int(file_info["filelen"])
             except Exception:
                 return "BYTE_COUNT_ERR"
             
             _id = uuid.uuid4()
-            desc = cmd_body_split[1]
-            file_name = cmd_body_split[2]
+            desc = file_info["description"]
+            file_name = file_info["filename"]
 
             #
             # Extra Source pending class
@@ -554,7 +554,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # Get all managed extra sources
         #
         case "GET_MANAGED_EXTRA_SOURCES":
-            return json.dumps(extrasourcestorage.storage.get_all_extrasources())
+            return json.dumps([obj.get_json() for obj in extrasourcestorage.storage.get_all_extrasources()])
 
         #   
         # Deletes an extra source by id
@@ -742,27 +742,44 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             return "RECV_SYS_EVENT"
     
         #
-        # Checkout extra source from
+        # Checkout extra source information from
         # masterserver.
         #
-        # EXTRA_SOURCE_INFO -> FT_OK -> send_file() -> wait for ACK -> DOWNLOAD_COMPLETED
         case "EXTRA_SOURCE_INFO":
             if(cmd_body == ""):
-                return "INV_CMD"
-            
-            blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)
-            if(blob is None):
                 return "INV_EXTRA_SOURCE"
             
-            extra_source_info = extrasourcestorage.storage.get_extra_source_info_by_id(cmd_body)
 
+            # TODO: check if SQLite has a function for this which would probably be more efficient..
+            blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)[0]
+            if(blob is None):
+                return "INV_EXTRA_SOURCE"
+
+            extra_source_info = extrasourcestorage.storage.get_extra_source_info_by_id(cmd_body)
+            
             data_info = {
-                "filename": extra_source_info.file_name
-                "filesize": extra_source_info.file_size
+                "filename": extra_source_info.filename,
                 "datalen": len(blob)
             }
 
             return json.dumps(data_info) 
+        
+        #
+        # Fetch extra source blob 
+        # Returns blob (if available) on request
+        #
+        case "FETCH_EXTRA_SOURCE":
+            if(cmd_body == ""):
+                return "INV_EXTRA_SOURCE"
+            
+            blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)[0]
+            
+            if(blob is None):
+                return "INV_EXTRA_SOURCE"
+
+            client.send_data(blob)
+            return None
+
 
         #
         # Invalid command

@@ -136,42 +136,11 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     bc.send_recv_msg("REPORT_STATUS_UPDATE FETCHING_SOURCE")
 
     if(package_build_obj.source):
-        source_file = os.path.join(build_dir, package_build_obj.source.split("/")[-1])
-
-        blog.debug("Source file is: {}".format(source_file))
-
-        out_file = open(source_file, "wb")
-
-        blog.debug("Setting up pycurl..")
-        curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, package_build_obj.source)
-        curl.setopt(pycurl.FOLLOWLOCATION, 1)
-        curl.setopt(pycurl.MAXREDIRS, 5)
-        curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-        curl.setopt(pycurl.NOSIGNAL, 1)
-        curl.setopt(pycurl.WRITEDATA, out_file)
-
-        blog.info("Fetching source..")
-        try:
-            curl.perform()
-        except Exception as ex:
-            blog.error("Fetching source failed. {}".format(ex))
-            jlog = json.dumps(["Failed to fetch main source:", package_build_obj.source])
-            res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-            return "REPORT_STATUS_UPDATE BUILD_FAILED"
-
-        blog.info("Source fetched. File size on disk: {}".format(os.path.getsize(source_file)))
-
-        out_file.close()
-        curl.close()
-
-        for extra_src in package_build_obj.extra_sources:
-            blog.info("Fetching extra source: {}".format(extra_src))
-
-            if(fetch_file(build_dir, extra_src) != 0):
-                jlog = json.dumps(["Failed to fetch extra source:", extra_src])
-                res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-                return "REPORT_STATUS_UPDATE BUILD_FAILED"
+        source_file = fetch_file_http(build_dir, package_build_obj.source)
+        if(not source_file):
+            blog.warn("Could not fetch main source.")
+            res = bc.send_recv_msg("SUBMIT_LOG {}".format("Could not fetch main source."))
+            return "REPORT_STATUS_UPDATE DOWNLOAD_EXTRA_SRC_FAILED"
 
         try:
             # check if file is tarfile and extract if it is
@@ -180,16 +149,47 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
                 tar_file = tarfile.open(source_file, "r")
                 tar_obj = tar_file.extractall(build_dir)
             else:
-                blog.warn("Source is not a tar file. Manual extraction required in build script..")
+                blog.warn("Source is not a tar file. Manual extraction required in build script.")
 
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
             return "REPORT_STATUS_UPDATE BUILD_FAILED"
+
     else:
         blog.warn("No source specified. Not fetching source.")
 
+    for extra_src in package_build_obj.extra_sources:
+        blog.info("Attempting to fetch extra source: {}".format(extra_src))
+
+        # check if it starts with http or https
+        if("http://" in extra_src or "https://" in extra_src):
+            blog.info("Extra source is remote, using http..")
+            if(not fetch_file_http(build_dir, extra_src) != 0):
+                dl_log = json.dumps(["Failed to fetch extra source:", extra_src])
+                res = bc.send_recv_msg("SUBMIT_LOG {}".format(dl_log))
+                return "REPORT_STATUS_UPDATE BUILD_FAILED"
+        
+        # assume its a branch managed extra source
+        else:
+            blog.info("Extra source is managed by masterserver. Acquiring information..")
+            esrc_info = bc.send_recv_msg("EXTRA_SOURCE_INFO {}".format(extra_src))
+            
+            if(esrc_info == "INV_EXTRA_SOURCE"):
+                blog.error("Specified extra source does not exist on the remote server.")
+                return "REPORT_STATUS_UPDATE BUILD_FAILED"
+            
+            esrc_info = json.loads(esrc_info)
+            blog.info("Extra source information acquired. Filename: {} Filesize: {}".format(esrc_info["filename"], esrc_info["datalen"]))
+            
+            # TODO: Need a way to check response, though this shouldn't fail..
+            bc.send_msg("FETCH_EXTRA_SOURCE {}".format(extra_src))
+
+            target_file = os.path.join(build_dir, esrc_info["filename"])
+            bc.receive_file(target_file, esrc_info["datalen"])
+            blog.info("Extra sources fetched.")
+
+
     deps_failed = False
-    
     bc.send_recv_msg("REPORT_STATUS_UPDATE INSTALLING_DEPS")
     
     blog.info("Installing dependencies to temproot..")
@@ -348,7 +348,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
 # 0 success
 # -1 failure
 #
-def fetch_file(destdir, url):
+def fetch_file_http(destdir, url):
     source_file = os.path.join(destdir, url.split("/")[-1])
     
     out_file = open(source_file, "wb")
@@ -359,7 +359,6 @@ def fetch_file(destdir, url):
     curl.setopt(pycurl.FOLLOWLOCATION, 1)
     curl.setopt(pycurl.MAXREDIRS, 5)
     curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-    curl.setopt(pycurl.TIMEOUT, 300)
     curl.setopt(pycurl.NOSIGNAL, 1)
     curl.setopt(pycurl.WRITEDATA, out_file)
 
@@ -368,13 +367,13 @@ def fetch_file(destdir, url):
         curl.perform()
     except Exception as ex:
         blog.error("Fetching source failed. {}".format(ex))
-        return -1
+        return False
 
     blog.info("Source fetched to {}. File size on disk: {}".format(source_file, os.path.getsize(source_file)))
 
     out_file.close()
     curl.close()
-    return 0
+    return source_file
 
 #
 # Strips files in a given root_directory with ELF magic bytes

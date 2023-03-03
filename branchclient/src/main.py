@@ -75,7 +75,9 @@ def main():
     argparser.add_argument("-ex", "--export", help="Exports all managed pkgbuilds from the remote server") 
     argparser.add_argument("-im", "--import", help="Imports all pkgbuilds from a given folder") 
     argparser.add_argument("-ci", "--clientinfo", help="Get client information") 
-    argparser.add_argument("-tes", "--transferextrasource", help="Transfer an extra source to the server") 
+    argparser.add_argument("-tes", "--transferextrasource", help="Transfer an extra source to the server")
+    argparser.add_argument("-ves", "--viewextrasources", help="View all managed extra sources.", action="store_true")
+    argparser.add_argument("-rmes", "--rmextrasource", help="Delete extra source from the server")
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -102,7 +104,9 @@ def main():
         "export": commands.export,
         "import": commands._import,
         "clientinfo": commands.get_client_info,
-        "transferextrasource": commands.transfer_extra_source
+        "transferextrasource": commands.transfer_extra_source,
+        "viewextrasources": commands.view_extra_sources,
+        "rmextrasource": commands.remove_extra_source
     }
 
     # parse arguments

@@ -120,7 +120,15 @@ def main():
             return -1
 
         blog.debug("Handling command from server.. {}".format(cmd))
-        res = handleCommand.handle_command(bc, cmd)
+
+        res = None
+        try:
+            res = handleCommand.handle_command(bc, cmd)
+        except Exception as ex:
+            blog.error("Critcal failure. Attempting to shutdown cleanly.")
+            blog.error("Exception: {}".format(ex))
+            buildenv.clean_env()
+            return -1
 
         if(res == None):
             blog.error("Critical failure. Disconnecting..")

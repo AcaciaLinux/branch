@@ -114,7 +114,7 @@ class Client():
     #
     # Send a byte-like object to client
     #
-    def send_file(self, blob):
+    def send_data(self, blob):
         self.lock.acquire()
         self.sock.send(blob)
         self.lock.release()
