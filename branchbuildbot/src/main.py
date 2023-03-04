@@ -21,6 +21,7 @@ BRANCH_VERSION = "0.6-pre"
 import blog
 import os
 import json
+import traceback
 import branchclient
 
 from handlecommand import handleCommand
@@ -127,6 +128,8 @@ def main():
         except Exception as ex:
             blog.error("Critcal failure. Attempting to shutdown cleanly.")
             blog.error("Exception: {}".format(ex))
+            blog.error("Traceback:")
+            traceback.print_exc()
             buildenv.clean_env()
             return -1
 

@@ -173,11 +173,16 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         else:
             blog.info("Extra source is managed by masterserver. Acquiring information..")
             esrc_info = bc.send_recv_msg("EXTRA_SOURCE_INFO {}".format(extra_src))
-            
+    
             if(esrc_info == "INV_EXTRA_SOURCE"):
                 blog.error("Specified extra source does not exist on the remote server.")
                 return "REPORT_STATUS_UPDATE BUILD_FAILED"
-            
+            elif(esrc_info == "EXCEPTION_RAISED"):
+                dl_log = json.dumps(["Requesting extra source {} raised an exception.".format(extra_src)])
+                res = bc.send_recv_msg("SUBMIT_LOG {}".format(dl_log))
+                return "REPORT_STATUS_UPDATE BUILD_FAILED"
+                
+
             esrc_info = json.loads(esrc_info)
             blog.info("Extra source information acquired. Filename: {} Filesize: {}".format(esrc_info["filename"], esrc_info["datalen"]))
             

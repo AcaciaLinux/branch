@@ -751,10 +751,12 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             
 
             # TODO: check if SQLite has a function for this which would probably be more efficient..
-            blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)[0]
-            if(blob is None):
+            res = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)
+
+            if(res is None):
                 return "INV_EXTRA_SOURCE"
 
+            blob = res[0]
             extra_source_info = extrasourcestorage.storage.get_extra_source_info_by_id(cmd_body)
             
             data_info = {
@@ -762,7 +764,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                 "datalen": len(blob)
             }
 
-            return json.dumps(data_info) 
+            return json.dumps(data_info)
         
         #
         # Fetch extra source blob 
