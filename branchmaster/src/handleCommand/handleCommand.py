@@ -255,7 +255,8 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         
 
         #
-        #
+        # Rebuild all packages that depenend on the specified
+        # package.
         #
         case "REBUILD_DEPENDERS":
             names = pkgbuildstorage.storage.get_all_packagebuild_names()
@@ -546,8 +547,17 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             if(not extrasourcestorage.storage.add_extrasource(str(pending_extra_src.id), pending_extra_src.file_name, pending_extra_src.desc, _bytes)):
                 return "ERR_COULD_NOT_INSERT"
-
+            
+            # remove pending extra src
             manager.remove_pending_extra_source(pending_extra_src)
+            
+            # delete staged extra sourcefile
+            blog.info("Removing temporary file in staging directory..")
+            try:
+                os.remove(target_file)
+            except Exception as ex:
+                blog.warn("Could not delete temporary file: {}".format(ex))
+
             return "CMD_OK"
 
         #
