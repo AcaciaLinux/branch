@@ -57,6 +57,11 @@ def fetch_leaf_logs():
 # clears logs post action
 def clear_leaf_logs():
     global leafcore_instance
+    
+    # check if leafcore instance is None before clearing
+    if(leafcore_instance is None):
+        return
+
     return leafcore_instance.clear_log()
 
 def drop_buildenv():
