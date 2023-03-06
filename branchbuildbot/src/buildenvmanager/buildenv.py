@@ -27,7 +27,10 @@ def get_host_info():
     info["Host Distribution"] = platform.freedesktop_os_release()["NAME"]
     info["Host libc"] = platform.libc_ver()[0] + " " + platform.libc_ver()[1]
     info["CPU count"] = psutil.cpu_count(logical=True)
-    info["CPU name"] = cpuinfo[0]
+    if (len(cpuinfo) > 0):
+        info["CPU name"] = cpuinfo[0]
+    else:
+        info["CPU name"] = "unknown"
     info["Memory available"] = "{}GB".format(round(psutil.virtual_memory().total / (1024*1024*1024), 2))
     return info
 
