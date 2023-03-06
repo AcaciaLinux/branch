@@ -547,10 +547,10 @@ def view_extra_sources(bc):
     blog.info("Fetching available extra sources.")
 
     resp = json.loads(bc.send_recv_msg("GET_MANAGED_EXTRA_SOURCES"))
-    print ("\n\n{:<40} {:<15} {:<40}".format("ID", "FILENAME", "DESCRIPTION"))
+    print ("\n\n{:<40} {:<50} {:<40}".format("ID", "FILENAME", "DESCRIPTION"))
 
     for es in resp:
-        print ("{:<40} {:<15} {:<40}".format(es["id"], es["filename"], es["description"]))
+        print ("{:<40} {:<50} {:<40}".format(es["id"], es["filename"], es["description"]))
 
 
 def remove_extra_source(bc, es_id):
