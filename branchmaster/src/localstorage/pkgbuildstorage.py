@@ -68,8 +68,10 @@ class storage():
             db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
             # Check if pkgbuild_obj is valid
-            if(pkgbuild_obj.is_valid()):
-                blog.warn("pkgbuild is invalid! Could not add to database.")
+            if(not pkgbuild_obj.is_valid()):
+                blog.warn("pkgbuild object is invalid! Could not add to database.")
+                blog.debug(pkgbuild_obj)
+                storage.lock.release()
                 return False
 
 
