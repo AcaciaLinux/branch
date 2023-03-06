@@ -258,14 +258,39 @@ def get_managed_pkgbuilds(bc):
 #
 # Get all dependers by package name
 #
-def view_dependers(pkg_name):
-    resp = bc.send_recv_msg(s, "GET_DEPENDERS {}".format(pkg_name))
+def view_dependers(bc, pkg_name):
+    resp = bc.send_recv_msg("GET_DEPENDERS {}".format(pkg_name))
     if(resp == "INV_PKG_NAME"):
         blog.error("No such packagebuild available.")
     else:
-        blog.info("Available packagebuilds:")
-        for b in json.loads(resp):
-            print(b, end=", ")
+        blog.info("Dependencies for {}:".format(pkg_name))
+        
+        json_resp = json.loads(resp)
+        amount_release_build = len(json_resp["releasebuild"])
+        amount_cross_build = len(json_resp["crossbuild"])
+         
+        list_len = 0
+
+        if(amount_cross_build > amount_release_build):
+            list_len = amount_cross_build
+        else:
+            list_len = amount_release_build
+        
+        print("{:<40} {:<40}".format("RELEASE BUILD", "CROSS BUILD"))
+        print()
+
+        for i in range(list_len):
+            rb_name = ""
+            cb_name = ""
+
+            if(i < amount_release_build):
+                rb_name = json_resp["releasebuild"][i]
+            
+            if(i < amount_cross_build):
+                cb_name = json_resp["crossbuild"][i]
+
+            print ("{:<40} {:<40}".format(rb_name, cb_name))
+
 
         print()
 

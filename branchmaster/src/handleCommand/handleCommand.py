@@ -247,8 +247,14 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             pkgs = pkgbuildstorage.storage.get_all_packagebuilds()
 
             if(cmd_body in names):
-                res = dependency.find_dependers(pkgs, cmd_body)
-                return json.dumps(res)
+                release_build, cross_build = dependency.find_dependers(pkgs, cmd_body, set())
+                
+                all_dependers = {
+                    "releasebuild": release_build,
+                    "crossbuild": cross_build
+                }
+
+                return json.dumps(all_dependers)
 
             else:
                 return "INV_PKG_NAME"
