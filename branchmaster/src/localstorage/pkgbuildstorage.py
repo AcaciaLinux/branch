@@ -31,6 +31,7 @@ class storage():
             blog.debug("Releasing Database lock")
         except Exception as ex:
             blog.error("Could not populate database: {}".format(ex))
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
         storage.lock.release()
        
@@ -54,6 +55,7 @@ class storage():
             blog.debug("Releasing Database lock")
         except Exception as ex:
             blog.error("Could not get packagebuild from database: {}".format(ex))
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
         storage.lock.release()
         return pkgbuild_obj
@@ -65,6 +67,12 @@ class storage():
         try:
             db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
             
+            # Check if pkgbuild_obj is valid
+            if(pkgbuild_obj.is_valid()):
+                blog.warn("pkgbuild is invalid! Could not add to database.")
+                return False
+
+
             # remove packagebuild if it already exists
             cur = db_connection.cursor()
             res = cur.execute("DELETE FROM pkgbuilds WHERE name = ?", (pkgbuild_obj.name,))
@@ -104,6 +112,7 @@ class storage():
             db_connection.commit()
         except Exception as ex:
             blog.error("Could not insert to database: {}".format(ex))
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
             return False
 
         storage.lock.release()
@@ -126,6 +135,7 @@ class storage():
                 pkgbuilds.append(pkgbuild_obj)
         except Exception as ex:
             blog.error("Could not get all from database: {}".format(ex))
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
         storage.lock.release()
         return pkgbuilds
@@ -143,10 +153,12 @@ class storage():
             res = cur.execute("SELECT name FROM pkgbuilds")
 
             for r in res.fetchall():
+                blog.debug("Database returned: {}".format(r))
                 names.append(r[0])
 
         except Exception as ex:
             blog.error("Could not get all names from database.")
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
     
         storage.lock.release()
         return names
@@ -173,6 +185,7 @@ class storage():
 
         except Exception as ex:
             blog.error("Could not remove pkgbuild from database: {}".format(ex))
+            manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
 
         storage.lock.release()
