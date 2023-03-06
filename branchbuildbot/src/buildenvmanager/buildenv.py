@@ -145,15 +145,17 @@ def install_pkgs(packages):
     # set root dir properly
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, temp_dir)
 
-    leaf_error = leafcore_instance.a_update()
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_update()
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         return -1
 
     if(packages):
-        leaf_error = leafcore_instance.a_install(packages)
-        if(leaf_error != 0):
-            blog.error("Leaf error code: {}".format(leaf_error))
+        try:
+            leafcore_instance.a_install(packages)
+        except LeafException as ex:
+            blog.error("Leaf error when executing a_install({}) ({}): {}".format(packages, ex.code, ex.message))
             return -1
 
     blog.info("Package install completed.")
@@ -164,16 +166,18 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
-    leaf_error = leafcore_instance.a_update()
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_update()
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         return -1
 
     pkgs = ["base", "glibc", "gcc", "make", "bash", "sed", "grep", "gawk", "coreutils", "binutils", "findutils", "automake", "autoconf", "file", "gzip", "libtool", "m4", "groff", "patch", "texinfo", "which"]
 
-    leaf_error = leafcore_instance.a_install(pkgs)
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_install(pkgs)
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_install({}) ({}): {}".format(pkgs, ex.code, ex.message))
         return -1
 
     Path(os.path.join(root_dir, "installed")).touch()
@@ -195,16 +199,18 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, cross_dir)
 
-    leaf_error = leafcore_instance.a_update()
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_update()
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         return -1
 
     pkgs = ["crosstools"]
 
-    leaf_error = leafcore_instance.a_install(pkgs)
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_install(pkgs)
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_install({}) ({}): {}".format(pkgs, ex.code, ex.message))
         return -1
 
     Path(os.path.join(cross_dir, "installed")).touch()
@@ -345,15 +351,17 @@ def upgrade_cross_root():
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
-    leaf_error = leafcore_instance.a_update()
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_update()
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to update cross root. Cannot continue.")
         return -1
 
-    leaf_error = leafcore_instance.a_upgrade([])
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_install([])
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to upgrade cross root. Cannot continue")
         return -1
     
@@ -366,15 +374,17 @@ def upgrade_real_root():
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
 
-    leaf_error = leafcore_instance.a_update()
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_update()
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to update real root. Cannot continue.")
         return -1
 
-    leaf_error = leafcore_instance.a_upgrade([])
-    if(leaf_error != 0):
-        blog.error("Leaf error code: {}".format(leaf_error))
+    try:
+        leafcore_instance.a_install([])
+    except LeafException as ex:
+        blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to upgrade real root. Cannot continue")
         return -1
 
