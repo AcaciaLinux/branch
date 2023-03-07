@@ -374,7 +374,7 @@ def upgrade_cross_root():
         return -1
 
     try:
-        leafcore_instance.a_install([])
+        leafcore_instance.a_upgrade([])
     except LeafException as ex:
         blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to upgrade cross root. Cannot continue")
@@ -397,7 +397,7 @@ def upgrade_real_root():
         return -1
 
     try:
-        leafcore_instance.a_install([])
+        leafcore_instance.a_upgrade([])
     except LeafException as ex:
         blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
         blog.error("Failed to upgrade real root. Cannot continue")
