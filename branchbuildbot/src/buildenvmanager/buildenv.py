@@ -13,6 +13,20 @@ from config import config
 LAUNCH_DIR = os.getcwd()
 leafcore_instance = None
 
+def cpu_test():
+    blog.info("Running CPU performance test..")
+    cpu_count = psutil.cpu_count(logical=True)
+    start_time = datetime.now().timestamp()
+    
+    value = 0
+    for i in range(100000000):
+        value = value * i
+
+    end_time = datetime.now().timestamp()
+    res = (end_time - start_time) / cpu_count
+    blog.info("CPU performance results (lower is better): {}".format(res))
+    return round(res, 6) 
+
 def get_host_info():
     info = { }
 
@@ -32,6 +46,7 @@ def get_host_info():
     else:
         info["CPU name"] = "unknown"
     info["Memory available"] = "{}GB".format(round(psutil.virtual_memory().total / (1024*1024*1024), 2))
+    info["Performance Rating"] = cpu_test() 
     return info
 
 # leafcore init
