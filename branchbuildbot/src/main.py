@@ -76,9 +76,6 @@ def main():
     # check if the build environment is setup..
     blog.info("Checking build environments..")
     if(buildenv.check_buildenv() != 0):
-        check_failed = True
-  
-    if(check_failed):
         blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
         bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
         bc.disconnect()
@@ -126,7 +123,9 @@ def main():
         try:
             res = handleCommand.handle_command(bc, cmd)
         except Exception as ex:
-            blog.error("Critcal failure. Attempting to shutdown cleanly.")
+            bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Critical error. Cannot continue: {}".format(ex)))
+            bc.disconnect()
+            blog.error("Critcal error. Attempting to shutdown cleanly.")
             blog.error("Exception: {}".format(ex))
             blog.error("Traceback:")
             traceback.print_exc()
@@ -134,15 +133,17 @@ def main():
             return -1
 
         if(res == None):
+            bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Critical error. Attempting recovery.."))
             blog.error("Critical failure. Disconnecting..")
             bc.disconnect()
             blog.info("Attempting recovery..")
+            buildenv.clean_env()
             blog.info("Dropping build environment..")
             buildenv.drop_buildenv()
             blog.info("Recreating build environment..")
             buildenv.check_buildenv()
             blog.info("Reconnecting..")
-            s = connect.connect(server_address, int(server_port), identifier, authkey, "BUILD")
+            bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
         else:
             res = bc.send_recv_msg(res)
             blog.debug("Result from server: {}".format(res))

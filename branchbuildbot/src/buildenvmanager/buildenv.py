@@ -4,6 +4,7 @@ import time
 import blog
 import platform
 import psutil
+from datetime import datetime
 
 from pyleafcore import *
 from pathlib import Path
@@ -122,6 +123,25 @@ def check_buildenv():
 
     if(not os.path.exists(temp_dir)):
         os.mkdir(temp_dir)
+
+    # check if diffdir is empty
+    if(len(os.listdir(diff_dir)) != 0):
+        blog.warn("Unclean shutdown. Removing diffdir..")
+        shutil.rmtree(diff_dir)
+        os.mkdir(diff_dir)
+
+    # check if workdir is empty
+    if(len(os.listdir(work_dir)) != 0):
+        blog.warn("Unclean shutdown. Removing workdir..")
+        shutil.rmtree(work_dir)
+        os.mkdir(work_dir)
+
+    # check if workdir is empty
+    if(len(os.listdir(temp_dir)) != 0):
+        blog.warn("Unclean shutdown. Removing tempdir..")
+        shutil.rmtree(temp_dir)
+        os.mkdir(temp_dir)
+
 
     # control file exists if installed
     control_file = os.path.join(root_dir, "installed")
@@ -317,6 +337,7 @@ def remount_env(use_crossroot):
     os.system("sync")
     
     setup_kfs()
+
 
 def clean_env():
     blog.info("Cleaning up build environment..")
