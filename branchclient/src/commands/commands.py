@@ -84,6 +84,8 @@ def release_build(bc, pkg_name):
         blog.error("Invalid package name.")
     elif(resp == "PKG_BUILD_DAMAGED"):
         blog.error("The packagebuild you attempted to queue is damaged.")
+    else:
+        blog.error("An error occurred: {}".format(resp))
 #
 # Request a cross build from a specified package
 #
@@ -98,6 +100,9 @@ def cross_build(bc, pkg_name):
         blog.error("Invalid package name.")
     elif(resp == "PKG_BUILD_DAMAGED"):
         blog.error("The packagebuild you attempted to queue is damaged.")
+    else:
+        blog.error("An error occurred: {}".format(resp))
+
 #
 # get job status from server
 #
