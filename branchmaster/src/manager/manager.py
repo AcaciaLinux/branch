@@ -1,6 +1,14 @@
 import time
 import blog
+import requests
+import hashlib
+import shutil
+import os
+import packagebuild
 
+from localstorage import packagestorage
+from localstorage import pkgbuildstorage
+from config import config
 from handleCommand import handleCommand 
 from manager import queue
 from manager import jobs
@@ -33,6 +41,11 @@ class manager():
     # Extra sources currently uploading
     #
     pending_extra_sources = [ ]
+
+    #
+    # Deployment configuration
+    #
+    deployment_config = { }
     
     @staticmethod
     def get_queue():
@@ -201,3 +214,97 @@ class manager():
     @staticmethod
     def remove_pending_extra_source(pending_extra_src):
         manager.pending_extra_sources.remove(pending_extra_src)
+    
+    #
+    # Determine deployment configuration. 
+    #
+    @staticmethod
+    def determine_deployment_configuration():
+        all_packages = packagebuild.package_build.parse_str_to_array(config.config.get_config_option("Deployment")["RealrootPackages"])
+        can_provide_realroot = True
+
+        for pkg in all_packages:
+            if(not pkg in packagestorage.storage().get_packages_array()):
+                can_provide_realroot = False
+                break
+        
+        can_provide_crossroot = "crosstools" in packagestorage.storage().get_packages_array()
+        
+        server_url = config.config.get_config_option("Deployment")["CrosstoolsURL"]
+
+        deploy_realroot = config.config.get_config_option("Deployment")["DeployRealroot"] == "True"
+        deploy_crossroot = config.config.get_config_option("Deployment")["DeployCrosstools"] == "True"
+        # Check if both are disabled.
+        if(not deploy_realroot and not deploy_crossroot):
+            blog.error("Crossroot and realroot disabled. Cannot continue.")
+            return False
+       
+        #
+        # Import crosstools package from upstream server
+        #
+        def import_crosstools_pkg(server_url):
+            blog.info("Attempting to fetch crosstools package from specified URL..")
+            
+            blog.info("Attempting to fetch pkgbuild..")
+            pkgbuild_str = requests.get(config.config.get_config_option("Deployment")["CrosstoolsPkgbuildURL"]).content.decode("utf-8")
+            
+            pkgb = packagebuild.package_build.from_string(pkgbuild_str)
+            pkgbuildstorage.storage.add_packagebuild_obj(pkgb)
+
+            blog.info("Pkgbuild imported. Fetching package..")
+
+            try:
+                with requests.get(server_url, stream=True) as r:
+                    r.raise_for_status()
+                    with open("crosstools.lfpkg", 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192): 
+                            f.write(chunk)
+            except Exception as ex:
+                blog.error("Failed to fetch crosstools: {}".format(ex))
+                return False
+
+            blog.info("Fetched crosstools. Attempting to import..")
+            stor = packagestorage.storage()
+                    
+            blog.info("Hashing package..")
+            md5_hash = hashlib.md5()
+            with open("crosstools.lfpkg", "rb") as hash_file:
+                # read chunk by chunk
+                for chunk in iter(lambda: hash_file.read(4096), b""):
+                    md5_hash.update(chunk)
+
+            blog.info("Deploying package to storage..")
+            shutil.move("crosstools.lfpkg", stor.add_package(pkgb, md5_hash.hexdigest()))
+            return True
+        
+        manager.deployment_config["deploy_realroot"] = can_provide_realroot and deploy_realroot
+        manager.deployment_config["deploy_crossroot"] = can_provide_crossroot and deploy_crossroot
+
+
+        # Check if crossroot is enabled, but not deployed.
+        if(deploy_crossroot and not can_provide_crossroot):
+            blog.warn("Crossroot enabled, but the package is unavailable.")
+            return import_crosstools_pkg(server_url)
+           
+        #
+        # Check if atleast one environment is available
+        #
+        if(deploy_realroot and not can_provide_realroot):
+            blog.warn("Config requested realroot deployment, but the server cannot provide all required packages to install a realroot-environment.")
+
+            # Attempt to fallback to crossroot, despite it being disabled, because its the only option.
+            if(not deploy_crossroot):
+                blog.warn("Attempting to fall back to crosstools, despite them being disabled.")
+
+                if(can_provide_crossroot):
+                    blog.warn("Crossroot is disabled in config, but is the only environment the server can provide. Falling back to crossroot")
+                    manager.deployment_config["deploy_crossroot"] = True
+
+                else:
+                    blog.warn("Crossroot and realroot unavailable. Attempting to import crosstools from upstream..")
+                    return import_crosstools_pkg(server_url)
+
+        
+
+        manager.deployment_config["realroot_packages"] = all_packages
+        return True
