@@ -168,6 +168,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # RELEASE_BUILD <NAME>
         #
         case "RELEASE_BUILD":
+            if(not manager.deployment_config["deploy_realroot"]):
+                return "RELEASE_ENV_UNAVAILABLE"
+
             if(len(cmd_body) == 0):
                 return "INV_PKG_NAME"
 
@@ -193,6 +196,8 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # CROSS_BUILD <NAME>
         #
         case "CROSS_BUILD":
+            if(not manager.deployment_config["deploy_crossroot"]):
+                return "CROSS_ENV_UNAVAILABLE"
 
             if(len(cmd_body) == 0):
                 return "INV_PKG_NAME"
@@ -265,6 +270,13 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # package.
         #
         case "REBUILD_DEPENDERS":
+            # Both environments need to be available
+            if(not manager.deployment_config["deploy_realroot"]):
+                return "RELEASE_ENV_UNAVAILABLE"
+
+            if(not manager.deployment_config["deploy_crossroot"]):
+                return "CROSS_ENV_UNAVAILABLE"
+
             names = pkgbuildstorage.storage.get_all_packagebuild_names()
             pkgs = pkgbuildstorage.storage.get_all_packagebuilds()
 
@@ -405,6 +417,9 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # SUBMIT_SOLUTION_RB <SOL>
         #
         case "SUBMIT_SOLUTION_RB":
+            if(not manager.deployment_config["deploy_realroot"]):
+                return "RELEASE_ENV_UNAVAILABLE"
+
             if(cmd_body == ""):
                 return "INV_SOL"
             
@@ -423,12 +438,15 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 manager.get_queue().update()
 
             return "BATCH_QUEUED"
-
+       
         #
         # Releasebuild a solution
         # SUBMIT_SOLUTION_CB <SOL>
         #
         case "SUBMIT_SOLUTION_CB":
+            if(not manager.deployment_config["deploy_crossroot"]):
+                return "RELEASE_ENV_UNAVAILABLE"
+
             if(cmd_body == ""):
                 return "INV_SOL"
             
@@ -671,7 +689,18 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             return "CMD_ACK"
 
         
+ 
+        #
+        # Fetch deployment configuration from the server
+        #
+        case "GET_DEPLOYMENT_CONFIG":
+            res = manager.deployment_config 
+            return json.dumps(res)
 
+    
+        #
+        # Receive a status update from the buildbot
+        #
         case "REPORT_STATUS_UPDATE":
             if(cmd_body == ""):
                 return "INV_CMD"

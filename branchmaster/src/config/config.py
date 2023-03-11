@@ -41,7 +41,8 @@ class config():
             "EnableDebugLog": False
         }
         config["Deployment"] = { 
-            "CrosstoolsURL": "https://acacialinux.org/images/cross-toolchain/2022-11-26/acacia-glibc2.36-cross-toolchain.tar.xz",
+            "CrosstoolsURL": "https://artifacts.acacialinux.org/cross-toolchain/crosstools.lfpkg",
+            "CrosstoolsPkgbuildURL": "https://artifacts.acacialinux.org/cross-toolchain/crosstools.bpb",
             "RealrootPackages": "[base][glibc][gcc][make][bash][sed][grep][gawk][coreutils][binutils][findutils][automake][autoconf][file][gzip][libtool][m4][groff][patch][texinfo]",
             "DeployCrosstools": True,
             "DeployRealroot": True

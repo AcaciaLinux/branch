@@ -23,6 +23,10 @@ def handshake(host, port, authkey):
     return branchclient.branchclient(host, port, "FAKE_BOT", authkey, "BUILD")
     
 def receive_commands(bc):
+    data = bc.send_recv_msg("GET_DEPLOYMENT_CONFIG")
+    print(data)
+
+
     blog.info("Sending ready signal..")
     # send the "SIG_READY" message to the server
     data = bc.send_recv_msg("SIG_READY")

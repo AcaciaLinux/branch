@@ -74,6 +74,11 @@ def main():
     blog.info("Setting up local Extrasource database..")
     extrasourcestorage.storage.populate()
 
+    blog.info("Determining deployment configuration..")
+    if(not manager.manager.determine_deployment_configuration()):
+        blog.error("Requested deployment configuration is invalid.")
+        return -1
+
     web_thread = None
     if(config.config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
         blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))
