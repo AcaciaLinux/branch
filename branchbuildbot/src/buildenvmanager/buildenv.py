@@ -100,7 +100,7 @@ def drop_buildenv():
 
 
 # checks if the build environment is setup
-def check_buildenv():
+def check_buildenv(crossroot_enabled, realroot_enabled, realroot_pkgs):
     # 3 directories required for overlayFS
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     cross_dir = os.path.join(LAUNCH_DIR, "crosstools")

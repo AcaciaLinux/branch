@@ -500,6 +500,16 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
 
             if(not cmd_body in pkgbuildstorage.storage.get_all_packagebuild_names()):
                 return "INV_PKG_NAME"
+            
+            # cant delete crosstools if they are enabled
+            if(cmd_body == "crosstools"):
+                if(manager.deployment_config["deploy_crossroot"]):
+                    return "REQUIRED_PKG"
+            
+            # cant delete realroot packages if they are enabled.
+            if(cmd_body in manager.deployment_config["realroot_packages"]):
+                if(manager.deployment_config["deploy_realroot"]):
+                    return "REQUIRED_PKG"
 
             blog.debug("Deleting packagebuild..")
             pkgbuildstorage.storage.remove_packagebuild(cmd_body)
