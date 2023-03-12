@@ -71,11 +71,20 @@ def main():
         blog.info("Disconnected. Cannot continue.")
         return -1
    
-    check_failed = False
+    deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
     
+    realroot_pkgs = deployment_config["realroot_packages"]
+    deploy_realroot = deployment_config["deploy_realroot"]
+    deploy_crossroot = deployment_config["deploy_crossroot"]
+
+    blog.info("Picked up deployment configuration")
+    blog.info("==> Deploy realroot: {}".format(deploy_realroot))
+    blog.info("==> Deploy crossroot: {}".format(deploy_crossroot))
+    blog.info("==> Realroot packages: {}".format(realroot_pkgs))
+   
     # check if the build environment is setup..
     blog.info("Checking build environments..")
-    if(buildenv.check_buildenv() != 0):
+    if(buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs) != 0):
         blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
         bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
         bc.disconnect()
@@ -140,8 +149,15 @@ def main():
             buildenv.clean_env()
             blog.info("Dropping build environment..")
             buildenv.drop_buildenv()
+
+            deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
+            
+            realroot_pkgs = deployment_config["realroot_packages"]
+            deploy_realroot = deployment_config["deploy_realroot"]
+            deploy_crossroot = deployment_config["deploy_crossroot"]
+
             blog.info("Recreating build environment..")
-            buildenv.check_buildenv()
+            buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
             blog.info("Reconnecting..")
             bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
         else:

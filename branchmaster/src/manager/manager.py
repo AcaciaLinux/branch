@@ -230,10 +230,14 @@ class manager():
         
         can_provide_crossroot = "crosstools" in packagestorage.storage().get_packages_array()
         
-        server_url = config.config.get_config_option("Deployment")["CrosstoolsURL"]
+        try:
+            server_url = config.config.get_config_option("Deployment")["CrosstoolsURL"]
+            deploy_realroot = config.config.get_config_option("Deployment")["DeployRealroot"] == "True"
+            deploy_crossroot = config.config.get_config_option("Deployment")["DeployCrosstools"] == "True"
+        except KeyError:
+            blog.error("Crosstools URLs missing in configuration file.")
+            return False
 
-        deploy_realroot = config.config.get_config_option("Deployment")["DeployRealroot"] == "True"
-        deploy_crossroot = config.config.get_config_option("Deployment")["DeployCrosstools"] == "True"
         # Check if both are disabled.
         if(not deploy_realroot and not deploy_crossroot):
             blog.error("Crossroot and realroot disabled. Cannot continue.")
@@ -246,8 +250,13 @@ class manager():
             blog.info("Attempting to fetch crosstools package from specified URL..")
             
             blog.info("Attempting to fetch pkgbuild..")
-            pkgbuild_str = requests.get(config.config.get_config_option("Deployment")["CrosstoolsPkgbuildURL"]).content.decode("utf-8")
-            
+            try:
+                pkgbuild_str = requests.get(config.config.get_config_option("Deployment")["CrosstoolsPkgbuildURL"]).content.decode("utf-8")
+            except KeyError:
+                blog.error("Crosstools URLs missing in configuration file.")
+                return False
+
+
             pkgb = packagebuild.package_build.from_string(pkgbuild_str)
             pkgbuildstorage.storage.add_packagebuild_obj(pkgb)
 
@@ -278,14 +287,20 @@ class manager():
             return True
         
         manager.deployment_config["deploy_realroot"] = can_provide_realroot and deploy_realroot
-        manager.deployment_config["deploy_crossroot"] = can_provide_crossroot and deploy_crossroot
-
 
         # Check if crossroot is enabled, but not deployed.
         if(deploy_crossroot and not can_provide_crossroot):
             blog.warn("Crossroot enabled, but the package is unavailable.")
-            return import_crosstools_pkg(server_url)
-           
+            
+            # Can now provide crosstools
+            if(import_crosstools_pkg(server_url)):
+                can_provide_crossroot = True
+            else:
+                blog.error("Could not import crosstools.")
+                return False
+
+        manager.deployment_config["deploy_crossroot"] = can_provide_crossroot and deploy_crossroot
+
         #
         # Check if atleast one environment is available
         #
@@ -297,14 +312,14 @@ class manager():
                 blog.warn("Attempting to fall back to crosstools, despite them being disabled.")
 
                 if(can_provide_crossroot):
-                    blog.warn("Crossroot is disabled in config, but is the only environment the server can provide. Falling back to crossroot")
+                    blog.warn("Crossroot is disabled in config, but is the only environment the server can provide.")
                     manager.deployment_config["deploy_crossroot"] = True
+                    manager.report_system_event("Branchmaster", "Deployment configuration is invalid. Crosstools enabled, because it's the only environment the server can provide.")
 
                 else:
                     blog.warn("Crossroot and realroot unavailable. Attempting to import crosstools from upstream..")
                     return import_crosstools_pkg(server_url)
 
-        
-
         manager.deployment_config["realroot_packages"] = all_packages
+        manager.report_system_event("Branchmaster", "Deployment configuration reevaluated. Crosstools: {}, Realroot: {}".format(manager.deployment_config["deploy_crossroot"], manager.deployment_config["deploy_realroot"]))
         return True

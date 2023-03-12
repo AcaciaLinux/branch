@@ -673,6 +673,8 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
 
             client.is_ready = True
             manager.queue.update()
+            blog.info("Reevaluating deployment configuration..")
+            manager.determine_deployment_configuration()
             return None
         
         #

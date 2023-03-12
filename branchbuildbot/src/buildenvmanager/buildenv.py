@@ -145,18 +145,26 @@ def check_buildenv():
 
     # control file exists if installed
     control_file = os.path.join(root_dir, "installed")
+    
+    if(realroot_enabled):
+        if(not os.path.exists(control_file)):
+            if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs) != 0):
+                blog.error("Real root deployment failed. Sending system event to masterserver..")
+                return -1
+    else:
+        blog.warn("Deployment config: Will not deploy realroot.")
 
-    if(not os.path.exists(control_file)):
-        if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir) != 0):
-            blog.error("Real root deployment failed. Sending system event to masterserver..")
-            return -1
 
     control_file = os.path.join(cross_dir, "installed")
+    
+    if(crossroot_enabled):
+        if(not os.path.exists(control_file)):
+            if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
+                blog.error("Crosstools deployment failed. Sending system event to masterserver..")
+                return -1
+    else:
+        blog.warn("Deployment config: Will not deploy crossroot.")
 
-    if(not os.path.exists(control_file)):
-        if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
-            blog.error("Crosstools deployment failed. Sending system event to masterserver..")
-            return -1
 
     blog.info("Build environment setup completed.")
     return 0
@@ -196,7 +204,7 @@ def install_pkgs(packages):
     blog.info("Package install completed.")
     return 0
 
-def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
+def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs):
     global leafcore_instance
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
@@ -207,12 +215,10 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir):
         blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
         return -1
 
-    pkgs = ["base", "glibc", "gcc", "make", "bash", "sed", "grep", "gawk", "coreutils", "binutils", "findutils", "automake", "autoconf", "file", "gzip", "libtool", "m4", "groff", "patch", "texinfo", "which"]
-
     try:
-        leafcore_instance.a_install(pkgs)
+        leafcore_instance.a_install(realroot_pkgs)
     except LeafException as ex:
-        blog.error("Leaf error when executing a_install({}) ({}): {}".format(pkgs, ex.code, ex.message))
+        blog.error("Leaf error when executing a_install({}) ({}): {}".format(realroot_pkgs, ex.code, ex.message))
         return -1
 
     Path(os.path.join(root_dir, "installed")).touch()
