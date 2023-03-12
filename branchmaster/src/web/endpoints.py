@@ -224,7 +224,19 @@ class branch_web_providers():
             return
          
         pkg_name = post_data["pkgname"]
+
+        # cant delete crosstools if they are enabled
+        if(pkg_name == "crosstools"):
+            if(manager.manager.deployment_config["deploy_crossroot"]):
+                httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Cannot delete package 'crosstools', because it is part of the current deployment configuration.")
+                return
         
+        # cant delete realroot packages if they are enabled.
+        if(pkg_name in manager.manager.deployment_config["realroot_packages"]):
+            if(manager.manager.deployment_config["deploy_realroot"]):
+                httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Cannot delete package '{}', because it is part of the current deployment configuration.".format(pkg_name))
+                return
+
         if(not pkg_name in pkgbuildstorage.storage.get_all_packagebuild_names()):
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "No such pkgbuild found.")
             return

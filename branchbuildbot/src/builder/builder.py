@@ -32,7 +32,17 @@ def handle_build_request(bc, cmd_body, use_crosstools):
 
     # Notify Overwatch
     bc.send_recv_msg("REPORT_STATUS_UPDATE JOB_ACCEPTED")
+   
+    # acquire new deployment config
+    blog.info("Acquiring deployment config..")
+    deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
     
+    realroot_pkgs = deployment_config["realroot_packages"]
+    deploy_realroot = deployment_config["deploy_realroot"]
+    deploy_crossroot = deployment_config["deploy_crossroot"]
+
+    buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
+
     # Setup buildenvironment
     if(buildenv.setup_env(use_crosstools)  == -1):
         bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
