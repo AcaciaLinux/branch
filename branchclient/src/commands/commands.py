@@ -192,7 +192,7 @@ def cancel_all_queued_jobs(bc):
     blog.info("Jobs canceled.") 
 
 #
-# Cancel 
+# View system logs 
 #
 def view_sys_log(bc):
     resp = bc.send_recv_msg("VIEW_SYS_EVENTS")
@@ -377,11 +377,11 @@ def submit_solution(bc, solution_file_str, use_crosstools):
             pkgs = [ ]
             split = l.strip().split(";")
             for sp in split:
-                if(s != ""):
+                if(sp != ""):
                     pkgs.append(sp)
             
             solution.append(pkgs)
-
+    
     blog.info("Solution parsed!")
     blog.info("Submitting solution..")
     
@@ -396,6 +396,10 @@ def submit_solution(bc, solution_file_str, use_crosstools):
         blog.error("Attempted to submit invalid solution.")
     elif(resp.split(" ")[0] == "PKG_BUILD_MISSING"):
         blog.error("A required package build is missing: {}".format(resp.split(" ")[1]))
+    elif(resp == "RELEASE_ENV_UNAVAILABLE"):
+        blog.error("The server does not provide a realroot environment.")
+    elif(resp == "CROSS_ENV_UNAVAILABLE"):
+        blog.error("The server does not provide a crossroot environment.")
     else:
         blog.info("Batch queued.")
 
