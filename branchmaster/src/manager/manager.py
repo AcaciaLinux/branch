@@ -324,7 +324,9 @@ class manager():
                 else:
                     blog.warn("Crossroot and realroot unavailable. Attempting to import crosstools from upstream..")
                     return import_crosstools_pkg(server_url)
-
+        # config options
         manager.deployment_config["realroot_packages"] = all_packages
+        manager.deployment_config["packagelisturl"] = config.config.get_config_option("Deployment")["HTTPPackageList"]
+
         manager.report_system_event("Branchmaster", "Deployment configuration reevaluated. Crosstools: {}, Realroot: {}".format(manager.deployment_config["deploy_crossroot"], manager.deployment_config["deploy_realroot"]))
         return True
