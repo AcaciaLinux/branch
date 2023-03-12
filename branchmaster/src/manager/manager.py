@@ -200,6 +200,11 @@ class manager():
     @staticmethod
     def report_system_event(issuer, event):
         current_time = time.strftime("%H:%M:%S %d-%m-%Y", time.localtime())
+        
+        if(len(manager.system_events) > 50):
+            manager.system_events.clear()
+            manager.system_events.append("[{}] Branchmaster => Syslogs cleared.".format(current_time))
+
         manager.system_events.append("[{}] {} => {}".format(current_time, issuer, event))
 
     
