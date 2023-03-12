@@ -51,7 +51,7 @@ def get_host_info():
     return info
 
 # leafcore init
-def init_leafcore():
+def init_leafcore(pkglist_url):
     global leafcore_instance
 
     blog.debug("Initializing leafcore..")
@@ -64,7 +64,7 @@ def init_leafcore():
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOPROGRESS, True)
-    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_PKGLISTURL, config.config.get_config_option("Leaf")["PackagelistUrl"])
+    leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_PKGLISTURL, pkglist_url)
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_DOWNLOADCACHE, os.path.join(LAUNCH_DIR, "leafcache/"))
     blog.debug("Leafcore initialized.")
     return 0

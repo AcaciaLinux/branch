@@ -63,25 +63,28 @@ def main():
     blog.info("Providing system information..")
     bc.send_recv_msg("SET_MACHINE_INFORMATION {}".format(json.dumps(buildenv.get_host_info())))
 
-    # init leafcore
-    if(buildenv.init_leafcore() != 0):
-        blog.info("Buildbot could not initialize leaf. Reporting system event.")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
-        bc.disconnect()
-        blog.info("Disconnected. Cannot continue.")
-        return -1
-   
+      
     deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
     
     realroot_pkgs = deployment_config["realroot_packages"]
     deploy_realroot = deployment_config["deploy_realroot"]
     deploy_crossroot = deployment_config["deploy_crossroot"]
+    pkglist_url = deployment_config["packagelisturl"]
 
     blog.info("Picked up deployment configuration")
     blog.info("==> Deploy realroot: {}".format(deploy_realroot))
     blog.info("==> Deploy crossroot: {}".format(deploy_crossroot))
     blog.info("==> Realroot packages: {}".format(realroot_pkgs))
-   
+    blog.info("==> PackagelistURL: {}".format(pkglist_url))
+  
+    # init leafcore
+    if(buildenv.init_leafcore(pkglist_url) != 0):
+        blog.info("Buildbot could not initialize leaf. Reporting system event.")
+        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
+        bc.disconnect()
+        blog.info("Disconnected. Cannot continue.")
+        return -1
+
     # check if the build environment is setup..
     blog.info("Checking build environments..")
     if(buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs) != 0):

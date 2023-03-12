@@ -34,9 +34,6 @@ class config():
         config["Logger"] = {
             "EnableDebugLog": False
         }
-        config["Leaf"] = {
-            "PackagelistUrl": "https://api.AcaciaLinux.org/?get=packagelist"
-        }
         config["BuildOptions"] = {
             "RealtimeBuildlog": False
         }

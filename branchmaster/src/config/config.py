@@ -35,7 +35,7 @@ class config():
         config["HTTPServer"] = {
             "EnableWebServer": True,
             "HTTPPort": 8080,
-            "SendCorsHeaders": False,
+            "SendCorsHeaders": False
         }
         config["Logger"] = {
             "EnableDebugLog": False
@@ -45,7 +45,8 @@ class config():
             "CrosstoolsPkgbuildURL": "https://artifacts.acacialinux.org/cross-toolchain/crosstools.bpb",
             "RealrootPackages": "[base][glibc][gcc][make][bash][sed][grep][gawk][coreutils][binutils][findutils][automake][autoconf][file][gzip][libtool][m4][groff][patch][texinfo]",
             "DeployCrosstools": True,
-            "DeployRealroot": True
+            "DeployRealroot": True,
+            "HTTPPackageList": "https://api.AcaciaLinux.org/?get=packagelist"
         }
         
         with open(CONFIG_FILE, "w") as default_conf_file:
