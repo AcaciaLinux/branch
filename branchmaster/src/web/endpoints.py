@@ -29,7 +29,8 @@ class branch_web_providers():
             "submitpackagebuild": branch_web_providers.submit_packagebuild_endpoint,
             "cancelqueuedjob": branch_web_providers.cancel_queued_job_endpoint,
             "cancelqueuedjobs": branch_web_providers.cancel_queued_jobs_endpoint,
-            "deletepackage": branch_web_providers.delete_package_endpoint
+            "deletepackage": branch_web_providers.delete_package_endpoint,
+            "clientinfo": branch_web_providers.get_clientinfo
         }
         return post_providers
     
@@ -150,19 +151,16 @@ class branch_web_providers():
         if("authkey" not in post_data):
             blog.debug("Missing request data for authentication")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
-            
             return
 
         # check if logged in
         if(not webauth.web_auth.validate_key(post_data["authkey"])):
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
-            
             return
 
         if("pkgname" not in post_data):
             blog.debug("Missing request data for build request: pkgname")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for package build.")
-            
             return
 
         pkgname = post_data["pkgname"]
@@ -406,6 +404,33 @@ class branch_web_providers():
         }
 
         httphandler.send_web_response(webserver.webstatus.SUCCESS, _dict)
+    
+    #
+    # Get client info dictionary
+    #
+    # ENDPOINT /clientinfo (POST)
+    @staticmethod
+    def get_clientinfo(httphandler, form_data, post_data):
+        if("authkey" not in post_data):
+            blog.debug("Missing request data for authentication")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            return
+
+        # check if logged in
+        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
+            return
+        
+        if("clientname" not in post_data):
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for clientinfo: clientname")
+            return
+        
+        target_client = manager.manager.get_client_by_name(post_data["clientname"])
+        if(target_client == None):
+            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid client name.")
+            return
+        
+        httphandler.send_web_response(webserver.webstatus.SUCCESS, target_client.get_sysinfo())
 
 
     #
