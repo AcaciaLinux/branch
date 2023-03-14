@@ -14,7 +14,7 @@ sel = selectors.DefaultSelector()
 STAGING_AREA = "staging"
 
 def init_server(addr, port):
-    blog.info("Socket server initializing.")
+    blog.debug("Socket server initializing.")
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
