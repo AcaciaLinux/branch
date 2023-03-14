@@ -1,6 +1,4 @@
-# Branch Package Build System
-The AcaciaLinux package build and distribution system.
-
+![Logo](./docs/BranchHeader.png)
 ## Introduction
 This repository contains a complete rewrite of the Branch package build system, featuring a client-server based architecture. The 'masterserver' accepts commands from 'controller' clients which can request 'release builds' (or to 'rebuild dependers') of a specified package build. The 'masterserver' relies on 'buildbots' to execute Branch package builds in a clean chroot environment, which then upload the created package file to the server.
 
