@@ -27,9 +27,36 @@ class queue():
             clients = manager.manager.get_ready_build_clients()
         
             # get first ready build client, and submit
-            cli = clients[0]
-            overwatch.check_accepted_timeout(cli, job)
-            self.submit_build_cmd(cli, job)
+            fastest_client = clients[0]
+            highest_rating = 100
+            if("Performance Rating" in fastest_client.get_sysinfo()):
+                highest_rating = fastest_client.get_sysinfo()["Performance Rating"]
+    
+            for client in clients:
+                sysinfo = client.get_sysinfo()
+                
+                # give bots that dont run the perf test a very high rating
+                perf_rating = 100
+
+                if("Performance Rating" in sysinfo):
+                    perf_rating = sysinfo["Performance Rating"]
+                
+                fastest_client_sysinfo = fastest_client.get_sysinfo()
+
+                # give bots that dont run the perf test a very high rating
+                fastest_perf_rating = 100
+                if("Performance Rating" in fastest_client_sysinfo):
+                    fastest_perf_rating = sysinfo["Performance Rating"]
+
+                # next client is faster, use that one.
+                if(perf_rating < fastest_perf_rating):
+                    fastest_client = client
+                    highest_rating = perf_rating
+            
+            blog.info("Determined fastest client '{}' with rating '{}'".format(fastest_client.get_identifier(), highest_rating))
+
+            overwatch.check_accepted_timeout(fastest_client, job)
+            self.submit_build_cmd(fastest_client, job)
  
             manager.manager.queued_jobs.remove(job)
             manager.manager.running_jobs.append(job)
