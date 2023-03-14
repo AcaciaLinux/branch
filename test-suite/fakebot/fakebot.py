@@ -10,14 +10,53 @@ ALWAYS_STALL_UPLOAD=False
 AUTO_RECONNECT=False
 ALWAYS_IGNORE_COMMANDS=False
 
-
+import platform
+import psutil
 import random
+from datetime import datetime
 import os
+import json
 import socket
 import blog
 import time
 import sys
 import branchclient
+
+def cpu_test():
+    blog.info("Running CPU performance test..")
+    cpu_count = psutil.cpu_count(logical=True)
+    start_time = datetime.now().timestamp()
+
+    value = 0
+    for i in range(100000000):
+        value = value * i
+
+    end_time = datetime.now().timestamp()
+    res = (end_time - start_time) / cpu_count
+    blog.info("CPU performance results (lower is better): {}".format(res))
+    return round(res, 6)
+
+def get_host_info():
+    info = { }
+
+    with open("/proc/cpuinfo", "r") as f:
+        file_info = f.readlines()
+
+    cpuinfo = [x.strip().split(":")[1] for x in file_info if "model name" in x]
+    info["Architecture"] = platform.machine()
+    info["Hostname"] = platform.node()
+    info["Host Python Version"] = platform.python_version()
+    info["Host Kernel"] = platform.system() + " " + platform.release()
+    info["Host Distribution"] = platform.freedesktop_os_release()["NAME"]
+    info["Host libc"] = platform.libc_ver()[0] + " " + platform.libc_ver()[1]
+    info["CPU count"] = psutil.cpu_count(logical=True)
+    if (len(cpuinfo) > 0):
+        info["CPU name"] = cpuinfo[0]
+    else:
+        info["CPU name"] = "unknown"
+    info["Memory available"] = "{}GB".format(round(psutil.virtual_memory().total / (1024*1024*1024), 2))
+    info["Performance Rating"] = cpu_test()
+    return info
 
 def handshake(host, port, authkey):
     return branchclient.branchclient(host, port, "FAKE_BOT", authkey, "BUILD")
@@ -176,6 +215,8 @@ def main():
         bc = handshake(host, int(port), authkey)
     
     blog.info("Ready to receive commands!")
+    bc.send_recv_msg("SET_MACHINE_INFORMATION {}".format(json.dumps(get_host_info())))
+
     receive_commands(bc)
 
 if __name__ == "__main__":
