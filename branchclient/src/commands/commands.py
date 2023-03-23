@@ -175,7 +175,7 @@ def client_status(bc):
 # Cancel a job by id
 #
 def cancel_queued_job(bc, job_id):
-    resp = bc.send_recv_msg(s, "CANCEL_QUEUED_JOB {}".format(job_id))
+    resp = bc.send_recv_msg("CANCEL_QUEUED_JOB {}".format(job_id))
     
     if(resp == "INV_JOB_ID"):
         blog.error("No such job queued.")
