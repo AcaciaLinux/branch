@@ -19,6 +19,16 @@ if ! [ -f /etc/branch/buildbot.conf ]; then
 		sed -i "s/authkey.*/authkey = ${BRANCH_AUTHKEY}/g" /etc/branch/buildbot.conf
 	fi
 
+	if [ -z "${BRANCH_IDENTIFIER}" ]; then
+		echo "[init] Generating identifier from hostname..."
+		sed -i "s/identifier.*/identifier = docker-$(cat /etc/hostname)/g" /etc/branch/buildbot.conf
+	else
+		echo "[init] Set identifier to $BRANCH_IDENTIFIER"
+		sed -i "s/identifier.*/identifier = ${BRANCH_IDENTIFIER}/g" /etc/branch/buildbot.conf
+	fi
+
+	echo "[init] Used config:"
+	cat /etc/branch/buildbot.conf
 fi
 
 cd /branchworkdirectory/
