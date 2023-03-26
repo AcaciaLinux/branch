@@ -12,6 +12,7 @@ There are the following environment variables that get used:
 BRANCH_SERVERURL - The url for the server
 BRANCH_SERVERPORT - The port for the server
 BRANCH_AUTHKEY - The authkey required
+BRANCH_IDENTIFIER - The identifier to report to the masterserver
 ```
 
 > **Note**
