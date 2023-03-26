@@ -47,5 +47,8 @@ RUN mkdir -pv /branchworkdirectory
 COPY --from=builder /leafinstall/* /
 
 COPY entry.sh /entry.sh
+COPY def_config.py /def_config.py
+
 RUN chmod +x entry.sh
+
 CMD /entry.sh
