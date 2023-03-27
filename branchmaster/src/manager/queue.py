@@ -28,9 +28,6 @@ class queue():
         
             # get first ready build client, and submit
             fastest_client = clients[0]
-            highest_rating = 100
-            if("Performance Rating" in fastest_client.get_sysinfo()):
-                highest_rating = fastest_client.get_sysinfo()["Performance Rating"]
     
             for client in clients:
                 sysinfo = client.get_sysinfo()
@@ -51,9 +48,8 @@ class queue():
                 # next client is faster, use that one.
                 if(perf_rating < fastest_perf_rating):
                     fastest_client = client
-                    highest_rating = perf_rating
             
-            blog.info("Determined fastest client '{}' with rating '{}'".format(fastest_client.get_identifier(), highest_rating))
+            blog.info("Determined fastest client '{}' with rating '{}'".format(fastest_client.get_identifier(), fastest_client.get_sysinfo()["Performance Rating"]))
 
             overwatch.check_accepted_timeout(fastest_client, job)
             self.submit_build_cmd(fastest_client, job)
