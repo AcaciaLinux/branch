@@ -46,7 +46,7 @@ class queue():
                 # give bots that dont run the perf test a very high rating
                 fastest_perf_rating = 100
                 if("Performance Rating" in fastest_client_sysinfo):
-                    fastest_perf_rating = sysinfo["Performance Rating"]
+                    fastest_perf_rating = fastest_client_sysinfo["Performance Rating"]
 
                 # next client is faster, use that one.
                 if(perf_rating < fastest_perf_rating):
