@@ -16,8 +16,9 @@ import branchclient
 from config import config
 from buildenvmanager import buildenv
 
-EXECUTABLE_MAGIC_BYTES = b'\x7fELF'
-SHARED_LIB_MAGIC_BYTES = b'\x7fELF'
+ELF_MAGIC_BYTES=b'\x7fELF'
+ELF_TYPE_EXE=b'\x02'
+ELF_TYPE_DYN=b'\x03'
 
 #
 # Handle a build request
@@ -407,15 +408,26 @@ def strip(root_dir):
 
             # get file magic bytes
             with open(file_abs, "rb") as f:
-                magic_bytes = f.read(4)
+                magic_bytes = f.read(0x04) # First read the 4 magic bytes
+        
+                if (magic_bytes == ELF_MAGIC_BYTES):
+                    # If this is an elf binary, read up until 0x10 (0x10 - 0x04 = 0x0C), discard that and use 0x11
+                    f.read(0x0C)
 
-                if(magic_bytes == EXECUTABLE_MAGIC_BYTES or magic_bytes == SHARED_LIB_MAGIC_BYTES):
-                    blog.debug("[strip] Stripping file {}!".format(file_abs))
-                    res = subprocess.run(["strip", "--strip-unneeded", file_abs], shell=False, capture_output=True)
+                    elf_type = f.read(0x01)
 
-                    if (res.returncode == 0):
-                        blog.debug("[strip] {}".format(file_abs))
-                        stripped_files.append(file_abs)
+                    if (elf_type == ELF_TYPE_EXE or elf_type == ELF_TYPE_DYN):
+                        blog.debug("[strip] Stripping file {}!".format(file_abs))
+                        res = subprocess.run(["strip", file_abs], shell=False, capture_output=True)
+
+                        if (res.returncode == 0):
+                            blog.debug("[strip] {}".format(file_abs))
+                            stripped_files.append(file_abs)
+
+                    else:
+                        blog.debug("[strip] Skipped file {}, an ELF, but not strippable (exe/dyn)!".format(file_abs))
+
+
                 else:
                     blog.debug("[strip] Skipped file {}, not ELF binary!".format(file_abs))
 
