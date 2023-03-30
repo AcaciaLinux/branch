@@ -526,7 +526,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             return "CMD_OK"
 
         #
-        # Receive extra sources from buildbot
+        # Receive extra sources from client
         #
         # TRANSFER_EXTRA_SOURCE BYTES DESCRIPTION FILENAME
         case "TRANSFER_EXTRA_SOURCE":

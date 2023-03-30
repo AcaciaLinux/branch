@@ -565,6 +565,7 @@ def transfer_extra_source(bc, file_path):
 
     if(not resp == "CMD_OK"):
         blog.error("Could not switch to file transfer mode.")
+        return
 
     blog.info("File transfer setup completed.")
     blog.info("Sending file..")
