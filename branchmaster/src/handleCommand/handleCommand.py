@@ -445,7 +445,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         #
         case "SUBMIT_SOLUTION_CB":
             if(not manager.deployment_config["deploy_crossroot"]):
-                return "RELEASE_ENV_UNAVAILABLE"
+                return "CROSS_ENV_UNAVAILABLE"
 
             if(cmd_body == ""):
                 return "INV_SOL"
