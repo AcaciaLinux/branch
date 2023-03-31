@@ -122,7 +122,7 @@ def build_status(bc):
         print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in running_jobs:
-            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
     if(completed_jobs):
         print()
@@ -131,9 +131,9 @@ def build_status(bc):
 
         for job in completed_jobs:
             if(job['job_status'] == "FAILED"):
-                print ("{:<20} \033[91m{:<15}\033[0m {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+                print ("{:<20} \033[91m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
             else:
-                print ("{:<20} \033[92m{:<15}\033[0m {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+                print ("{:<20} \033[92m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
 
     if(queued_jobs):
@@ -142,7 +142,7 @@ def build_status(bc):
         print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
         for job in queued_jobs:
-            print ("{:<20} {:<15} {:<40} {:<10}".format(job['build_pkg_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
     if(not completed_jobs and not running_jobs and not queued_jobs):
         blog.info("No jobs.")

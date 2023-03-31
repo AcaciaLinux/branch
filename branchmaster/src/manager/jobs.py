@@ -33,7 +33,7 @@ class jobs():
         return {
             "job_id": self.job_id,
             "job_status": self.job_status,
-            "build_pkg_name": self.pkg_payload.name,
+            "job_name": self.pkg_payload.name,
             "requesting_client": self.requesting_client
         }
 
