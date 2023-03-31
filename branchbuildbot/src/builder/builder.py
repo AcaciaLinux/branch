@@ -150,7 +150,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         source_file = fetch_file_http(build_dir, package_build_obj.source)
         if(not source_file):
             blog.warn("Could not fetch main source.")
-            res = bc.send_recv_msg("SUBMIT_LOG {}".format("Could not fetch main source."))
+            res = bc.send_recv_msg("SUBMIT_LOG {}".format(json.dumps(["Could not fetch main source."])))
             return "REPORT_STATUS_UPDATE DOWNLOAD_EXTRA_SRC_FAILED"
 
         try:
