@@ -113,6 +113,8 @@ class storage():
     def remove_extrasource_by_id(target_id):
         storage.lock.acquire()
 
+        deleted = False
+
         try:
             db_connection = sqlite3.connect(EXTRA_SOURCE_STORAGE_FILE)
             
@@ -124,6 +126,7 @@ class storage():
                 if(target_id == _id[0]):
                     cur.execute("DELETE FROM extrasources WHERE id='{}'".format(target_id))
                     blog.warn("Extrasource deleted: {}".format(target_id))
+                    deleted = True
                     break
 
             db_connection.commit()
@@ -132,6 +135,7 @@ class storage():
             blog.error("Could not delete extrasource: {}".format(ex))
     
         storage.lock.release()
+        return deleted
     
     @staticmethod
     def get_extra_source_blob_by_id(target_id):

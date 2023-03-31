@@ -604,11 +604,13 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         # Deletes an extra source by id
         #
         case "REMOVE_EXTRA_SOURCE":
-            if(cmd_body == ""):
-                return "INV_ES_NAME"
+            if(cmd_body == "" or cmd_body is None):
+                return "INV_ES_ID"
                 
-            extrasourcestorage.storage.remove_extrasource_by_id(cmd_body)
-            return "CMD_OK"
+            if(extrasourcestorage.storage.remove_extrasource_by_id(cmd_body)):
+                return "CMD_OK"
+            else:
+                return "INV_ES_ID"
 
         #
         # Invalid command
