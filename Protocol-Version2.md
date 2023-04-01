@@ -55,11 +55,11 @@ BYTE_LEN {
 ### Response
 ```json
 BYTE_LENGTH {
-	"statuscode": 200 || 400,
+	"statuscode": 200 || 400 || 500,
 	"payload": {
 		"auth_status": "DESCRIPTION"
 		"logon_message": "Short server status message..? Errors encountered.."
-	}
+	} || "Logon failure message"
 }
 
 ```
@@ -401,25 +401,6 @@ BYTE_LEN {
 		"Connection Timestamp": 0,
 		...
 	}
-}
-```
-
-<br>
-<br>
-
-## Delete tracked package and packagebuild
-### Request
-```json
-BYTE_LEN {
-	"command": "DELETEPKG",
-	"payload": "pkgname"
-}
-```
-### Response
-```json
-BYTE_LEN {
-	statuscode: 200 || 400 || 500,
-	"payload": "DESCRIPTION"
 }
 ```
 
