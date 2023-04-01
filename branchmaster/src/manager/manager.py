@@ -69,12 +69,6 @@ class manager():
         return None
 
     @staticmethod
-    def handle_command(client, command):
-        blog.debug("Handling command from '{}': {}".format(client.get_identifier(), command))
-        res = handleCommand.handle_command(manager(), client, command)
-        return res
-    
-    @staticmethod
     def remove_client(client):
         job = manager.get_job_by_client(client)
 

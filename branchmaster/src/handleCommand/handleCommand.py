@@ -23,7 +23,7 @@ def handle_command(manager, client, command):
     cmd_header_loc = command.find(" ")
     cmd_header = ""
     cmd_body = ""
-
+    
     # One word command
     if(cmd_header_loc == -1):
         cmd_header = command
@@ -644,7 +644,7 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
             if(cmd_body == ""):
                 return "INV_CMD"
 
-            client.set_buildbot_sysinfo(json.loads(cmd_body))
+            client.set_sysinfo(json.loads(cmd_body))
             return "CMD_OK"
 
         # 
