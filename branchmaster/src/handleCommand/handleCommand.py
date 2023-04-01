@@ -14,7 +14,7 @@ from localstorage import extrasourcestorage
 from localstorage import packagestorage 
 from localstorage import pkgbuildstorage
 from manager import queue
-from manager import jobs
+from manager import job
 from dependency import dependency
 from overwatch import overwatch
 from bsocket import server
@@ -130,7 +130,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
         #
         case "SET_MACHINE_NAME":
             blog.info("Client name changed. Client '{}' is now known as '{}'".format(client.get_identifier(), cmd_body))
-            client.client_name = cmd_body
+            client.set_identifier(cmd_body)
             return "CMD_OK"
         
         #
