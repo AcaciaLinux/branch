@@ -31,7 +31,7 @@ def init_server(addr, port):
     blog.debug("Setting listening type to 5")
     s.listen(5)
 
-    blog.debug("Checking pkg-staging area")
+    blog.debug("Checking staging area")
     if(not os.path.exists(STAGING_AREA)):
         os.mkdir(STAGING_AREA)
 
@@ -90,12 +90,11 @@ def threaded_client_handler(client_socket):
             while(len(data_trimmed) != cmd_bytes):
                 data_trimmed += receive_data(_client)
         
-            blog.debug("Received full message from client.")
+            blog.debug("Received {} bytes from client.".format(cmd_bytes))
            
             data_trimmed_str = data_trimmed.decode("utf-8")
 
             if(data_trimmed):
-                blog.debug("Command from {}: {}".format(_client.get_identifier(), data_trimmed_str))
                 manager_res = _client.receive_command(data_trimmed_str)
 
                 if(manager_res is not None):
@@ -149,6 +148,6 @@ def receive_file(socket, client):
 
 def receive_data(client):
     try:
-        return client.sock.recv(4096)
+        return client.socket.recv(4096)
     except ConnectionResetError:
         return None

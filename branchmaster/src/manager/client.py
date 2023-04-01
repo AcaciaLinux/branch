@@ -4,16 +4,25 @@ import traceback
 import time
 
 from manager import manager
+from handleCommand import handleCommand
 from threading import Lock
 
 class Client():
 
-    def __init__(self, sock):
+    def __init__(self, socket):
+        """
+        Initialize a new client object
+        :param socket: Client Socket
+        :return: Client Object
+        """
         
+        # TODO: Which of these are actually needed..?
+        # Better data structure?
+
         # file transfer mode
-        self.file_transfer_mode = False
-        self.file_target = None
-        self.file_target_bytes = 0
+        self.file_transfer_mode: bool = False
+        self.file_target_bytes: int = 0
+        self.file_target: str = None
 
         # controller or build
         self.client_type = None
@@ -30,7 +39,7 @@ class Client():
         self.client_uuid = uid
 
         # client socket
-        self.sock = sock
+        self.socket = socket
 
         # client is not ready by default
         self.is_ready = False
@@ -50,17 +59,20 @@ class Client():
         # connected at
         self.connection_start_timestamp = time.time()
 
-    
-    #
-    # Set buildbot provided system info
-    #
-    def set_buildbot_sysinfo(self, info):
-        self.sysinfo = info 
+    def set_sysinfo(self, info: dict):
+        """
+        Set buildbot system information dictionary.
+        :param info: Client system info
+        """
+        
+        self.sysinfo: dict = info 
 
-    #
-    # Get system info
-    #
-    def get_sysinfo(self):
+    def get_sysinfo(self) -> dict:
+        """
+        Get client system information
+        :return: Get system info dict
+        """
+
         sys_info = { }
         sys_info["Connection timestamp"] = self.connection_start_timestamp
         
@@ -75,13 +87,21 @@ class Client():
 
         return sys_info
 
-    #
-    # receive data from manager
-    #
     def receive_command(self, data):
+        """
+        Receive command from a connected client.
+        
+        :param data: Raw data from the client as str
+        :return: Response from the server
+        """
+
+        blog.debug("Command received from client '{}': {}".format(self.get_identifier(), data))
+        
+        # TODO: refactor with BranchPacket(?)
+
         res = None
         try:
-            res = manager.manager.handle_command(self, data)
+            res = handleCommand.handle_command(manager.manager(), self, data)
         except Exception as ex:
             manager.manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
             blog.debug("An endpoint handler function raised an exception:")
@@ -90,45 +110,63 @@ class Client():
             res = "EXCEPTION_RAISED"
         
         return res
+    
+    def set_identifier(self, name: str):
+        """
+        Sets the clients clear name identifier
 
-    #
-    # Get the clients identifier
-    # UUID by default, can be changed by command
-    #
-    def get_identifier(self):
+        :param name: Name as str
+        """
+
+    def get_identifier(self) -> str:
+        """
+        Fetches the clients current identifier if it's available,
+        otherwise returns the client UUID
+
+        :return: Current identifier 
+        """
+
         if(self.client_name == None):
             return self.client_uuid
         else:
             return self.client_name
 
-    #
-    # send_command to self
-    #
     def send_command(self, message):
+        """
+        Acquires the client lock and sends a command to the client
+        
+        :param message: The message to send
+        """
+
         self.lock.acquire()
         message = "{} {}".format(len(message), message)
-        self.sock.send(bytes(message, "UTF-8"))
+        self.socket.send(bytes(message, "UTF-8"))
         blog.debug("Message {} sent!".format(message))
         self.lock.release()
     
-    #
-    # Send a byte-like object to client
-    #
     def send_data(self, blob):
+        """
+        Acquires the client lock and sends bytes to the client
+
+        :param blob: bytes to send
+        """
+        
         self.lock.acquire()
-        self.sock.send(blob)
+        self.socket.send(blob)
         self.lock.release()
 
-    #
-    # handle a clients disconnect.
-    #
     def handle_disconnect(self):
+        """
+        Acquires the client lock, removes the client from
+        the manager and closes the socket
+        """
+
         self.lock.acquire()
         
         try:
             blog.info("Client {} has disconnected.".format(self.get_identifier()))
             manager.manager.remove_client(self)
-            self.sock.close()
+            self.socket.close()
             self.alive = False
         except Exception:
             blog.debug("Dead client socket finally closed.")
