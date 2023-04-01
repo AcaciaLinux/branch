@@ -11,7 +11,7 @@ from localstorage import pkgbuildstorage
 from config import config
 from handleCommand import handleCommand 
 from manager import queue
-from manager import jobs
+from manager import job
 
 class manager():
     
@@ -108,7 +108,7 @@ class manager():
 
     @staticmethod 
     def new_job(use_crosstools):
-        job = jobs.jobs(use_crosstools)
+        job = job.Job(use_crosstools)
         manager.queued_jobs.append(job)
         return job
 

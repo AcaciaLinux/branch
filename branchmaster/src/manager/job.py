@@ -1,7 +1,7 @@
 import uuid
 import blog
 
-class jobs():
+class Job():
     def __init__(self, use_crosstools, solution_mode=False):
 
         # class members

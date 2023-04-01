@@ -1,6 +1,6 @@
 import blog
 from localstorage import pkgbuildstorage
-from manager import jobs
+from manager import job
 from manager import queue
 from manager import manager
 
@@ -56,7 +56,7 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
         new_prev_jobs = [ ]
 
         for pk in line:
-            job = jobs.jobs(use_crosstools, True)
+            job = job.Job(use_crosstools, True)
             job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(pk)
             
             if(job.pkg_payload is None):

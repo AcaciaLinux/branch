@@ -117,6 +117,7 @@ class Client():
 
         :param name: Name as str
         """
+        self.client_name = name
 
     def get_identifier(self) -> str:
         """
