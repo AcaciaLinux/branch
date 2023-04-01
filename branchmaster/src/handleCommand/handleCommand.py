@@ -179,13 +179,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(pkgbuild is None):
                 return "INV_PKG_NAME"
 
-            # get a job obj, crosstools = False
-            job = manager.new_job(False)
-
-            job.pkg_payload = pkgbuild
-            job.requesting_client = client.get_identifier()
-            job.set_status("WAITING")
-
+            job = manager.new_job(False, pkgbuild, client.get_identifier())
             res = manager.get_queue().add_to_queue(job)
             manager.get_queue().update()
             return res
@@ -207,13 +201,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(pkgbuild is None):
                 return "INV_PKG_NAME"
 
-            # get a job obj, crosstools = False
-            job = manager.new_job(False)
-
-            job.pkg_payload = pkgbuild
-            job.requesting_client = client.get_identifier()
-            job.set_status("WAITING")
-
+            job = manager.new_job(True, pkgbuild, client.get_identifier())
             res = manager.get_queue().add_to_queue(job)
             manager.get_queue().update()
             return res
@@ -231,10 +219,11 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
             if(job is None):
                 return "INV_JOB_ID"
             
-            if(job.build_log is None):
+            build_log = job.get_buildlog()
+            if(build_log is None):
                 return "NO_LOG"
 
-            return json.dumps(job.build_log)
+            return json.dumps(build_log)
         
         #
         # Requests system events from Masterserver
@@ -298,11 +287,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 blog.info("Creating releasebuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = False
-                job = manager.new_job(False)
-
-                job.pkg_payload = pkgbuild
-                job.requesting_client = client.get_identifier()
-                job.set_status("WAITING")
+                job = manager.new_job(False, pkgbuild, client.get_identifier())
 
                 manager.add_job_to_queue(job)
                 blog.info("Adding to queue")
@@ -312,11 +297,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 blog.info("Creating crossbuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = True
-                job = manager.new_job(True)
-
-                job.pkg_payload = pkgbuild
-                job.requesting_client = client.get_identifier()
-                job.set_status("WAITING")
+                job = manager.new_job(True, pkgbuild, client.get_identifier())
 
                 manager.add_job_to_queue(job)
             
@@ -664,14 +645,14 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
                     
                     blog.info("Hashing package..")
                     md5_hash = hashlib.md5()
-                    hash_file = open(job.client.file_target, "rb")
+                    hash_file = open(job.buildbot.file_target, "rb")
 
                     # read chunk by chunk
                     for chunk in iter(lambda: hash_file.read(4096), b""):
                         md5_hash.update(chunk)
 
                     blog.info("Deploying package to storage..")
-                    shutil.move(job.client.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
+                    shutil.move(job.buildbot.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
                     job.set_status("COMPLETED")
 
                 manager.move_inactive_job(job)

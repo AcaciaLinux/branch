@@ -1,35 +1,37 @@
 import uuid
 import blog
+from packagebuild import package_build
 
 class Job():
-    def __init__(self, use_crosstools, solution_mode=False):
 
-        # class members
-        self.job_id = ""
-        self.pkg_payload = None
+    def __init__(self, use_crosstools: bool, pkg_payload: package_build, requesting_client: str, solution_mode: bool = False):
+        """
+        Initialize a new Job
 
-        self.requesting_client = ""
-        self.client = None
-        self.job_status = ""
-        self.blocked_by = [ ] 
+        :param use_crosstools: Use the 'CROSS' environment to build
+        :param solution_mode: (Optional) Skip dependency resolver
+        """
 
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
         self.job_id = str(uid)
-        
-        self.use_crosstools = use_crosstools
-        self.solution_mode = solution_mode
 
-        self.build_log = None
-        
-        # set to true once a bot sends JOB_ACCEPTED response
+        self.use_crosstools: bool = use_crosstools
+        self.solution_mode: bool = solution_mode
+        self.pkg_payload: package_build = pkg_payload
+        self.requesting_client: str = requesting_client
+        self.set_status("WAITING")
+
+        self.buildbot = None
+        self.blocked_by: list = [ ] 
+
+        # [OVERWATCH] Check if job got accepted
         self.job_accepted = False
 
-    #
-    # get dict of class variables
-    # that are interesting
-    #
-    def get_info_dict(self):
+    def get_info_dict(self) -> dict:
+        """
+        Get information as a dictionary
+        """
         return {
             "job_id": self.job_id,
             "job_status": self.job_status,
@@ -37,28 +39,38 @@ class Job():
             "requesting_client": self.requesting_client
         }
 
-    #
-    # get current job's id
-    #
-    def get_jobid(self):
+    def get_jobid(self) -> str:
+        """
+        Get the current jobs id
+        """
         return self.job_id
 
-    #
-    #  set job_status
-    #
-    def set_status(self, status):
+    def set_status(self, status: str):
+        """
+        Set the current jobs status
+        """
         self.job_status = status
 
-    #
-    # get job status
-    #
-    def get_status(self):
+    def get_status(self) -> str:
+        """
+        Get the current jobs status
+        """
         return self.job_status
     
-
-    #
-    # set buildlog to job
-    #
-    def set_buildlog(self, log):
+    def set_buildlog(self, log: list):
+        """
+        Set the jobs buildlog
+        """
         self.build_log = log
-
+    
+    def get_buildlog(self) -> list:
+        """
+        Get job build log
+        """
+        return self.build_log
+    
+    def set_running_buildbot(self, buildbot):
+        """
+        Set the buildbot (client) the job is running on
+        """
+        self.buildbot = buildbot
