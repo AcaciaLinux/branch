@@ -286,6 +286,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Clear completed jobs
 ### Request
 ```json
@@ -304,6 +305,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Cancel all queued jobs
 ### Request
 ```json
@@ -322,6 +324,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Cancel a queued job by id
 ### Request
 ```json
@@ -340,6 +343,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Cancel a queued job by id
 ### Request
 ```json
@@ -358,6 +362,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Submit a solution file for building
 ### Request
 ```json
@@ -379,6 +384,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Get a clients available information
 ### Request
 ```json
@@ -400,6 +406,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Delete tracked package and packagebuild
 ### Request
 ```json
@@ -418,6 +425,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Delete tracked package and packagebuild
 ### Request
 ```json
@@ -436,6 +444,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Get list of extra sources
 ### Request
 ```json
@@ -457,6 +466,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Remove extra sources
 ### Request
 ```json
@@ -475,6 +485,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Transfer extra sources
 ### Request
 ```json
@@ -506,6 +517,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 ## Complete extra source transfer
 ### Request
 ```json
@@ -524,6 +536,7 @@ BYTE_LEN {
 
 <br>
 <br>
+
 # Notes:
 - (?) Remove COMPLETETRANSFER and add it to the callback Response 2
 - remove GET_LOCKED_PACKAGES, as it isn't very useful.
