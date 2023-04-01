@@ -56,18 +56,16 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
         new_prev_jobs = [ ]
 
         for pk in line:
-            job = job.Job(use_crosstools, True)
-            job.pkg_payload = pkgbuildstorage.storage.get_packagebuild_obj(pk)
+            job = job.Job(use_crosstools, pkgbuildstorage.storage.get_packagebuild_obj(pk), client.get_identifier())
             
+            # invalid solution, since we couldn't find one of the packages
             if(job.pkg_payload is None):
                 return None, pk
-
-            job.requesting_client = client.get_identifier()
             
+            # find blocked by
             for pj in prev_jobs:
                 job.blocked_by.append(pj.job_id)
 
-            job.set_status("WAITING")
             new_prev_jobs.append(job)
             created_jobs.append(job)
         

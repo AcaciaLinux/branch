@@ -125,8 +125,8 @@ class queue():
 
         blog.info("Build job '{}' from '{}' submitted.".format(job_id, job_obj.requesting_client))
         
-        # assign our client to the job, state: INIT
-        job_obj.client = client
+        # assign our client to the job
+        job_obj.set_running_buildbot(client)
 
         # get json str of package
         pkg_json = json.dumps(job_obj.pkg_payload.__dict__)

@@ -169,15 +169,10 @@ class branch_web_providers():
         if(pkgname in pkgbuildstorage.storage.get_all_packagebuild_names()):
             blog.info("Web client requested build for {}".format(pkgname))
              
-            pkg = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
+            pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
 
             # get a job obj, use_crosstools = True
-            job = manager.manager.new_job(use_crosstools)
-
-            job.pkg_payload = pkg
-            job.requesting_client = "webclient"
-            job.set_status("WAITING")
-            
+            job = manager.new_job(use_crosstools, pkgbuild, "webclient")
             res = manager.manager.get_queue().add_to_queue(job)
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package build queued successfully: {}.".format(res))
         else:

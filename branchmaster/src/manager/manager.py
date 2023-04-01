@@ -11,7 +11,7 @@ from localstorage import pkgbuildstorage
 from config import config
 from handleCommand import handleCommand 
 from manager import queue
-from manager import job
+from manager.job import Job
 
 class manager():
     
@@ -107,8 +107,8 @@ class manager():
         return res
 
     @staticmethod 
-    def new_job(use_crosstools):
-        job = job.Job(use_crosstools)
+    def new_job(use_crosstools: bool, pkg_payload, requesting_client: str):
+        job = Job(use_crosstools, pkg_payload, requesting_client)
         manager.queued_jobs.append(job)
         return job
 
@@ -125,7 +125,7 @@ class manager():
     def get_job_by_client(client):
         for job in manager.running_jobs:
             if job in manager.running_jobs:
-                if(job.client == client):
+                if(job.buildbot == client):
                     return job
 
         return None
