@@ -48,7 +48,14 @@ def find_dependers(pkgs, pkgname, visited):
 #
 # Create jobs from a solution
 #
-def job_arr_from_solution(manager, client, solution, use_crosstools):
+def job_arr_from_solution(client, solution, use_crosstools):
+    """
+    Job array from provided solution
+    
+    :param client: The requesting client
+    :param solution: The provided solution
+    :param use_crosstools: Build solution in crosstools mode
+    """
     created_jobs = [ ]
     prev_jobs = [ ]
 
@@ -56,18 +63,18 @@ def job_arr_from_solution(manager, client, solution, use_crosstools):
         new_prev_jobs = [ ]
 
         for pk in line:
-            job = job.Job(use_crosstools, pkgbuildstorage.storage.get_packagebuild_obj(pk), client.get_identifier())
+            job_obj = job.Job(use_crosstools, pkgbuildstorage.storage.get_packagebuild_obj(pk), client.get_identifier(), True)
             
             # invalid solution, since we couldn't find one of the packages
-            if(job.pkg_payload is None):
+            if(job_obj.pkg_payload is None):
                 return None, pk
             
             # find blocked by
             for pj in prev_jobs:
-                job.blocked_by.append(pj.job_id)
+                job_obj.blocked_by.append(pj.job_id)
 
-            new_prev_jobs.append(job)
-            created_jobs.append(job)
+            new_prev_jobs.append(job_obj)
+            created_jobs.append(job_obj)
         
         prev_jobs = new_prev_jobs
 

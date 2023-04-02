@@ -405,7 +405,7 @@ def handle_command_controller(manager, client, cmd_header, cmd_body):
                 return "INV_SOL"
             
             solution = json.loads(cmd_body)
-            jobs, status = dependency.job_arr_from_solution(manager, client, solution, False)
+            jobs, status = dependency.job_arr_from_solution(client, solution, False)
            
             if(jobs is None):
                 return "PKG_BUILD_MISSING {}".format(status)
@@ -672,7 +672,6 @@ def handle_command_build(manager, client, cmd_header, cmd_body):
         
         #
         # PONG from buildbot!
-        # PONG
         #
         case "PONG":
             blog.debug("Got PONG from {}.".format(client.get_identifier()))
