@@ -5,160 +5,196 @@ import blog
 import packagebuild
 import time
 
+from branchpacket import BranchResponse, BranchRequest, BranchStatus
 from utils import inpututil
-
-def debug_shell(bc):
-    while True:
-        print("[branch-debug-shell] ==> ", end="")
-
-        line = ""
-        try:
-            line = input()
-        except Exception:
-            return
-
-        if(line == ""):
-            continue
-
-        data = bc.send_recv_msg(line)
-        print("[branch-response] ==> {}".format(data))
 
 #
 # checkout package
 #
 def checkout_package(bc, pkg_name):
-    bpb_resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkg_name))
+    """
+    Checks out a package using the given BranchClient
+
+    :param bc: BranchClient
+    :param pkg_name: Name of the package to checkout
+    """
     
-    # check if package is valid
-    if(bpb_resp == "INV_PKG_NAME"):
-        blog.error("The specified package could not be found.")
-        return
+    checkout_response: BranchResponse = bc.send_recv_msg(BranchRequest("CHECKOUT", pkg_name))
+        
+    match checkout_response.statuscode:
 
-    if(bpb_resp == "INV_PKG"):
-        blog.error("The package build is damaged and could not be checked out.")
-        return
+        case BranchStatus.OK:
+            blog.info("Received packagebuild from server.")
+            pkgbuild = packagebuild.package_build.from_dict(checkout_response.payload)
+            target_file = os.path.join(pkg_name, "package.bpb")
+            
+            if(not os.path.exists(pkg_name)):
+                os.mkdir(pkg_name)
 
-    pkgbuild = packagebuild.package_build.from_json(bpb_resp)
-    target_file = os.path.join(pkg_name, "package.bpb")
-    
-    if(not os.path.exists(pkg_name)):
-        os.mkdir(pkg_name)
-
-    if(os.path.exists(target_file)):
-        if(not inpututil.ask_choice("Checking out will overwrite your local working copy. Continue?")):
-            blog.error("Aborting.")
+            if(os.path.exists(target_file)):
+                if(not inpututil.ask_choice("Checking out will overwrite your local working copy. Continue?")):
+                    blog.error("Aborting.")
+                    return
+            
+            pkgbuild.write_build_file(target_file)
+            blog.info("Successfully checked out package '{}'.".format(pkg_name))
             return
 
-    pkgbuild.write_build_file(target_file)
-    blog.info("Successfully checkout out package {}!".format(pkg_name))
-
-#
-# Submit a package build from cwd to server
-#
-def submit_package(bc):
-    bpb = packagebuild.package_build.from_file("package.bpb")
-    if(bpb == -1):
-        return -1
-
-    json_str = bpb.get_json()
-    resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(json_str))
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Server: {}".format(checkout_response.payload))
+            return
+        
+        case other:
+            blog.error("Unhandled response.")
+            return
    
-    if(resp == "INV_PKG_BUILD"):
-        blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
-    elif(resp == "CMD_OK"):
-        blog.info("Package submission accepted by server.")
-    else:
-        blog.error("An error occured: {}".format(resp))
+def submit_package(bc):
+    """
+    Submit 'package.bpb' from the current working directory
+    to the server.
+
+    :param bc: BranchClient
+    :param pkg_name: Packagebuild name
+    """
+
+    pkgbuild = packagebuild.package_build.from_file("package.bpb")
+    if(not pkgbuild.is_valid()):
+        blog.error("Local packagebuild validation failed. Packagebuild is invalid")
+        return
+
+    submit_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMIT", pkgbuild.get_dict()))
+
+    match submit_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Packagebuild submission accepted by server.")
+            return
+
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Packagebuild submission rejected by server. The packagebuild you attempted to submit is invalid")
+            return
+
+        case other:
+            blog.error("Server: {}".format(submit_response.payload))
+            return
 
 #
 # Request a release build from a specified package
 #
 def release_build(bc, pkg_name):
-    resp = bc.send_recv_msg("RELEASE_BUILD {}".format(pkg_name))
+    """
+    Request a releasebuild from the server.
 
-    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
-        blog.info("The package build was immediately handled by a ready build bot.")
-    elif(resp == "BUILD_REQ_QUEUED"):
-        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
-    elif(resp == "INV_PKG_NAME"):
-        blog.error("Invalid package name.")
-    elif(resp == "PKG_BUILD_DAMAGED"):
-        blog.error("The packagebuild you attempted to queue is damaged.")
-    else:
-        blog.error("An error occurred: {}".format(resp))
-#
-# Request a cross build from a specified package
-#
+    :param bc: BranchClient
+    :param pkg_name: Packagebuild name
+    """
+
+    releasebuild_response: BranchResponse = bc.send_recv_msg(BranchRequest("BUILD", {
+            "pkgname": pkg_name,
+            "buildtype": "RELEASE"
+        }))
+    
+    match releasebuild_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(releasebuild_response.payload))
+            return
+
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Server: {}".format(releasebuild_response.payload))
+            return
+
+        case other:
+            blog.error("Server: {}".format(releasebuild_response.payload))
+            return
+
 def cross_build(bc, pkg_name):
-    resp = bc.send_recv_msg("CROSS_BUILD {}".format(pkg_name))
+    """
+    Request a releasebuild from the server.
 
-    if(resp == "BUILD_REQ_SUBMIT_IMMEDIATELY"):
-        blog.info("The package build was immediately handled by a ready build bot.")
-    elif(resp == "BUILD_REQ_QUEUED"):
-        blog.info("No buildbot is currently available to handle the build request. Build request added to queue.")
-    elif(resp == "INV_PKG_NAME"):
-        blog.error("Invalid package name.")
-    elif(resp == "PKG_BUILD_DAMAGED"):
-        blog.error("The packagebuild you attempted to queue is damaged.")
-    else:
-        blog.error("An error occurred: {}".format(resp))
+    :param bc: BranchClient
+    :param pkg_name: Packagebuild name
+    """
 
-#
-# get job status from server
-#
+    releasebuild_response: BranchResponse = bc.send_recv_msg(BranchRequest("BUILD", {
+            "pkgname": pkg_name,
+            "buildtype": "CROSS"
+        }))
+    
+    match releasebuild_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(releasebuild_response.payload))
+            return
+
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Server: {}".format(releasebuild_response.payload))
+            return
+
+        case other:
+            blog.error("Server: {}".format(releasebuild_response.payload))
+            return
+
 def build_status(bc):
-    resp = bc.send_recv_msg("RUNNING_JOBS_STATUS")
-    running_jobs = json.loads(resp)
+    """
+    Request build_status from the server.
 
-    resp = bc.send_recv_msg("COMPLETED_JOBS_STATUS")
-    completed_jobs = json.loads(resp)
+    :param bc: BranchClient
+    """
+    status_response = bc.send_recv_msg(BranchRequest("GETJOBSTATUS", ""))
 
-    resp = bc.send_recv_msg("QUEUED_JOBS_STATUS")
-    queued_jobs = json.loads(resp)
+    match status_response.statuscode:
+        case BranchStatus.OK:
+            queued_jobs = status_response.payload["queuedjobs"]
+            running_jobs = status_response.payload["runningjobs"]
+            completed_jobs = status_response.payload["completedjobs"]
+            
+            if(not completed_jobs and not running_jobs and not queued_jobs):
+                blog.info("No jobs.")
 
-    if(running_jobs):
-        print()
-        print("RUNNING JOBS:")
-        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+            if(queued_jobs):
+                print()
+                print("QUEUED JOBS:")
+                print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
-        for job in running_jobs:
-            print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
+                for job in queued_jobs:
+                    print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            
+            if(running_jobs):
+                print()
+                print("RUNNING JOBS:")
+                print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
-    if(completed_jobs):
-        print()
-        print("COMPLETED JOBS:")
-        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+                for job in running_jobs:
+                    print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
-        for job in completed_jobs:
-            if(job['job_status'] == "FAILED"):
-                print ("{:<20} \033[91m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
-            else:
-                print ("{:<20} \033[92m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
+            if(completed_jobs):
+                print()
+                print("COMPLETED JOBS:")
+                print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
 
+                for job in completed_jobs:
+                    if(job['job_status'] == "FAILED"):
+                        print ("{:<20} \033[91m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
+                    else:
+                        print ("{:<20} \033[92m{:<15}\033[0m {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
 
-    if(queued_jobs):
-        print()
-        print("QUEUED JOBS:")
-        print ("{:<20} {:<15} {:<40} {:<10}".format("NAME", "STATUS", "ID", "REQUESTED BY"))
+        case other:
+            blog.error("Server: {}".format(status_response.payload))
 
-        for job in queued_jobs:
-            print ("{:<20} {:<15} {:<40} {:<10}".format(job['job_name'], job['job_status'], job['job_id'], job['requesting_client']))
-
-    if(not completed_jobs and not running_jobs and not queued_jobs):
-        blog.info("No jobs.")
-
-#
-# Get connected buildbots / controllers
-#
 def client_status(bc):
-    resp = bc.send_recv_msg("CONNECTED_CONTROLLERS")
-    controllers = json.loads(resp)
+    """
+    Request client_status from the server.
 
-    resp = bc.send_recv_msg("CONNECTED_BUILDBOTS")
-    buildbots = json.loads(resp)
+    :param bc: BranchClient
+    """
+    clientstatus_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETCONNECTEDCLIENTS", ""))
+
+    controllers = clientstatus_response.payload["controllers"]
+    buildbots = clientstatus_response.payload["buildbots"]
     print()
 
-    print("CONTROLLER CLIENTS:")
+    print("CONTROLLER CLIENT ({}):".format(len(controllers)))
     for name in controllers:
         print(name, end=' ')
     print()
@@ -166,199 +202,299 @@ def client_status(bc):
     print()
     print()
 
-    print("BUILDBOT CLIENTS:")
+    print("BUILDBOT CLIENTS ({}):".format(len(buildbots)))
     for name in buildbots:
         print(name, end=' ')
     print()
 
-#
-# Cancel a job by id
-#
 def cancel_queued_job(bc, job_id):
-    resp = bc.send_recv_msg("CANCEL_QUEUED_JOB {}".format(job_id))
+    """
+    Cancel a queued job on the server
+
+    :param bc: BranchClient
+    :param job_id: The jobs id
+    """
+    cancelqueuedjob_response: BranchResponse = bc.send_recv_msg(BranchRequest("CANCELQUEUEDJOB", job_id)) 
     
-    if(resp == "INV_JOB_ID"):
-        blog.error("No such job queued.")
-        return
+    match cancelqueuedjob_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(cancelqueuedjob_response.payload))
+            return
 
-    if(resp == "JOB_CANCELED"):
-        blog.info("Queued job {} cancelled.".format(job_id)) 
+        case other:
+            blog.error("Server: {}".format(cancelqueuedjob_response.payload))
+            return
 
-#
-# Cancel all currently waiting jobs
-#
 def cancel_all_queued_jobs(bc):
-    resp = bc.send_recv_msg("CANCEL_ALL_QUEUED_JOBS")
-    blog.info("Jobs canceled.") 
+    """
+    Cancel all queued jobs on the server.
+    
+    :param bc: BranchClient
+    """
+    cancelall_response: BranchResponse = bc.send_recv_msg(BranchRequest("CANCELQUEUEDJOBS", ""))
+    
+    match cancelall_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(cancelall_response.payload))
+            return
+
+        case other:
+            blog.error("Server: {}".format(cancelall_response.payload))
+            return
 
 #
 # View system logs 
 #
 def view_sys_log(bc):
-    resp = bc.send_recv_msg("VIEW_SYS_EVENTS")
-    logs = json.loads(resp)
+    """
+    View the syslog
+
+    :param bc: BranchClient
+    """
+    syslog_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETSYSLOG", ""))
     
-    if(len(logs) == 0):
-        blog.info("No system events available.")
-        return 0
+    match syslog_response.statuscode:
+        case BranchStatus.OK:
+            if(len(syslog_response.payload) == 0):
+                blog.info("No system events available")
+                return
+            
+            print("SYSLOG: ")
+            for line in syslog_response.payload:
+                print(line)
 
-    for l in logs:
-        print(l)
-
+        case other:
+            blog.error("Server: {}".format(cancelall_response.payload))
+            return
 
 #
 # get build log
 #
 def get_buildlog(bc, job_id):
-    resp = bc.send_recv_msg("VIEW_LOG {}".format(job_id))
+    """
+    Get a jobs buildlog
     
-    if(resp == "INV_JOB_ID" or resp == "NO_LOG"):
-        blog.error("No build log available for specified job id. Is it still running?")
-        return
+    :param bc: BranchClient
+    :param job_id: job_id
+    """
+    joblog_response: BranchResponse = bc.send_recv_msg(Branchrequest("GETJOBLOG", job_id))
+    
+    match joblog_response.statuscode:
+        case BranchStatus.OK:
+            print("\nBUILD LOG FOR '{}':\n".format(job_id))
+            for line in joblog_response.payload:
+                print(line)
 
-    log = json.loads(resp)
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Server: {}".format(joblog_response.payload))
 
-    print("\nBUILD LOG FOR '{}':\n".format(job_id))
-    for line in log:
-        print(line)
+        case other:
+            blog.error("Server: {}".format(joblog_response.payload))
+    
+  
+
 
 def clear_completed_jobs(bc):
-    resp = bc.send_recv_msg("CLEAR_COMPLETED_JOBS")
+    """
+    Clears all completed jobs
 
-    if(not resp == "JOBS_CLEARED"):
-        blog.error("An error occurred: {}".format(resp))
-        return
+    :param bc: BranchClient
+    """
+    clearcompleted_response = bc.send_recv_msg(BranchRequest("CLEARCOMPLETEDJOBS", ""))
 
-    return
+    match clearcompleted_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(clearcompleted_response.payload))
+            return
+
+        case other:
+            blog.error("Server: {}".format(clearcompleted_response.payload))
+            return
 
 def get_managed_packages(bc):
-    resp = bc.send_recv_msg("MANAGED_PACKAGES")
-    jsonp = json.loads(resp)
+    """
+    Get managed packages
 
-    print("Managed packages:")
-    print()
+    :param bc: BranchClient
+    """
+    managedpkgs_response: BranchRequest = bc.send_recv_msg(BranchRequest("GETMANAGEDPKGS", ""))
 
-    for count, item in enumerate(sorted(jsonp), 1):
-        print(item.ljust(30), end="")
-        if(count % 4 == 0):
-           print()
+    match managedpkgs_response.statuscode:
+        case BranchStatus.OK:
+            print("Managed packages:")
+            print()
 
-    print()
-    return
+            for count, item in enumerate(sorted(managedpkgs_response.payload), 1):
+                print(item.ljust(30), end="")
+                if(count % 4 == 0):
+                   print()
+
+            print()
+            return
+
+        case other:
+            blog.error("Server: {}".format(managedpkgs_response.payload))
+            return
 
 def get_managed_pkgbuilds(bc):
-    resp = bc.send_recv_msg("MANAGED_PKGBUILDS")
-    jsonp = json.loads(resp)
+    """
+    Get managed packagebuilds
 
-    print("Managed pkgbuilds:\n")
+    :param bc: BranchClient
+    """
+    managedpkgs_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETMANAGEDPKGBUILDS", ""))
 
-    for count, item in enumerate(sorted(jsonp), 1):
-        print(item.ljust(30), end="")
-        if(count % 4 == 0):
-           print()
+    match managedpkgs_response.statuscode:
+        case BranchStatus.OK:
+            print("Managed packagebuilds:")
+            print()
 
-    print()
-    return
+            for count, item in enumerate(sorted(managedpkgs_response.payload), 1):
+                print(item.ljust(30), end="")
+                if(count % 4 == 0):
+                   print()
+
+            print()
+            return
+
+        case other:
+            blog.error("Server: {}".format(managedpkgs_response.payload))
+            return
 
 #
 # Get all dependers by package name
 #
-def view_dependers(bc, pkg_name):
-    resp = bc.send_recv_msg("GET_DEPENDERS {}".format(pkg_name))
-    if(resp == "INV_PKG_NAME"):
-        blog.error("No such packagebuild available.")
-    else:
-        blog.info("Dependencies for {}:".format(pkg_name))
-        
-        json_resp = json.loads(resp)
-        amount_release_build = len(json_resp["releasebuild"])
-        amount_cross_build = len(json_resp["crossbuild"])
-         
-        list_len = 0
+def view_dependers(bc, pkg_name: str):
+    """
+    View all dependers of a specified packagebuild
 
-        if(amount_cross_build > amount_release_build):
-            list_len = amount_cross_build
-        else:
-            list_len = amount_release_build
-        
-        print("{:<40} {:<40}".format("RELEASE BUILD", "CROSS BUILD"))
-        print()
+    :param bc: BranchClient
+    :param pkg_name: pkg_name
+    """
+    viewdependers_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETDEPENDERS", pkg_name))
 
-        for i in range(list_len):
-            rb_name = ""
-            cb_name = ""
+    match viewdependers_response.statuscode:
 
-            if(i < amount_release_build):
-                rb_name = json_resp["releasebuild"][i]
+        case BranchStatus.OK:
+            blog.info("Dependencies for {}:".format(pkg_name))
             
-            if(i < amount_cross_build):
-                cb_name = json_resp["crossbuild"][i]
+            print(viewdependers_response.payload)
 
-            print ("{:<40} {:<40}".format(rb_name, cb_name))
+            amount_release_build = len(viewdependers_response.payload["releasebuild"])
+            amount_cross_build = len(viewdependers_response.payload["crossbuild"])
+             
+            list_len = 0
 
+            if(amount_cross_build > amount_release_build):
+                list_len = amount_cross_build
+            else:
+                list_len = amount_release_build
+            
+            print("{:<40} {:<40}".format("RELEASE BUILD", "CROSS BUILD"))
+            print()
 
-        print()
+            for i in range(list_len):
+                rb_name = ""
+                cb_name = ""
 
-#
-# rebuild dependers (auto calc)
-#
-def rebuild_dependers(bc, pkg_name):
+                if(i < amount_release_build):
+                    rb_name = viewdependers_response.payload["releasebuild"][i]
+                
+                if(i < amount_cross_build):
+                    cb_name = viewdependers_response.payload["crossbuild"][i]
+
+                print ("{:<40} {:<40}".format(rb_name, cb_name))
+
+            print()
+
+        case BranchStatus.REQUEST_FAILURE:
+            blog.error("Server: {}".format(viewdependers_response.payload))
+            return
+
+        case other:
+            blog.error("Server: {}".format(viewdependers_response.payload))
+            return
+
+def rebuild_dependers(bc, pkg_name: str):
+    """
+    Rebuild all packages that depend on the specified package
+
+    :param bc: BranchClient
+    :param pkg_name: Name of package
+    """
     start_time = int(time.time_ns() / 1000000000)
 
     blog.info("Calculating dependers.. This may take a few moments")
-    resp = bc.send_recv_msg("REBUILD_DEPENDERS {}".format(pkg_name))
+    rebuild_dependers_response: BranchResponse = bc.send_recv_msg(BranchRequest("REBUILDDEPENDERS", pkg_name))
     
     end_time = int(time.time_ns() / 1000000000)
 
-    if(resp == "INV_PKG_NAME"):
-        blog.error("No such package available.")
-    elif(resp == "CMD_OK"):
-        blog.info("Batch queued successfully. Dependers resolved in {}s".format((end_time - start_time)))
+    match rebuild_dependers_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(rebuild_dependers_response.payload))
+            return
 
-#
-# difference between pkgs
-#
+        case other:
+            blog.error("Server: {}".format(rebuild_dependers_response.payload))
+            return
+
 def get_diff_pkg(bc):
-    resp = bc.send_recv_msg("MANAGED_PACKAGES")
-    pkgs = json.loads(resp)
+    """
+    Print the difference between available packagebuilds and their package
+    counterparts
 
-    resp = bc.send_recv_msg("MANAGED_PKGBUILDS")
-    pkg_builds = json.loads(resp)
+    :param bc: BranchClient
+    """
+    managedpkgs_response: BranchRequest = bc.send_recv_msg(BranchRequest("GETMANAGEDPKGS", ""))
+    managedpkgbuilds_response: BranchRequest = bc.send_recv_msg(BranchRequest("GETMANAGEDPKGBUILDS", ""))
 
-    print("pkg / pkgbuild difference:\n")
+    if(managedpkgs_response.statuscode == BranchStatus.OK and managedpkgbuilds_response.statuscode == BranchStatus.OK):
+        print("Difference between package and packagebuilds:\n")
+        for count, item in enumerate(sorted(managedpkgbuilds_response.payload), 1):
 
-    for count, item in enumerate(sorted(pkg_builds), 1):
+            if(item in managedpkgs_response.payload):
+                print('\033[92m', end="")
+            else:
+                print('\033[91m', end="")
 
-        if(item in pkgs):
-            print('\033[92m', end="")
-        else:
-            print('\033[91m', end="")
+            print(item.ljust(30), end="")
+            print('\033[0m', end="")
+            if(count % 4 == 0):
+               print()
 
-        print(item.ljust(30), end="")
-        print('\033[0m', end="")
-        if(count % 4 == 0):
-           print()
+        print()
+    else:
+        blog.error("Could not fetch difference.")
 
-    print()
+def submit_solution_cb(bc, solution_file_str: str):
+    """
+    Submit a solution to the server
 
-
-
-#
-# submit a branch solution to the masterserver as a batch (CROSS BUILD)
-#
-def submit_solution_cb(bc, solution_file_str):
+    :param bc: BranchClient
+    :param solution_file_str: Path to the solution file
+    """
     submit_solution(bc, solution_file_str, True) 
 
-#
-# submit a branch solution to the masterserver as a batch (RELEASE BUILD)
-#
 def submit_solution_rb(bc, solution_file_str):
+    """
+    Submit a solution to the server
+
+    :param bc: BranchClient
+    :param solution_file_str: Path to the solution file
+    """
     submit_solution(bc, solution_file_str, False) 
 
 #
 # submit a branch solution to the masterserver as a batch
 #
 def submit_solution(bc, solution_file_str, use_crosstools):
+    """
+    Submit a solution to the server
+
+    :param bc: BranchClient
+    :param solution_file_str: Path to the solution file
+    :param use_crosstools: Build in 'CROSS' or 'RELEASE' mode.
+    """
     if(not os.path.exists(solution_file_str)):
         blog.error("Solution file not found.")
         return -1
@@ -382,51 +518,53 @@ def submit_solution(bc, solution_file_str, use_crosstools):
             
             solution.append(pkgs)
     
-    blog.info("Solution parsed!")
-    blog.info("Submitting solution..")
-    
-    resp = ""
 
     if(use_crosstools):
-        resp = bc.send_recv_msg("SUBMIT_SOLUTION_CB {}".format(json.dumps(solution)))
+        blog.info("Submitting solution with buildtype 'CROSS'..")
+        solution_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITSOLUTION", {
+            "solution": solution,
+            "buildtype": "CROSS"
+        }))
     else:
-        resp = bc.send_recv_msg("SUBMIT_SOLUTION_RB {}".format(json.dumps(solution)))
+        blog.info("Submitting solution with buildtype 'RELEASE'..")
+        solution_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITSOLUTION", {
+            "solution": solution,
+            "buildtype": "RELEASE"
+        }))
+    
+    match solution_response.statuscode:
 
-    if(resp == "INV_SOL"):
-        blog.error("Attempted to submit invalid solution.")
-    elif(resp.split(" ")[0] == "PKG_BUILD_MISSING"):
-        blog.error("A required package build is missing: {}".format(resp.split(" ")[1]))
-    elif(resp == "RELEASE_ENV_UNAVAILABLE"):
-        blog.error("The server does not provide a realroot environment.")
-    elif(resp == "CROSS_ENV_UNAVAILABLE"):
-        blog.error("The server does not provide a crossroot environment.")
-    else:
-        blog.info("Batch queued.")
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(solution_response.payload))
+            return
+        
+        case other:
+            blog.error("Server: {}".format(solution_response.payload))
+            return
 
-#
-# Checkout, edit and resubmit a package
-#
 def edit_pkgbuild(bc, pkg_name):
+    """
+    Checkout, edit and resubmit a given packagebuild
+
+    :param bc: BranchClient
+    :param pkg_name: Name of packagebuild to edit
+    """
     if(not "EDITOR" in os.environ):
         blog.error("No editor set.")
         return
 
-    bpb_resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkg_name))
+    checkout_response: BranchResponse = bc.send_recv_msg(BranchRequest("CHECKOUT", pkg_name))
     
-    # check if package is valid
-    if(bpb_resp == "INV_PKG_NAME"):
-        blog.error("The specified package could not be found.")
-        return
+    match checkout_response.statuscode:
 
-    if(bpb_resp == "INV_PKG"):
-        blog.error("The package build is damaged and could not be checked out.")
-        return
-    
-    # get pkgbuild object from json
-    pkgbuild = packagebuild.package_build.from_json(bpb_resp)
+        case BranchStatus.OK:
+            pkgbuild = packagebuild.package_build.from_dict(checkout_response.payload)
+   
+        case other:
+            blog.error("Server: {}".format(checkout_response.payload))
+            return
 
-    timestamp = time.time()
-    target_file = os.path.join("/tmp/", "tmp-edit-{}-{}".format(pkg_name, int(timestamp)))
+    target_file = os.path.join("/tmp/", "tmp-edit-{}-{}".format(pkg_name, int(time.time())))
 
     pkgbuild.write_build_file(target_file)
     blog.info("Successfully checkout out package {}".format(pkg_name))
@@ -447,44 +585,59 @@ def edit_pkgbuild(bc, pkg_name):
         os.remove(target_file)
         return
 
-    json_str = new_pkgbuild.get_json()
-    resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(json_str))
+    submit_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMIT", new_pkgbuild.get_dict()))
+
+    match submit_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Packagebuild edited.")
+
+        case other:
+            blog.error("Server: {}".format(submit_response.payload))
    
-    if(resp == "INV_PKG_BUILD"):
-        blog.error("Package submission rejected by server. The package build you attempted to submit is invalid.")
-    elif(resp == "CMD_OK"):
-        blog.info("Package submission accepted by server.")
-    else:
-        blog.error("An error occured: {}".format(resp))
-    
     blog.info("Cleaning up..")
     os.remove(target_file)
 
+#
+# export all packagebuilds to a 
+#
 def export(bc, target_dir):
-    managed_packagebuilds = json.loads(bc.send_recv_msg("MANAGED_PKGBUILDS"))
-    blog.info("Checking out {} pkgbuilds..".format(len(managed_packagebuilds)))
- 
+    """
+    Export all package builds on the server to a directroy
+    
+    :param bc: BranchClient
+    :param target_dir: Target directory
+    """
     if(os.path.exists(target_dir) and os.path.isdir(target_dir)):
         blog.error("Target directory {} already exists.".format(target_dir))
         return
 
+    managed_packagebuilds_response: BranchRequest = bc.send_recv_msg(BranchRequest("GETMANAGEDPKGBUILDS", ""))
+    
+    match managed_packagebuilds_response.statuscode:
+        case BranchStatus.OK:
+            managed_packagebuilds = managed_packagebuilds_response.payload
+
+        case other:
+            blog.error("Server: {}".format(managed_packagebuilds_response.payload))
+            return
+
+    blog.info("Checking out {} pkgbuilds..".format(len(managed_packagebuilds)))
+ 
     pkgbuilds = [ ]
 
     for pkgbuild_name in managed_packagebuilds:
-        blog.info("Checking out: {}".format(pkgbuild_name))
-        resp = bc.send_recv_msg("CHECKOUT_PACKAGE {}".format(pkgbuild_name))
-        
-        # check if package is valid
-        if(resp == "INV_PKG_NAME"):
-            blog.error("Packagebuild {} could not be found.".format(pkgbuild_name))
-            return
+        checkout_response: BranchResponse = bc.send_recv_msg(BranchRequest("CHECKOUT", pkgbuild_name))
 
-        if(resp == "INV_PKG"):
-            blog.error("Packagebuild {} is damaged and could not be checked out.".format(pkgbuild_name))
-            return
+        match checkout_response.statuscode:
+
+            case BranchStatus.OK:
+                blog.info("Checked out packagebuild: '{}'".format(pkgbuild_name))
+                pkgbuilds.append(packagebuild.package_build.from_dict(checkout_response.payload))
+            
+            case other:
+                blog.error("Packagebuild '{}' is damaged. Server: {}".format(pkgbuild_name, checkout_response.payload))
         
-        pkgbuilds.append(packagebuild.package_build.from_json(resp))
-   
     blog.info("Saving packagebuilds to {}".format(target_dir))
     try:
         os.mkdir(target_dir)
@@ -519,19 +672,33 @@ def _import(bc, target_dir):
         return
 
     for path in bpb_files:
-        bpb = packagebuild.package_build.from_file(path)
+        pkgbuild = packagebuild.package_build.from_file(path)
         
-        if(bpb == -1):
-            blog.error("Could not load packagebuild file: {}".format(path))
-            return -1
-         
-        resp = bc.send_recv_msg("SUBMIT_PACKAGE {}".format(bpb.get_json()))
-    
+        if(not pkgbuild.is_valid()):
+            blog.error("File is not a valid packagebuild. Skipped: {}".format(bpb_files))
+            continue
+        
+        submit_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMIT", pkgbuild.get_dict()))
+        
+        match submit_response.statuscode:
+
+            case BranchStatus.OK:
+                blog.info("Package build imported: {}".format(pkgbuild.name))
+
+            case other:
+                blog.error("Failed to import {}. Server: {}".format(pkgbuild.name, submit_response.payload))
+
+
     blog.info("Import completed.")
 
 def get_client_info(bc, client_name):
-    resp = bc.send_recv_msg("GET_CLIENT_INFO {}".format(client_name))
+    clientinfo_request: BranchResponse = bc.send_recv_msg(BranchRequest("GETCLIENTINFO", client_name))
     
+    
+    print(clientinfo_request.payload)
+
+
+
     if(resp == "INV_CLIENT_NAME"):
         blog.error("No such client found.")
         return

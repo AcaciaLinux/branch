@@ -52,7 +52,6 @@ def main():
 
      # init argparser
     argparser = argparse.ArgumentParser(description="The AcaciaLinux package build system.")
-    argparser.add_argument("-ds", "--debugshell", help="Runs a debugshell on the remote server.", action="store_true")
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
     argparser.add_argument("-rb", "--releasebuild", help="Requests a release package build from the build server.")
@@ -81,7 +80,6 @@ def main():
 
     # dictionary mapping arguments to functions
     arg_funcs = {
-        "debugshell": commands.debug_shell,
         "checkout": commands.checkout_package,
         "submit": commands.submit_package,
         "releasebuild": commands.release_build,
