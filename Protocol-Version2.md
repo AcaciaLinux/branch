@@ -157,8 +157,8 @@ BYTE_LEN {
 ### Response
 ```json
 BYTE_LEN {
-	statuscode: 200 || 400 || 500,
-	"payload": "Syslog"
+	statuscode: 200 || 500,
+	"payload": [ "Syslog-line", "Syslog-line2", "Syslog-line3" ]
 }
 ```
 <br>
