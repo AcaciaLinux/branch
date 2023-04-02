@@ -344,25 +344,6 @@ BYTE_LEN {
 <br>
 <br>
 
-## Cancel a queued job by id
-### Request
-```json
-BYTE_LEN {
-	"command": "CANCELQUEUEDJOB",
-	"payload": "job_id"
-}
-```
-### Response
-```json
-BYTE_LEN {
-	statuscode: 200 || 400 || 500,
-	"payload": "Description"
-}
-```
-
-<br>
-<br>
-
 ## Submit a solution file for building
 ### Request
 ```json
