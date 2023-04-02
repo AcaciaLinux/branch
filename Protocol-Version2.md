@@ -208,7 +208,7 @@ BYTE_LEN {
 ```json
 BYTE_LEN {
 	"command": "GETJOBSTATUS",
-	"payload": "JOB_ID"
+	"payload": ""
 }
 ```
 ### Response
