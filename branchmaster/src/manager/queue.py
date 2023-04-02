@@ -2,24 +2,36 @@ import json
 import blog
 
 from manager import manager
+from manager.job import Job
 from dependency.dependency import update_blockages
 from overwatch import overwatch
 
+# TODO: <==================== refactor.. =======================>
 class queue():
     
-    #
-    # Check if job is blocked
-    #
-    def job_is_blocked(self, job):
+    
+    def job_is_blocked(self, job: Job):
+        """
+        Check if the given job is status: BLOCKED
+
+        :param job: Job object
+        :return: True or False
+        """
         return job.get_status() == "BLOCKED"
 
-    #
-    # Called when a controller requests BUILD
-    #
-    def add_to_queue(self, job):
+
+
+    def add_to_queue(self, job: Job):
+        """
+        Called when a controller client requests BUILD
+
+        :param job: Job to queue
+        :return: 0 -> Build queued, 1 -> Build submitted right away
+        """
+
         if(self.job_is_blocked(job)):
             blog.debug("Job is blocked, adding to queue..")
-            return "BUILD_REQ_QUEUED"
+            return 0
 
         # We have a build server ready immediately, no need to queue..
         if(not len(manager.manager.get_ready_build_clients()) == 0):
@@ -57,11 +69,11 @@ class queue():
             manager.manager.queued_jobs.remove(job)
             manager.manager.running_jobs.append(job)
 
-            return "BUILD_REQ_SUBMIT_IMMEDIATELY"
+            return 1 
         # We dont have a build server ready, we need to queue..
         else:
             blog.info("No build clients are currently available. Package submitted to queue.")
-            return "BUILD_REQ_QUEUED"
+            return 0
 
     #
     # Updates the queue, this reevaluates blockages and dispatches jobs to buildbots

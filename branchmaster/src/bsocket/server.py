@@ -108,43 +108,12 @@ def threaded_client_handler(client_socket):
                         _client.lock.release()
                         _client.handle_disconnect()
 
-                else:
-                    blog.debug("Got empty response from manager. Ignoring")
 
             else:
                 blog.debug("Client disconnected.")
                 _client.handle_disconnect()
     
     blog.debug("Client thread exiting.")
-
-#
-# Receive a file from client
-#
-def receive_file(socket, client):
-    out_file = open(client.file_target, "wb")
-    data_len = 0
-
-    blog.info("File transfer started from {}. Receiving {} bytes from client..".format(client.get_identifier(), client.file_target_bytes))
-    
-    while(not client.file_target_bytes == data_len):
-        data = socket.recv(4096)
-        if(data == b""):
-            break
-
-        data_len += len(data)
-        out_file.write(data)
-    
-    if(data_len == client.file_target_bytes):
-        blog.info("Received {} bytes. File upload successful".format(client.file_target_bytes))
-        client.send_command("UPLOAD_ACK")
-        blog.info("File upload completed.")
-    else:
-        blog.warn("File upload failed. The client disconnected before completion.")
-        
-    client.file_transfer_mode = False
-    out_file.close()
-    
-
 
 def receive_data(client):
     try:

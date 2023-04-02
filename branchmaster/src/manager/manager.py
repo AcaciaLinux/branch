@@ -106,6 +106,29 @@ class manager():
                 res.append(cl)
         return res
 
+    @staticmethod
+    def is_authkey_valid(authkey: str) -> bool:
+        """
+        Check if 'authkey' is a valid authkey..
+
+        return: True if valid or untrusted mode, False if not
+        """
+
+        if(config.config.get_config_option("Masterserver")["UntrustedClients"] == "True"):
+            return True
+
+        # TODO: Will have to reimplement this part, once 
+        # authkeys have permission levels
+        authkey_line: str = config.config.get_config_option("Masterserver")["AuthKeys"]
+        authkeys: list = config.config.parse_str_array(authkey_line)
+        
+        if(authkey in authkeys):
+           return True
+        else:
+           return False
+
+    # TODO: ------- job stuff should be moved to queue.py -------
+
     @staticmethod 
     def new_job(use_crosstools: bool, pkg_payload, requesting_client: str):
         job = Job(use_crosstools, pkg_payload, requesting_client)
@@ -155,6 +178,9 @@ class manager():
     @staticmethod
     def get_completed_jobs():
         return manager.completed_jobs
+    
+    
+    # TODO: -------------------------------------------------------
 
     @staticmethod
     def get_controller_names():
@@ -165,22 +191,7 @@ class manager():
                 res.append(client.get_identifier())
 
         return res
-    
-    @staticmethod
-    def clear_completed_jobs():
-        manager.completed_jobs = None
-        manager.completed_jobs = [ ]
-        manager.get_queue().update()
 
-    @staticmethod 
-    def cancel_queued_job(job):
-        manager.queued_jobs.remove(job)
-        manager.get_queue().update()
-    
-    @staticmethod
-    def cancel_all_queued_jobs():
-        manager.queued_jobs = [ ] 
-    
     @staticmethod
     def get_buildbot_names():
         res = [ ]
@@ -190,6 +201,35 @@ class manager():
                 res.append(client.get_identifier())
 
         return res
+    
+    # TODO: ------- job stuff should be moved to queue.py -------
+
+    @staticmethod
+    def clear_completed_jobs():
+        manager.completed_jobs = None
+        manager.completed_jobs = [ ]
+        manager.get_queue().update()
+
+    @staticmethod 
+    def cancel_queued_job(job):
+        """
+        Cancel a queued job.
+
+        :param job: Job
+        """
+        if(not job in manager.queued_jobs):
+            return False
+
+        manager.queued_jobs.remove(job)
+        manager.get_queue().update()
+        return True
+
+    @staticmethod
+    def cancel_all_queued_jobs():
+        manager.queued_jobs = [ ] 
+    
+
+    # TODO: -------------------------------------------------------
     
     @staticmethod
     def report_system_event(issuer, event):

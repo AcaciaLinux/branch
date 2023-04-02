@@ -17,6 +17,7 @@
 
 BRANCH_CODENAME = "Pre Release"
 BRANCH_VERSION = "0.6-pre"
+BRANCH_PROTOCOL_VERSION = 0
 
 import threading
 import blog
@@ -37,7 +38,7 @@ def main():
     print()
     print()
     
-    
+    manager.manager.report_system_event("Branchmaster", "Starting up..") 
 
     blog.info("Masterserver initializing..")
 

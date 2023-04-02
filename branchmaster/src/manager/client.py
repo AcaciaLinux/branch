@@ -3,9 +3,11 @@ import blog
 import traceback
 import time
 
+from json.decoder import JSONDecodeError
 from manager import manager
-from handleCommand import handleCommand
 from threading import Lock
+from branchpacket import BranchRequest, BranchResponse, BranchStatus
+from commands import commands
 
 class Client():
 
@@ -24,15 +26,12 @@ class Client():
         self.file_target_bytes: int = 0
         self.file_target: str = None
 
-        # controller or build
-        self.client_type = None
+        # CONTROLLER, BUILD or UNTRUSTED
+        self.client_type = "UNTRUSTED"
 
         # clear name to identify in log
         self.client_name = None
       
-        # is authenticated
-        self.is_authenticated = False
-
         # assign client a uuid
         uid = uuid.uuid4();
         blog.debug("Initializing new client with UUID: {}".format(str(uid)))
@@ -97,27 +96,44 @@ class Client():
 
         blog.debug("Command received from client '{}': {}".format(self.get_identifier(), data))
         
-        # TODO: refactor with BranchPacket(?)
-
-        res = None
         try:
-            res = handleCommand.handle_command(manager.manager(), self, data)
+            request = BranchRequest.from_json(data)
+
+        # Fail if the client doesn't send a valid BranchPacket.
+        except JSONDecodeError:
+            response = BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid command received. Your client may be out of date or the request was malformed.")
+            return response.as_json()
+        
+        try:
+            res: BranchResponse = commands.handle_command(self, request)
+
+            if(res == None):
+                blog.warn("handle_command() returned None, implicitly returning BranchResponse(OK, "")")
+                res = BranchResponse(BranchStatus.OK, "")
+
         except Exception as ex:
             manager.manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
             blog.debug("An endpoint handler function raised an exception:")
             blog.debug("Traceback:")
             traceback.print_exc()
-            res = "EXCEPTION_RAISED"
+            res: BranchResponse = BranchResponse(BranchStatus.INTERNAL_SERVER_ERROR, "An endpoint handler function raised an exception on the server. Please report this issue to the servers administrator. If you have access to the servers log, consider filing an issue on GitHub.")
         
-        return res
+        return res.as_json()
+
     
-    def set_identifier(self, name: str):
+    def set_identifier(self, name: str) -> bool:
         """
         Sets the clients clear name identifier
 
         :param name: Name as str
+        :return: True, if identifier is valid, False if not
         """
+
+        if(name is None or name == ""):
+            return False
+        
         self.client_name = name
+        return True 
 
     def get_identifier(self) -> str:
         """
@@ -132,7 +148,20 @@ class Client():
         else:
             return self.client_name
 
-    def send_command(self, message):
+
+    def set_type(self, machine_type) -> bool:
+        """
+        Set the client type to either CONTROLLER or BUILD
+
+        :return: True if the type is valid, False if it's invalid.
+        """
+        if(machine_type == "CONTROLLER" or machine_type == "BUILD"):
+            self.client_type = machine_type
+            return True
+
+        return False
+
+    def send_command(self, message: BranchRequest):
         """
         Acquires the client lock and sends a command to the client
         
@@ -140,9 +169,8 @@ class Client():
         """
 
         self.lock.acquire()
-        message = "{} {}".format(len(message), message)
+        message = "{} {}".format(len(message.as_json()), message.as_json())
         self.socket.send(bytes(message, "UTF-8"))
-        blog.debug("Message {} sent!".format(message))
         self.lock.release()
     
     def send_data(self, blob):
@@ -155,6 +183,41 @@ class Client():
         self.lock.acquire()
         self.socket.send(blob)
         self.lock.release()
+
+    def receive_file(self):
+        """
+        Receive a file from a client
+
+        :param client: A Client object
+        """
+
+        if(self.file_target == None):
+            blog.error("No file target set, but the client was set to filetransfer mode. Aborting.")
+            self.file_transfer_mode = False
+            return
+
+        with open(self.file_target, "wb") as out_file:
+            data_len = 0
+            blog.info("File transfer started from {}. Receiving {} bytes from client..".format(self.get_identifier(), self.file_target_bytes))
+            
+            while(not self.file_target_bytes == data_len):
+                data = socket.recv(4096)
+                if(data == b""):
+                    break
+
+                data_len += len(data)
+                out_file.write(data)
+            
+            if(data_len == self.file_target_bytes):
+                blog.info("Received {} bytes. File upload successful".format(self.file_target_bytes))
+                self.send_command(BranchResponse(BranchStatus.OK, "File transfer completed."))
+                blog.info("File upload completed.")
+            else:
+                blog.warn("File upload failed. The client disconnected before completion.")
+                
+            self.file_transfer_mode = False
+        
+
 
     def handle_disconnect(self):
         """
