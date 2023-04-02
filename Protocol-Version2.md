@@ -258,9 +258,7 @@ BYTE_LEN {
 ```json
 BYTE_LEN {
 	statuscode: 200 || 500,
-	"payload": {
-		"packages": [ "package1", "package2", "package3" ],
-	}
+	"payload": [ "package1", "package2", "package3" ],
 }
 ```
 <br>
@@ -278,9 +276,7 @@ BYTE_LEN {
 ```json
 BYTE_LEN {
 	statuscode: 200 || 500,
-	"payload": {
-		"packages": [ "packagebuild1", "packagebuild2", "packagebuild3" ],
-	}
+	"payload": [ "packagebuild1", "packagebuild2", "packagebuild3" ],
 }
 ```
 
