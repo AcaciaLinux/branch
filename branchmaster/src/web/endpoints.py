@@ -159,6 +159,9 @@ class branch_web_providers():
 
         host_user = branch_web_providers.usermgr.get_key_owner(authkey)
 
+        blog.debug("Refreshing authkey {} for user {}".format(authkey, host_user.name))
+        host_user.authkeys[authkey].refresh()
+
         # Check if the user creating the new user is authenticated
         if (host_user is None):
             blog.debug("Unauthenticated user tried to create new user")
@@ -211,6 +214,9 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         if("pkgname" not in post_data):
             blog.debug("Missing request data for build request: Package name (pkgname)")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for package build: Package name (pkgname)")
@@ -252,7 +258,10 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to clear completed jobs")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
-        
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         manager.manager.clear_completed_jobs()  
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Completed jobs cleared successfully")
 
@@ -276,6 +285,9 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to delete package")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
 
         if(not "pkgname" in post_data):
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Package name (pkgname)")
@@ -333,7 +345,10 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to view job log")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
-        
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         if("jobid" not in post_data):
             blog.debug("Missing request data for viewlog")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: Job ID (jobid)")
@@ -372,7 +387,10 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to submit a package build")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
-            
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         if("packagebuild" not in post_data):
             blog.debug("Missing request data for package submission: Package build (packagebuild)")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing package build.")
@@ -492,7 +510,10 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to retrieve client info")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
-        
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         if("clientname" not in post_data):
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for clientinfo: Client name (clientname)")
             return
@@ -556,7 +577,10 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to cancel queud jobs")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
-        
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
+
         manager.manager.cancel_all_queued_jobs()
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting jobs cancelled.")
 
@@ -580,6 +604,9 @@ class branch_web_providers():
             blog.debug("Unauthenticated user tried to cancel a queued job")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
+
+        blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
+        user.authkeys[authkey].refresh()
 
         if(not "jobid" in post_data):
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Job ID (jobid)")
