@@ -1,0 +1,11 @@
+name=testing-package
+version=1
+description=This is a testing package submitted by the web api tests, you can delete this!
+real_version=0
+source=
+extra_sources=
+dependencies=
+builddeps=
+crossdeps=
+build={
+}
