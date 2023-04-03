@@ -23,7 +23,6 @@ import threading
 import blog
 
 from branchweb import webserver
-from branchweb import webauth
 from config import config
 from bsocket import server
 from manager import manager
@@ -61,7 +60,7 @@ def main():
     webserver.WEB_CONFIG["send_cors_headers"] = config.config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
 
     blog.info("Setting up user manager..")
-    webauth.web_auth.setup_user_manager()
+    endpoints.branch_web_providers.setup_usermgr(config.config.get_config_option("HTTPServer")["UserFile"])
 
     blog.info("Registering webserver endpoints..")
     webserver.web_server.register_get_endpoints(

@@ -1,19 +1,29 @@
-import json
 import os
 import re
+import time
 
 import blog
 import packagebuild
 
 from branchweb import webserver
-from branchweb import webauth  
+from branchweb.usermanager import usermanager
+from branchweb.usermanager import USER_FILE
 
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from manager import manager
 
 class branch_web_providers():
-    
+
+    usermgr: usermanager = None
+
+    @staticmethod
+    def setup_usermgr(file: str = USER_FILE):
+        """
+        Sets up the usermanager
+        """
+        branch_web_providers.usermgr = usermanager(file)
+
     @staticmethod
     def get_post_providers():
         post_providers = {
@@ -53,16 +63,25 @@ class branch_web_providers():
             blog.debug("Missing request data for authentication")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication")
             return
-        
-        if(webauth.web_auth.validate_pw(post_data["user"], post_data["pass"])):
-            blog.debug("Authentication succeeded.")
-            key = webauth.web_auth.new_authorized_key()
-            
-            httphandler.send_web_response(webserver.webstatus.SUCCESS, "{}".format(key.key_id))
-        
-        else:
+
+        p_user = post_data["user"]
+        p_pass = post_data["pass"]
+
+        user = branch_web_providers.usermgr.get_user(p_user)
+
+        if (user is None):
+            blog.debug("Failed to authenticate user '{}': Not registered".format(p_user))
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed: user {} is not registered.".format(p_user))
+            return
+
+        authkey = user.authenticate(p_pass)
+
+        if (authkey is None):
             blog.debug("Authentication failure")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+        else:
+            blog.debug("Authentication succeeded for user {} with new autkey {}".format(user.name, authkey.key_id))
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, "{}".format(authkey.key_id))
 
     #
     # checks if the user is logged in or not
@@ -71,15 +90,27 @@ class branch_web_providers():
     @staticmethod
     def check_auth_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
-        
-        if(webauth.web_auth.validate_key(post_data["authkey"])):
-            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Authentication succeeded.")
-            
+
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        if (user is None):
+            blog.debug("Authkey {} was tested for validity: FALSE".format(authkey))
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authkey {} is invalid.".format(authkey))
         else:
-            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
-            
+            blog.info("TODO: Refresh authkey!")
+            if (user.authkeys[authkey].has_expired(time.time(), webserver.WEB_CONFIG["key_timeout"])):
+                blog.debug("Authkey {} was tested for validity: EXPIRED".format(authkey))
+                httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authkey {} is invalid.".format(authkey))
+            else:
+                blog.debug("Authkey {} was tested for validity: TRUE, refreshing timestamp".format(authkey))
+                user.authkeys[authkey].refresh()
+                httphandler.send_web_response(webserver.webstatus.SUCCESS, "Authkey {} is valid.".format(authkey))
+
     #
     # destroys the specified session and logs the user off
     #
@@ -87,17 +118,19 @@ class branch_web_providers():
     @staticmethod
     def logoff_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in       
-        if(webauth.web_auth.validate_key(post_data["authkey"])):
-            webauth.web_auth.invalidate_key(post_data["authkey"])
-            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Logoff acknowledged.")
-            
-        else:
+        authkey = post_data["authkey"]
+        user = branch_web_providers.usermgr.revoke_authkey(authkey)
+
+        if (user is None):
+            blog.debug("Tried to revoke invalid authkey {}".format(authkey))
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
-            
+        else:
+            blog.debug("Authkey {}, owned by {} was revoked".format(authkey, user.name))
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Logoff acknowledged.")
  
     #
     # creates a webuser
@@ -106,34 +139,49 @@ class branch_web_providers():
     @staticmethod
     def create_user_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+        if("user" not in post_data):
+            blog.debug("Missing request data for user creation: Username (user)")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for user creation: User (user)")
+            return
+
+        if("pass" not in post_data):
+            blog.debug("Missing request data for user creation: Password (pass)")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for user creation: Password (pass)")
+            return
+
+        authkey = post_data["authkey"]
+        nuser = post_data["user"]
+        npass = post_data["pass"]
+
+        host_user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (host_user is None):
+            blog.debug("Unauthenticated user tried to create new user")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
+        # Only root can create users
+        if (host_user.name != "root"):
+            blog.debug("Only root can create users!")
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Only root can create users.")
+            return
 
-        if("cuser" not in post_data or "cpass" not in post_data):
-            blog.debug("Missing request data for user creation")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for user creation.")
-            return
-        
-        cuser = post_data["cuser"]
-        cpass = post_data["cpass"]
-        
-        if(bool(re.match('^[a-zA-Z0-9]*$', cuser)) == False):
+        if(bool(re.match('^[a-zA-Z0-9]*$', nuser)) == False):
             blog.debug("Invalid username for account creation")
-            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid username for account creation..")
+            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid username for account creation")
             return
-        
-        if(not webauth.web_auth.usermgr.add_user(cuser, cpass)):
+
+        if(not branch_web_providers.usermgr.add_user(nuser, npass)):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "User already exists.")
             return
 
-        httphandler.send_web_response(webserver.webstatus.SUCCESS, "User created.")
-    
+        httphandler.send_web_response(webserver.webstatus.SUCCESS, "User created")
+
     @staticmethod 
     def crossbuild_endpoint(httphandler, form_data, post_data):
         branch_web_providers.build_endpoint(httphandler, form_data, post_data, True)
@@ -149,35 +197,40 @@ class branch_web_providers():
     @staticmethod
     def build_endpoint(httphandler, form_data, post_data, use_crosstools):
         if("authkey" not in post_data):
-            blog.debug("Missing request data for authentication")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to create a build job")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
         if("pkgname" not in post_data):
-            blog.debug("Missing request data for build request: pkgname")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for package build.")
+            blog.debug("Missing request data for build request: Package name (pkgname)")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for package build: Package name (pkgname)")
             return
 
         pkgname = post_data["pkgname"]
 
         # request pkgbuild from branch manager
         if(pkgname in pkgbuildstorage.storage.get_all_packagebuild_names()):
-            blog.info("Web client requested build for {}".format(pkgname))
+            blog.info("Web client '{}' requested build for {}".format(user.name, pkgname))
              
             pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
 
             # get a job obj, use_crosstools = True
-            job = manager.new_job(use_crosstools, pkgbuild, "webclient")
+            job = manager.manager.new_job(use_crosstools, pkgbuild, user.name)
             res = manager.manager.get_queue().add_to_queue(job)
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package build queued successfully: {}.".format(res))
         else:
             blog.info("Web client requested release build for invalid package.")
-            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "No such package available.")
+            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "No such package available: {}".format(pkgname))
 
     #
     # Clears all completd jobs
@@ -186,12 +239,17 @@ class branch_web_providers():
     @staticmethod
     def clear_completed_jobs_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            blog.debug("Missing request data for authentication")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to clear completed jobs")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
         
@@ -205,17 +263,24 @@ class branch_web_providers():
     @staticmethod
     def delete_package_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
-        
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
-            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to delete package")
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
         if(not "pkgname" in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: pkgname")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Package name (pkgname)")
             return
-         
+
         pkg_name = post_data["pkgname"]
 
         # cant delete crosstools if they are enabled
@@ -231,7 +296,7 @@ class branch_web_providers():
                 return
 
         if(not pkg_name in pkgbuildstorage.storage.get_all_packagebuild_names()):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "No such pkgbuild found.")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "No such pkgbuild found: {}".format(pkg_name))
             return
 
         blog.debug("Deleting packagebuild..")
@@ -241,12 +306,12 @@ class branch_web_providers():
         # not locked, can delete
         if(not packagestorage.storage.check_package_lock(pkg_name)):
             packagestorage.storage().remove_package(pkg_name)
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Package and packagebuild deleted.")
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package and packagebuild deleted.")
 
         else:
             blog.warn("Package requested for deletion is currently locked, added to deletion queue.")
             packagestorage.storage.deletion_queue.append(pkg_name)
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Package is currently locked. Added to deletion queue.")
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package is currently locked. Added to deletion queue.")
 
     #
     # Returns a json joblist 
@@ -255,27 +320,30 @@ class branch_web_providers():
     @staticmethod
     def viewjob_log_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            blog.debug("Missing request data for authentication")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: authkey")
-            
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
-            blog.debug("Missing authentication key")
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to view job log")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
         
         if("jobid" not in post_data):
             blog.debug("Missing request data for viewlog")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: jobid")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: Job ID (jobid)")
             return
 
         jobid = post_data["jobid"]
         job = manager.manager.get_job_by_id(jobid)
             
         if(job is None):
-            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid job id specified.")
+            httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid job id: {}".format(jobid))
             return
 
         if(job.build_log is None):
@@ -291,18 +359,22 @@ class branch_web_providers():
     @staticmethod
     def submit_packagebuild_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            blog.debug("Missing request data for authentication")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for viewlog: authkey")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
-            blog.debug("Missing authentication key")
-            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")        
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to submit a package build")
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
             
         if("packagebuild" not in post_data):
-            blog.debug("Missing request data for package submission")
+            blog.debug("Missing request data for package submission: Package build (packagebuild)")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing package build.")
             return
         
@@ -407,17 +479,22 @@ class branch_web_providers():
     @staticmethod
     def get_clientinfo(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            blog.debug("Missing request data for authentication")
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        # check if logged in
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to retrieve client info")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
         
         if("clientname" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for clientinfo: clientname")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for clientinfo: Client name (clientname)")
             return
         
         target_client = manager.manager.get_client_by_name(post_data["clientname"])
@@ -466,11 +543,19 @@ class branch_web_providers():
     @staticmethod
     def cancel_queued_jobs_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
-        
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
-            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to cancel queud jobs")
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
+            return
         
         manager.manager.cancel_all_queued_jobs()
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting jobs cancelled.")
@@ -482,15 +567,22 @@ class branch_web_providers():
     @staticmethod
     def cancel_queued_job_endpoint(httphandler, form_data, post_data):
         if("authkey" not in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication.")    
+            blog.debug("Missing request data for authentication: authkey")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
-        
-        if(not webauth.web_auth.validate_key(post_data["authkey"])):
-            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authentication failed.")
+
+        authkey = post_data["authkey"]
+
+        user = branch_web_providers.usermgr.get_key_owner(authkey)
+
+        # Check if the user creating the new user is authenticated
+        if (user is None):
+            blog.debug("Unauthenticated user tried to cancel a queued job")
+            httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
 
         if(not "jobid" in post_data):
-            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Job ID")
+            httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Job ID (jobid)")
             return
         
         job = manager.manager.get_job_by_id(post_data["jobid"])
