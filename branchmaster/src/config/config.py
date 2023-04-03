@@ -35,6 +35,7 @@ class config():
         config["HTTPServer"] = {
             "EnableWebServer": True,
             "HTTPPort": 8080,
+            "UserFile": "/etc/branch/users.meta",
             "SendCorsHeaders": False
         }
         config["Logger"] = {
