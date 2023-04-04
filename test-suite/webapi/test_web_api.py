@@ -81,7 +81,7 @@ else:
 # CREATEUSER
 
 p("Creating user...")
-if (req("createuser", { "authkey": root_authkey, "user": username, "pass": password})["response_code"] == 200):
+if (req("createuser", { "authkey": root_authkey, "cuser": username, "cpass": password})["response_code"] == 200):
     ok()
 else:
     fail()
