@@ -714,8 +714,7 @@ BYTE_LEN {
 ```
 
 ### Response
-
-/* REFACTOR OF builder.py PENDING */
+None.
 
 
 <br>
