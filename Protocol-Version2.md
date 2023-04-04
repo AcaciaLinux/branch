@@ -495,10 +495,249 @@ BYTE_LEN {
 <br>
 <br>
 
-# Notes:
-- (?) Remove COMPLETETRANSFER and add it to the callback Response 2
-- remove GET_LOCKED_PACKAGES, as it isn't very useful.
+# Buildbot Commands (Buildbot -> Server)
 
-# Buildbot Commands
-## TODO: Once implementation is further along, should be straight forward.
+## Send ready signal to server
+
+### Request
+```json
+BYTE_LEN {
+	"command": "SIGREADY",
+	"payload": ""
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 500,
+	"payload": "Ready signal acknowledged." 
+}
+```
+
+<br>
+<br>
+
+## Send pong to server
+
+### Request
+```json
+BYTE_LEN {
+	"command": "PONG",
+	"payload": ""
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 500,
+	"payload": "Pong acknowledged." 
+}
+```
+
+<br>
+<br>
+
+## Get current deployment configuration
+
+### Request
+```json
+BYTE_LEN {
+	"command": "GETDEPLOYMENTCONFIG",
+	"payload": ""
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 500,
+	"payload": {
+		"realroot_packages": "[a][b][c]",
+		"packagelisturl": "abc.de/?get=packagelist",
+		"deploy_realroot": true || false,
+		"deploy_crossroot": true || false,
+	}
+}
+```
+
+<br>
+<br>
+
+## Set the currently assigned jobs status
+
+### Request
+```json
+BYTE_LEN {
+	"command": "REPORTSTATUSUPDATE",
+	"payload": "STATUS"
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 400 || 500,
+	"payload": "Accepted or rejected." 
+}
+```
+
+<br>
+<br>
+
+## Set the currently assigned jobs status
+
+### Request
+```json
+BYTE_LEN {
+	"command": "REPORTSTATUSUPDATE",
+	"payload": "STATUS"
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 400 || 500,
+	"payload": "Accepted or rejected." 
+}
+```
+Special case: JOB_ACCEPTED needs to be the first status to send, 
+because it confirms the job to overwatch.
+
+<br>
+<br>
+
+## Submit log for the currently assigned job
+
+### Request
+```json
+BYTE_LEN {
+	"command": "SUBMITLOG",
+	"payload": "[log-line1][log-line2].."
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 ||  500,
+	"payload": "Log accepted" 
+}
+```
+
+<br>
+<br>
+
+## Sets the connection to File transfer mode
+
+### Request
+```json
+BYTE_LEN {
+	"command": "FILETRANSFERMODE",
+	"payload": amount_of_bytes
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 400 ||  500,
+	"payload": "Server switch to upload mode" || "Invalid number of bytes" 
+}
+```
+
+<br>
+<br>
+
+## Sets the connection to File transfer mode
+
+### Request
+```json
+BYTE_LEN {
+	"command": "REPORTSYSEVENT",
+	"payload": number_of_bytes
+}
+```
+### Response
+```json
+BYTE_LEN {
+	"statuscode": 200 || 400 ||  500,
+	"payload": "Server switched to upload mode" || "Invalid number of bytes" 
+}
+```
+
+<br>
+<br>
+
+## Get extra source information
+
+### Request
+```json
+BYTE_LEN {
+	"command": "GETEXTRASOURCEINFO",
+	"payload": "EXTRA_SOURCE_ID"
+}
+```
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200 || 400 ||  500,
+	"payload": {
+		"filename": "FILE_NAME_OF_ES",
+		"datelength": number_of_bytes
+	} || "Error message"
+}
+```
+
+<br>
+<br>
+
+## Fetch extra source from socket
+
+### Request
+```json
+BYTE_LEN {
+	"command": "FETCHEXTRASOURCE",
+	"payload": "EXTRA_SOURCE_ID"
+}
+```
+### Response
+Data stream
+
+# Buildbot Commands (Server -> Buildbot)
+
+## Build request
+
+### Request
+```json
+BYTE_LEN {
+	"command": "BUILD",
+	"payload": { 
+		"pkgbuild": pkgbuild,
+		"buildtype": "CROSS" || "RELEASE"
+}
+```
+
+### Response
+
+/* REFACTOR OF builder.py PENDING */
+
+
+<br>
+<br>
+
+## Pong request
+
+### Request
+```json
+BYTE_LEN {
+	"command": "PING",
+	"payload": ""
+}
+```
+
+### Response
+```json
+BYTE_LEN {
+	"command": "PONG",
+	"payload": ""
+}
+```
+
+
 
