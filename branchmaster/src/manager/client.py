@@ -109,7 +109,7 @@ class Client():
 
             if(res == None):
                 blog.warn("handle_command() returned None, implicitly returning BranchResponse(OK, "")")
-                res = BranchResponse(BranchStatus.OK, "")
+                return None
 
         except Exception as ex:
             manager.manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))

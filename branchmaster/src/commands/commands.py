@@ -443,4 +443,154 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
 
 
 def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> BranchResponse:
-    pass
+    match branch_request.command:
+        
+        #
+        # Ready signal from buildbot.
+        #
+        case "SIGREADY":
+            job = manager.get_job_by_client(client)
+            if(not job is None):
+                blog.info("Build job '{}' completed.".format(job.get_jobid()))
+
+                if(job.get_status() == "BUILD_FAILED"):
+                    job.set_status("FAILED")
+                else:
+                    stor = packagestorage.storage()
+                    
+                    blog.info("Hashing package..")
+                    md5_hash = hashlib.md5()
+                    hash_file = open(job.buildbot.file_target, "rb")
+
+                    # read chunk by chunk
+                    for chunk in iter(lambda: hash_file.read(4096), b""):
+                        md5_hash.update(chunk)
+
+                    blog.info("Deploying package to storage..")
+                    shutil.move(job.buildbot.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
+                    job.set_status("COMPLETED")
+
+                manager.move_inactive_job(job)
+ 
+            # we are done, reset
+            client.file_target = None
+            client.file_target_bytes = 0          
+
+            client.send_command("CMD_OK")
+            blog.info("Client {} is ready for commands.".format(client.get_identifier()))
+
+            client.is_ready = True
+            manager.queue.update()
+            blog.info("Reevaluating deployment configuration..")
+            manager.determine_deployment_configuration()
+            return BranchResponse(BranchStatus.OK, "Ready signal acknowledged.")
+
+    
+    #
+    # PONG from buildbot
+    #
+    case "PONG":
+        blog.debug("Got PONG from {}.".format(client.get_identifier()))
+        client.is_ready = True
+        client.alive = True
+
+        # notify queue, because we might have got a job while sending keepalive
+        manager.queue.update()
+
+        return BranchResponse(BranchStatus.OK, "Pong acknowledged.")
+
+    #
+    # Get deployment configuration
+    #
+    case "GETDEPLOYMENTCONFIG":
+        return BranchResponse(BranchStatus.OK, manager.deployment_config)
+
+    #
+    # Report status update 
+    #
+    case "REPORTSTATUSUPDATE":
+        if(branch_request.payload == ""):
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid status update.")
+
+        job = manager.get_job_by_client(branch_client)
+        if(job is None):
+            return "NO_JOB"
+
+        match branch_request.payload:
+
+            #
+            # Initial status update, job accepted by buildbot.
+            # Set accepted flag
+            #
+            case "JOB_ACCEPTED":
+                blog.info("Build job '{}' accepted by {}!".format(job.get_jobid(), client.get_identifier()))
+                
+                # set accepted flag for overwatch
+                job.job_accepted = True
+
+                job.set_status("JOB_ACCEPTED")
+            
+            #
+            # no special handling required, 
+            # informational status update
+            #
+            case other:
+                blog.info("Build job '{}' on buildbot '{}' status update received: {}".format(job.get_jobid(), client.get_identifier(), cmd_body))
+                job.set_status(cmd_body)
+    
+    #
+    # Submit a log for the current job
+    #
+    case "SUBMITLOG":
+        job = manager.get_job_by_client(client)
+
+        if(not job is None):
+            blog.info("Build job '{}' log received.".format(job.get_jobid()))
+            job.set_buildlog(branch_request.payload)
+            return BranchResponse(BranchStatus.OK, "Build log accepted.")
+
+        return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned to buildbot.")
+
+    
+    #
+    # Set the connection to file transfer mode
+    #
+    case "FILETRANSFERMODE":
+        try:
+            datalength = int(branch_request.payload)
+        except Exception:
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "Datalength is invalid.")
+
+        job = manager.get_job_by_client(client)
+
+        if(job is None):
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned.")
+
+        job.set_status("UPLOADING")
+        client.file_transfer_mode = True
+        client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.job_id))
+        client.file_target_bytes = byte_count
+        return BranchResponse(BranchStatus.OK, "File transfer setup completed.")
+
+    
+    #
+    # Request the actual file
+    #
+    case "FETCHEXTRASOURCE":
+        if(branch_request.payload == ""):
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid extra source id.")
+         
+        blob = extrasourcestorage.storage.get_extra_source_blob_by_id(cmd_body)[0]
+        
+        if(blob is None):
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid extra source id.")
+
+        client.send_data(blob)
+        return None
+        
+    #
+    # Invalid commands
+    #
+    case other:
+        return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid command.")
+
