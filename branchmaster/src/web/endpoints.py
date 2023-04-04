@@ -102,7 +102,6 @@ class branch_web_providers():
             blog.debug("Authkey {} was tested for validity: FALSE".format(authkey))
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authkey {} is invalid.".format(authkey))
         else:
-            blog.info("TODO: Refresh authkey!")
             if (user.authkeys[authkey].has_expired(time.time(), webserver.WEB_CONFIG["key_timeout"])):
                 blog.debug("Authkey {} was tested for validity: EXPIRED".format(authkey))
                 httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Authkey {} is invalid.".format(authkey))
