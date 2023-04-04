@@ -578,26 +578,6 @@ BYTE_LEN {
 	"payload": "Accepted or rejected." 
 }
 ```
-
-<br>
-<br>
-
-## Set the currently assigned jobs status
-
-### Request
-```json
-BYTE_LEN {
-	"command": "REPORTSTATUSUPDATE",
-	"payload": "STATUS"
-}
-```
-### Response
-```json
-BYTE_LEN {
-	statuscode: 200 || 400 || 500,
-	"payload": "Accepted or rejected." 
-}
-```
 Special case: JOB_ACCEPTED needs to be the first status to send, 
 because it confirms the job to overwatch.
 
@@ -610,7 +590,7 @@ because it confirms the job to overwatch.
 ```json
 BYTE_LEN {
 	"command": "SUBMITLOG",
-	"payload": "[log-line1][log-line2].."
+	"payload": [ "line1", "line2", "line3", "line4" ]
 }
 ```
 ### Response
