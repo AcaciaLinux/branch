@@ -158,14 +158,14 @@ class branch_web_providers():
 
         host_user = branch_web_providers.usermgr.get_key_owner(authkey)
 
-        blog.debug("Refreshing authkey {} for user {}".format(authkey, host_user.name))
-        host_user.authkeys[authkey].refresh()
-
         # Check if the user creating the new user is authenticated
         if (host_user is None):
             blog.debug("Unauthenticated user tried to create new user")
             httphandler.send_web_response(webserver.webstatus.AUTH_FAILURE, "Invalid authentication key.")
             return
+
+        blog.debug("Refreshing authkey {} for user {}".format(authkey, host_user.name))
+        host_user.authkeys[authkey].refresh()
 
         # Only root can create users
         if (host_user.name != "root"):
