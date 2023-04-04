@@ -3,8 +3,9 @@ import json
 import blog
 
 from builder import builder
+from branchpacket import BranchRequest, BranchResponse, BranchStatus
 
-def handle_command(bc, command):
+def handle_command(bc, command) -> BranchRequest:
 
     # Find the first space
     cmd_header_loc = command.find(" ")
@@ -38,7 +39,7 @@ def handle_command(bc, command):
         # handles a ping request from overwatch
         #
         case "PING":
-            return "PONG"
+            return BranchRequest("PONG", "")
         
         #
         # just in case, but really shouldn't happen.
