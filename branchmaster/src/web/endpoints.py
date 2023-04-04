@@ -142,19 +142,19 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for authentication: Authentication key (authkey)")
             return
 
-        if("user" not in post_data):
-            blog.debug("Missing request data for user creation: Username (user)")
+        if("cuser" not in post_data):
+            blog.debug("Missing request data for user creation: Username (cuser)")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for user creation: User (user)")
             return
 
-        if("pass" not in post_data):
-            blog.debug("Missing request data for user creation: Password (pass)")
+        if("cpass" not in post_data):
+            blog.debug("Missing request data for user creation: Password (cpass)")
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for user creation: Password (pass)")
             return
 
         authkey = post_data["authkey"]
-        nuser = post_data["user"]
-        npass = post_data["pass"]
+        nuser = post_data["cuser"]
+        npass = post_data["cpass"]
 
         host_user = branch_web_providers.usermgr.get_key_owner(authkey)
 
