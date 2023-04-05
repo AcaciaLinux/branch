@@ -718,5 +718,29 @@ BYTE_LEN {
 }
 ```
 
+<br>
+<br>
+
+## Set machine information
+
+### Request
+```json
+BYTE_LEN {
+	"command": "SETMACHINEINFO",
+	"payload": {
+		"Glibc Version": "..",
+		..
+	}
+}
+```
+
+### Response
+```json
+BYTE_LEN {
+	statuscode: 200  ||  500,
+	"payload": "Description"
+}
+```
+
 
 
