@@ -1,9 +1,9 @@
-import os
 import blog
-import json
 import packagebuild
 import sqlite3
 from threading import Lock
+
+from manager import manager
 
 PKG_BUILD_STORAGE_FILE="pkgbuild.db"
 

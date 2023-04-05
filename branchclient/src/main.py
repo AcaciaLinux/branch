@@ -1,6 +1,7 @@
-# Branch - The AcaciaLinux package build system
-# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
-
+"""
+Branch - The AcaciaLinux package build system
+Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+"""
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
@@ -15,15 +16,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Pre Release"
-BRANCH_VERSION = "0.6-pre"
-
 import argparse
 import blog
 import branchclient
 
 from commands import commands
-from config import config
+from config.config import Config
+
+BRANCH_CODENAME = "Pre Release"
+BRANCH_VERSION = "0.6-pre"
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
@@ -33,24 +34,27 @@ def main():
 
     # load config
     blog.info("Loading configuration file..")
-    if(config.config.setup() != 0):
-        return -1
+    if(not Config.setup()):
+        return
 
-    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
+    if(Config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
     
-    authkey = config.config.get_config_option("Connection")["AuthKey"]
-    
+    try:
+        authkey = Config.get_config_option("Connection")["AuthKey"]
+        server_address = Config.get_config_option("Connection")["ServerAddress"]
+        server_port = Config.get_config_option("Connection")["ServerPort"]
+        identifier = Config.get_config_option("Connection")["Identifier"]
+    except KeyError as ex:
+        blog.error(f"Configuration file invalid. Could not find configuration key: {ex}")
+        return
+
     # replace authkey NONE with None
     if(authkey == "NONE"):
         authkey = None
     
-    server_address = config.config.get_config_option("Connection")["ServerAddress"]
-    server_port = config.config.get_config_option("Connection")["ServerPort"]
-    identifier = config.config.get_config_option("Connection")["Identifier"]
-
-     # init argparser
+    # init argparser
     argparser = argparse.ArgumentParser(description="The AcaciaLinux package build system.")
     argparser.add_argument("-c", "--checkout", help="Checks out a package build from the remote server.")
     argparser.add_argument("-s", "--submit", help="Submits a package build to the remote server.", action="store_true")
@@ -116,7 +120,7 @@ def main():
         arg_val = vars(args)[arg]
         
         #if arg_val is True, theres no arg
-        if(arg_val != None and arg_val != False):
+        if(arg_val is not None and arg_val is not False):
             
             # connect to server
             bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "CONTROLLER")
@@ -125,12 +129,12 @@ def main():
                 return
 
             # compare arg_val to True, because a str is also "true"
-            if(arg_val == True):
+            if(arg_val is True):
                 func(bc)
                 return
-            else:
-                func(bc, arg_val)
-                return
+            
+            func(bc, arg_val)
+            return
 
 if (__name__ == "__main__"):
     try:
