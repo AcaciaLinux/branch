@@ -36,7 +36,8 @@ class config():
             "EnableWebServer": True,
             "HTTPPort": 8080,
             "UserFile": "/etc/branch/users.meta",
-            "SendCorsHeaders": False
+            "SendCorsHeaders": False,
+            "KeyTimeout": 900
         }
         config["Logger"] = {
             "EnableDebugLog": False

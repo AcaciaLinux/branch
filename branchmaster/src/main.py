@@ -58,6 +58,7 @@ def main():
     webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
     webserver.WEB_CONFIG["web_debug"] = config.config.get_config_option("Logger")["EnableDebugLog"] == "True" 
     webserver.WEB_CONFIG["send_cors_headers"] = config.config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
+    webserver.WEB_CONFIG["key_timeout"] = int(config.config.get_config_option("HTTPServer")["KeyTimeout"])
 
     blog.info("Setting up user manager..")
     endpoints.branch_web_providers.setup_usermgr(config.config.get_config_option("HTTPServer")["UserFile"])
