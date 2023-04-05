@@ -1,40 +1,48 @@
 import os
 import json
 import blog
+import packagebuild
 
 from builder import builder
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
 
-def handle_command(bc, command) -> BranchRequest:
-
-    # Find the first space
-    cmd_header_loc = command.find(" ")
-    cmd_header = ""
-    cmd_body = ""
-
-    # One word comamnd
-    if(cmd_header_loc == -1):
-        cmd_header = command
-        cmd_body = None
-    else:
-        cmd_header = command[0:cmd_header_loc]
-        cmd_body = command[cmd_header_loc+1:len(command)]
-
-    match cmd_header:
+def handle_command(bc, branch_request) -> BranchRequest:
+     
+    match branch_request.command:
         
         #
         # Build a package using realroot
         #
-        case "BUILD_PKG":
+        case "BUILD":
             blog.info("Got a job from masterserver. Using realroot")
-            return builder.handle_build_request(bc, cmd_body, False)
+            
+            if(not "buildtype" in branch_request.payload):
+                return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
 
-        #
-        # Build a package using crosstools
-        # 
-        case "BUILD_PKG_CROSS":
-            blog.info("Got a job from masterserver. Using crosstools")
-            return builder.handle_build_request(bc, cmd_body, True)
+            if(not "pkgbuild" in branch_request.payload):
+                return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
+
+            try:
+                buildtype = branch_request.payload["buildtype"]
+                pkgbuild = packagebuild.package_build.from_dict(branch_request.payload["pkgbuild"])
+            except Exception as ex:
+                return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
+
+            match builder.handle_build_request(bc, pkgbuild, buildtype == "CROSS"):
+
+                case True:
+                    blog.info("Build job completed successfully.")
+            
+                case False:
+                    blog.warn("Build job failed.")
+            
+                case "CRIT_ERR":
+                    blog.error("Build environment damaged.")
+                    return "CRIT_ERR"
+
+            bc.send_recv_msg(BranchRequest("SIGREADY", ""))
+            return None
+
         #
         # handles a ping request from overwatch
         #
