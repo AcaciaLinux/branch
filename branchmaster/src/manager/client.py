@@ -108,7 +108,6 @@ class Client():
             res: BranchResponse = commands.handle_command(self, request)
 
             if(res == None):
-                blog.warn("handle_command() returned None, implicitly returning BranchResponse(OK, "")")
                 return None
 
         except Exception as ex:
@@ -201,7 +200,7 @@ class Client():
             blog.info("File transfer started from {}. Receiving {} bytes from client..".format(self.get_identifier(), self.file_target_bytes))
             
             while(not self.file_target_bytes == data_len):
-                data = socket.recv(4096)
+                data = self.socket.recv(4096)
                 if(data == b""):
                     break
 
