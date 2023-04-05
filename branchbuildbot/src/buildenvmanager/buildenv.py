@@ -384,7 +384,7 @@ def clean_env():
     
     blog.info("Clearing leafcore logs..")
     buildenv.clear_leaf_logs()
-    blog.info("Cleanup completed. Ready for commands.")
+    blog.info("Cleanup completed.")
 
 
 def upgrade_cross_root():

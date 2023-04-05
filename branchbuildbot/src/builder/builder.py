@@ -15,6 +15,7 @@ import branchclient
 
 from config import config
 from buildenvmanager import buildenv
+from branchpacket import BranchRequest, BranchResponse, BranchStatus
 
 ELF_MAGIC_BYTES=b'\x7fELF'
 ELF_TYPE_EXE=b'\x02'
@@ -23,33 +24,46 @@ ELF_TYPE_DYN=b'\x03'
 #
 # Handle a build request
 # 
-def handle_build_request(bc, cmd_body, use_crosstools):
-    # Something went horribly wrong..
-    if(cmd_body is None):
-        blog.error("Received empty command body on PKG_BUILD request. Returning to ready-state.")
-        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
-        buildenv.clean_env()
-        return "SIG_READY"
-
+def handle_build_request(bc, pkgbuild, use_crosstools) -> bool:
     # Notify Overwatch
-    bc.send_recv_msg("REPORT_STATUS_UPDATE JOB_ACCEPTED")
-   
+    overwatch_response: BranchResponse = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "JOB_ACCEPTED"))
+    match overwatch_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Job accepted. Overwatch notified.")
+
+        case other:
+            blog.error("Could not accept job.")
+            bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+            return False
+
     # acquire new deployment config
     blog.info("Acquiring deployment config..")
-    deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
     
+    deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+    match deploymentconf_response.statuscode:
+        
+        case BranchStatus.OK:
+            blog.info("Deployment configuration acquired.")
+
+        case other:
+            blog.error("Could not acquire deployment configuration: {}".format(deploymentconf_response.payload))
+            bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+            return False
+
+    deployment_config = deploymentconf_response.payload
     realroot_pkgs = deployment_config["realroot_packages"]
     deploy_realroot = deployment_config["deploy_realroot"]
     deploy_crossroot = deployment_config["deploy_crossroot"]
+    pkglist_url = deployment_config["packagelisturl"]
 
     buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
 
     # Setup buildenvironment
     if(buildenv.setup_env(use_crosstools)  == -1):
-        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
+        bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
         buildenv.drop_buildenv()
-        return None
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+        return "CRIT_ERR"
 
     # Get rootdir from buildenv
     rootdir = buildenv.get_build_path()
@@ -59,18 +73,23 @@ def handle_build_request(bc, cmd_body, use_crosstools):
     if(not os.path.exists(builddir)):
         os.mkdir(builddir)
     
-    # parse the package build we got
-    pkgbuild = packagebuild.package_build.from_json(cmd_body)
-    blog.debug("Parsed package build is: {}".format(pkgbuild.get_json()))
-    
     # validate..
     if(not pkgbuild.is_valid()):
         blog.warn("Invalid package build received from server. Rejected.")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Build failed. The received packagebuild is invalid."))
-        return "BUILD_FAILED"
-    
+        bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Build failed. The received packagebuild could not be validated."))
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+        return False 
+
     # build environment is setup, package build is ready.
-    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_READY")
+    buildfailed_response: BranchResponse = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_ENV_READY"))
+        
+    match buildfailed_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Server acknowledged status update.")
+
+        case other:
+            blog.error("Server did not acknowledge status update.")
+            return False
 
     # get leafpkg
     lfpkg = leafpkg.leafpkg()
@@ -81,12 +100,12 @@ def handle_build_request(bc, cmd_body, use_crosstools):
     lfpkg.dependencies = pkgbuild.dependencies
 
     # run build step
-    if(build(builddir, pkgbuild, lfpkg, bc, use_crosstools) == "REPORT_STATUS_UPDATE BUILD_COMPLETE"):
-        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_COMPLETE")
+    if(build(builddir, pkgbuild, lfpkg, bc, use_crosstools)):
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE","BUILD_COMPLETE"))
     else:
-        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE","BUILD_FAILED"))
         buildenv.clean_env()
-        return "SIG_READY"
+        return False 
     
     # lfpkg pkg_file creation..
     pkg_file = lfpkg.create_tar_package(builddir)
@@ -95,47 +114,47 @@ def handle_build_request(bc, cmd_body, use_crosstools):
     file_size = os.path.getsize(pkg_file)
     blog.info("Package file size is {} bytes".format(file_size))
     
-    res = bc.send_recv_msg("FILE_TRANSFER_MODE {}".format(file_size))
+    filetransfer_response: BranchResponse = bc.send_recv_msg(BranchRequest("FILETRANSFERMODE", file_size))
+    match filetransfer_response.statuscode:
 
-    # if we got any other response, we couldn't switch mode
-    if(not res == "ACK_FILE_TRANSFER"):
-        blog.error("Server did not switch to file upload mode: {}".format(res))
-        blog.error("Returning to ready-state.")
-        bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_FAILED")
+        case BranchStatus.OK:
+            blog.info("Server switched to filetransfer mode.")
 
-        buildenv.clean_env()
-        return "SIG_READY"
+        case other:
+            blog.error("Server did not switch to file transfer mode: {}".format(filetransfer_response.payload))
+            
+            bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+            buildenv.clean_env()
+            return False
 
     # send file over socket
-    res = bc.send_file(pkg_file)
+    sendfile_response: BranchResponse = bc.send_file(pkg_file)
     
-    # Check for mode switch
-    if(res == "UPLOAD_ACK"):
-        blog.info("File upload completed!")
-    else:
-        blog.error("Uploading the package file failed.")
-        blog.error("Returning to ready-state")
+    match sendfile_response.statuscode:
 
-        bc.send_recv_msg("BUILD_FAILED")
-        buildenv.clean_env()
-        return "SIG_READY"
+        case BranchStatus.OK:
+            blog.info("File upload completed.")
 
-    
+        case other:
+            blog.error("File upload failed.")
+            bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+            buildenv.clean_env()
+            return False
+
     # Clean build environment..
+    bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "CLEANING_BUILD_ENV"))
     buildenv.clean_env()
-    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_CLEAN")
 
     # We completed the build job. Send SIG_READY
     blog.info("Build job completed.")
-    return "SIG_READY"
+    return True
 
 
 #
 # Run a given pkgbuild 
 #
-
 # directory = build directory
-def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
+def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
     # create build_dir
     build_dir = os.path.join(directory, "build")
     os.mkdir(build_dir)
@@ -144,15 +163,32 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     destdir = lfpkg.write_package_directory(directory)
 
     # status update
-    bc.send_recv_msg("REPORT_STATUS_UPDATE FETCHING_SOURCE")
+    fetchsource_response: BranchResponse = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "FETCHING_SOURCES"))
+    match fetchsource_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Server acknowledged status update.")
+        
+        case other:
+            blog.error("Could not report status update.")
+            return False
 
     if(package_build_obj.source):
         source_file = fetch_file_http(build_dir, package_build_obj.source)
         if(not source_file):
             blog.warn("Could not fetch main source.")
-            res = bc.send_recv_msg("SUBMIT_LOG {}".format(json.dumps(["Could not fetch main source."])))
-            return "REPORT_STATUS_UPDATE DOWNLOAD_EXTRA_SRC_FAILED"
+            status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch main source."]))
+            
+            match status_response.statuscode:
 
+                case BranchStatus.OK:
+                    blog.info("Log upload completed.")
+
+                case other:
+                    blog.error("Could not update log.")
+            
+            return False
+        
         try:
             # check if file is tarfile and extract if it is
             if(tarfile.is_tarfile(source_file)):
@@ -164,7 +200,18 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
 
         except Exception as ex:
             blog.error("Exception thrown while unpacking: {}".format(ex))
-            return "REPORT_STATUS_UPDATE BUILD_FAILED"
+            status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not extract main source."]))
+            
+            match status_response.statuscode:
+
+                case BranchStatus.OK:
+                    blog.info("Log upload completed.")
+
+                case other:
+                    blog.error("Could not update log.")
+
+
+            return False
 
     else:
         blog.warn("No source specified. Not fetching source.")
@@ -178,35 +225,80 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
             if(not fetch_file_http(build_dir, extra_src) != 0):
                 dl_log = json.dumps(["Failed to fetch extra source:", extra_src])
                 res = bc.send_recv_msg("SUBMIT_LOG {}".format(dl_log))
-                return "REPORT_STATUS_UPDATE BUILD_FAILED"
-        
+
+                status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource."]))
+                
+                match status_response.statuscode:
+
+                    case BranchStatus.OK:
+                        blog.info("Log upload completed.")
+
+                    case other:
+                        blog.error("Could not update log.")
+
+                return False
+
+
         # assume its a branch managed extra source
         else:
             blog.info("Extra source is managed by masterserver. Acquiring information..")
-            esrc_info = bc.send_recv_msg("EXTRA_SOURCE_INFO {}".format(extra_src))
-    
-            if(esrc_info == "INV_EXTRA_SOURCE"):
-                blog.error("Specified extra source does not exist on the remote server.")
-                return "REPORT_STATUS_UPDATE BUILD_FAILED"
-            elif(esrc_info == "EXCEPTION_RAISED"):
-                dl_log = json.dumps(["Requesting extra source {} raised an exception.".format(extra_src)])
-                res = bc.send_recv_msg("SUBMIT_LOG {}".format(dl_log))
-                return "REPORT_STATUS_UPDATE BUILD_FAILED"
-                
-
-            esrc_info = json.loads(esrc_info)
-            blog.info("Extra source information acquired. Filename: {} Filesize: {}".format(esrc_info["filename"], esrc_info["datalen"]))
+            esrcinfo_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETEXTRASOURCEINFO", extra_src))
             
-            # TODO: Need a way to check response, though this shouldn't fail..
-            bc.send_msg("FETCH_EXTRA_SOURCE {}".format(extra_src))
+            print(esrcinfo_response.payload)
 
-            target_file = os.path.join(build_dir, esrc_info["filename"])
-            bc.receive_file(target_file, esrc_info["datalen"])
-            blog.info("Extra sources fetched.")
+            match esrcinfo_response.statuscode:
+
+                case BranchStatus.OK:
+                    pass
+                
+                case other:
+                    blog.error("Could not find extrasource.")
+                    status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource with ID '{}'.".format(extra_src)]))
+                    
+                    match status_response.statuscode:
+                        case BranchStatus.OK:
+                            blog.info("Log upload completed.")
+
+                        case other:
+                            blog.error("Could not update log.")
+
+                    return False
+
+            esrc_info = esrcinfo_response.payload
+            
+            if(not "filename" in esrc_info):
+                bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource with ID '{}'.".format(extra_src)]))
+                return False
+
+            if(not "datalength" in esrc_info):
+                bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource with ID '{}'.".format(extra_src)]))
+                return False
+
+            target_filename: str = esrc_info["filename"]
+            target_datalength: int = esrc_info["datalength"]
+
+            blog.info("Extra source information acquired. Filename: {} Filesize: {}".format(target_filename, target_datalength))
+            
+            bc.send_msg(BranchRequest("FETCHEXTRASOURCE", extra_src))
+
+            target_file = os.path.join(build_dir, target_filename)
+            bc.receive_file(target_file, target_datalength)
+            blog.info("Extra source '{}' fetched.".format(extra_src))
 
 
-    deps_failed = False
-    bc.send_recv_msg("REPORT_STATUS_UPDATE INSTALLING_DEPS")
+    deps_failed: bool = False
+
+    # status update
+    installdeps_response: BranchResponse = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "INSTALLING_DEPS"))
+    match installdeps_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Server acknowledged status update.")
+        
+        case other:
+            blog.error("Could not report status update.")
+            return False
+
     
     blog.info("Installing dependencies to temproot..")
     if(use_crosstools):
@@ -227,19 +319,19 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         blog.warn("Aborting job because dependencies failed to install. Submitting leaflog as buildlog.")
         
         leaf_log = buildenv.fetch_leaf_logs()
-        leaf_log_arr = leaf_log.split("\n")
-        jlog = json.dumps(leaf_log_arr)
-
-        res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-        if(res == "LOG_OK"):
-            blog.info("Log upload completed.")
-        else:
-            blog.warn("Log upload failed.")
+        status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", leaf_log.split("\n")))
         
+        match status_response.statuscode:
+            case BranchStatus.OK:
+                blog.info("Log upload completed.")
+
+            case other:
+                blog.error("Could not update log.")
+
         blog.debug("Clearing leaf logs..")
         buildenv.clear_leaf_logs()
-        return "REPORT_STATUS_UPDATE BUILD_FAILED"
-
+        return False
+        
     blog.info("Package build will run in: {}".format(build_dir))
     blog.info("Package destination is: {}".format(destdir))
     
@@ -284,10 +376,16 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     blog.info("Building package...")
     std_out_str = ""
   
-    proc = None
+    # status update
+    installdeps_response: BranchResponse = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILDING"))
+    match installdeps_response.statuscode:
 
-    bc.send_recv_msg("REPORT_STATUS_UPDATE BUILDING")
-    
+        case BranchStatus.OK:
+            blog.info("Server acknowledged status update.")
+
+        case other:
+            blog.error("Could not report status update.")
+
     if(config.config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         std_output = [ ]
@@ -315,8 +413,6 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
         # stdout log
         std_out_str = proc.stdout   
 
-    blog.info("Build complete.")
-
     # stdout log
     std_out = std_out_str.split("\n")
 
@@ -330,8 +426,12 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     # strip unneeded symbols from binaries
     stripped_files = [ ]
     if(proc.returncode == 0):
-        bc.send_recv_msg("REPORT_STATUS_UPDATE STRIP_BINS")
+        blog.info("Package build script completed successfully.")
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "STRIP_BINS"))
         stripped_files = strip(destdir)
+    else:
+        blog.error("Package build script failed.")
+        return False
 
     log = [ ]
     for line in leaflog_arr:
@@ -343,20 +443,17 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools):
     for line in stripped_files:
         log.append("[strip] {}".format(line))
 
-    jlog = json.dumps(log)
+    status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", log))
 
-    res = bc.send_recv_msg("SUBMIT_LOG {}".format(jlog))
-    if(res == "LOG_OK"):
-        blog.info("Log upload completed.")
-    else:
-        blog.warn("Log upload failed.")
+    match status_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Log upload completed.")
 
-    if(proc.returncode != 0):
-        blog.error("Package build script failed.")
-        return "REPORT_STATUS_UPDATE BUILD_FAILED"
+        case other:
+            blog.error("Could not update log.")
 
     blog.info("Build completed successfully.")
-    return "REPORT_STATUS_UPDATE BUILD_COMPLETE"
+    return True
 
 #
 # download a file from web

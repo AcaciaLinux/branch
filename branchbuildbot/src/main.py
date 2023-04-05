@@ -24,6 +24,7 @@ import json
 import traceback
 import branchclient
 
+from branchpacket import BranchRequest, BranchResponse, BranchStatus
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
 from config import config
@@ -61,11 +62,50 @@ def main():
 
     # provide system performance metrics
     blog.info("Providing system information..")
-    bc.send_recv_msg("SET_MACHINE_INFORMATION {}".format(json.dumps(buildenv.get_host_info())))
 
-      
-    deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
+    machineinfo_response: BranchResponse = bc.send_recv_msg(BranchRequest("SETMACHINEINFO", buildenv.get_host_info()))
+
+    match machineinfo_response.statuscode:
+
+        case BranchStatus.OK:
+            blog.info("Machine information set.")
+
+        case other:
+            blog.error("Could not submit machine information: {}".format(deploymentconf_response.payload))
+            return
     
+    
+    deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+
+    match deploymentconf_response.statuscode:
+        
+        case BranchStatus.OK:
+            blog.info("Deployment configuration acquired.")
+
+        case other:
+            blog.error("Could not acquire deployment configuration: {}".format(deploymentconf_response.payload))
+            return
+
+    deployment_config = deploymentconf_response.payload
+    
+    if(not "realroot_packages" in deployment_config):
+        blog.error("Received deployment configuration is invalid.")
+        return
+
+    if(not "deploy_realroot" in deployment_config):
+        blog.error("Received deployment configuration is invalid.")
+        return
+
+
+    if(not "deploy_crossroot" in deployment_config):
+        blog.error("Received deployment configuration is invalid.")
+        return
+
+
+    if(not "packagelisturl" in deployment_config):
+        blog.error("Received deployment configuration is invalid.")
+        return
+
     realroot_pkgs = deployment_config["realroot_packages"]
     deploy_realroot = deployment_config["deploy_realroot"]
     deploy_crossroot = deployment_config["deploy_crossroot"]
@@ -83,57 +123,71 @@ def main():
         bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
         bc.disconnect()
         blog.info("Disconnected. Cannot continue.")
-        return -1
+        return
 
     # check if the build environment is setup..
     blog.info("Checking build environments..")
     if(buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs) != 0):
-        blog.info("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf failed to deploy the build environment."))
+        blog.error("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
+        
+        bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Buildbot setup failed because leaf failed to deploy the build environment."))
         bc.disconnect()
-        blog.info("Disconnected. Cannot continue.")
-        return -1
+        
+        blog.error("Disconnected. Cannot continue.")
+        return
 
     if (not buildenv.check_host_binary("chroot")):
         blog.error("'chroot' binary is missing. Reporting system event.")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'chroot' binary is missing."))
+        
+        bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Buildbot setup failed because the 'chroot' binary is missing."))
         bc.disconnect()
-        blog.info("Disconnected. Cannot continue")
-        return -1
+        
+        blog.error("Disconnected. Cannot continue")
+        return
 
     if (not buildenv.check_host_binary("strip")):
         blog.error("'strip' binary is missing. Reporting system event.")
-        bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because the 'strip' binary is missing."))
+
+        bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Buildbot setup failed because the 'strip' binary is missing."))
         bc.disconnect()
+        
         blog.info("Disconnected. Cannot continue")
-        return -1
+        return
 
-    # Signal readyness to server
+    # Send ready signal to server 
     blog.info("Sending ready signal...")
-    res = bc.send_recv_msg("SIG_READY")
+    
+    sigready_response: BranchResponse = bc.send_recv_msg(BranchRequest("SIGREADY", ""))
+    
+    match sigready_response.statuscode:
 
-    if(res == "CMD_OK"):
-        blog.info("Server acknowleged ready signal.")
-    else:
-        blog.error("Server did not acknowledge ready signal. Exiting.")
-        return -1
+        case BranchStatus.OK:
+            blog.info("Server acknowledged ready signal.")
+        
+        case other:
+            blog.error("Server did not acknowledge ready signal. Exiting.")
+            return
 
     # always wait for cmds from masterserver
     while True:
         blog.info("Waiting for commands from masterserver...")
-        cmd = bc.recv_msg()
+        recv_request: BranchRequest = bc.recv_branch_request()
          
         # no data, server exited.
-        if(cmd is None):
+        if(recv_request == None):
             blog.warn("Connection to server lost.")
-            bc.disconnect
-            return -1
+            return
 
-        blog.debug("Handling command from server.. {}".format(cmd))
-
-        res = None
+        # try to handle command
         try:
-            res = handleCommand.handle_command(bc, cmd)
+            res = handleCommand.handle_command(bc, recv_request)
+        
+        # recv_msg returns NoneType if Connection is lost, except it here
+        except AttributeError:
+            blog.warn("Connection to server lost")
+            return
+        
+        # Except everything else as something else..
         except Exception as ex:
             bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Critical error. Cannot continue: {}".format(ex)))
             bc.disconnect()
@@ -142,9 +196,12 @@ def main():
             blog.error("Traceback:")
             traceback.print_exc()
             buildenv.clean_env()
-            return -1
-
+            return
+        
         if(res == None):
+            continue
+
+        if(res == "CRIT_ERR"):
             bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Critical error. Attempting recovery.."))
             blog.error("Critical failure. Disconnecting..")
             bc.disconnect()
@@ -153,19 +210,21 @@ def main():
             blog.info("Dropping build environment..")
             buildenv.drop_buildenv()
 
-            deployment_config = json.loads(bc.send_recv_msg("GET_DEPLOYMENT_CONFIG"))
-            
+            deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+
             realroot_pkgs = deployment_config["realroot_packages"]
             deploy_realroot = deployment_config["deploy_realroot"]
             deploy_crossroot = deployment_config["deploy_crossroot"]
+            pkglist_url = deployment_config["packagelisturl"]
 
             blog.info("Recreating build environment..")
             buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
             blog.info("Reconnecting..")
             bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
-        else:
-            res = bc.send_recv_msg(res)
-            blog.debug("Result from server: {}".format(res))
+            continue
+
+        # send response back to the server.
+        bc.send_msg(res)
 
 if (__name__ == "__main__"):
     try:
