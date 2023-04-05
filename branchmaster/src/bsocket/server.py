@@ -3,11 +3,8 @@ import socket
 import blog
 
 from manager import client
-from manager import manager
 from _thread import *
-import threading
 import os
-import shutil
 
 # Initialize DefaultSelector
 sel = selectors.DefaultSelector()

@@ -3,6 +3,8 @@ import blog
 import packagebuild
 import os
 import uuid
+import hashlib
+import shutil
 
 from bsocket import server
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
