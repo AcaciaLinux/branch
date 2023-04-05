@@ -5,6 +5,7 @@ from manager import manager
 from manager.job import Job
 from dependency.dependency import update_blockages
 from overwatch import overwatch
+from branchpacket import BranchRequest, BranchResponse, BranchStatus
 
 # TODO: <==================== refactor.. =======================>
 class queue():
@@ -131,23 +132,20 @@ class queue():
 
     def submit_build_cmd(self, client, job_obj):
         client.is_ready = False        
-    
-        # our jobs id
-        job_id = job_obj.job_id
 
-        blog.info("Build job '{}' from '{}' submitted.".format(job_id, job_obj.requesting_client))
+        blog.info("Build job '{}' from '{}' submitted.".format(job_obj.job_id, job_obj.requesting_client))
         
         # assign our client to the job
         job_obj.set_running_buildbot(client)
 
-        # get json str of package
-        pkg_json = json.dumps(job_obj.pkg_payload.__dict__)
-
-        # assign pkg_name and our client name to the job
-        client.is_ready = False
-
         if(job_obj.use_crosstools):
-            client.send_command("BUILD_PKG_CROSS {}".format(pkg_json))
-        else:    
-            client.send_command("BUILD_PKG {}".format(pkg_json))
+            client.send_command(BranchRequest("BUILD", {
+                    "pkgbuild": job_obj.pkg_payload.get_dict(),
+                    "buildtype": "CROSS"
+                }))
+        else:
+            client.send_command(BranchRequest("BUILD", {
+                    "pkgbuild": job_obj.pkg_payload.get_dict(),
+                    "buildtype": "CROSS"
+                }))
 

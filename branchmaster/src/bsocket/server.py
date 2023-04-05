@@ -51,7 +51,7 @@ def threaded_client_handler(client_socket):
 
     while True:
         if(_client.file_transfer_mode):
-            _client.receive_file(client_socket, _client)
+            _client.receive_file()
         else:
             blog.debug("Receiving initial message from client..")
             data = None

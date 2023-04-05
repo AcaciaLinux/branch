@@ -4,6 +4,7 @@ import threading
 
 from _thread import *
 from manager import manager
+from branchpacket import BranchRequest
 
 # Wait time in seconds for a buildbot response
 ACCEPTED_TIMEOUT=5
@@ -51,7 +52,8 @@ def check_accepted_timeout_thread(client, job):
 # periodically pings a buildbot to make sure it's alive.
 #
 def check_buildbot_alive(client):
-    blog.debug("Overwatch thread for client {} launching...".format(client.get_identifier()))
+    blog.info("[Overwatch] Watching new buildbot '{}'. Acceptable response delay is {}s.".format(client.get_identifier(), ACCEPTED_TIMEOUT))
+    manager.manager.report_system_event("Overwatch", "Watching new buildbot '{}'. Acceptable response delay is {} seconds.".format(client.get_identifier(), PING_PONG_TIME))
     start_new_thread(check_buildbot_alive_thread, (client,))
 
 #
@@ -59,22 +61,21 @@ def check_buildbot_alive(client):
 #
 def check_buildbot_alive_thread(client):
     global PING_PONG_TIME
-    blog.debug("Ready! Watching {} ..".format(client.get_identifier()))
     
     while client.alive:
         # ping -> wait
         if(client.is_ready):
-            blog.debug("Sending PING request to {}".format(client.get_identifier()))
+            blog.debug("[Overwatch] Sending PING request to '{}'!".format(client.get_identifier()))
             client.is_ready = False
             client.alive = False
-            client.send_command("PING")
-            blog.debug("Waiting for response from {}..".format(client.get_identifier()))
+            client.send_command(BranchRequest("PING", ""))
+            blog.debug("[Overwatch] Waiting for response from '{}'..".format(client.get_identifier()))
         else:
-            blog.debug("Client is busy. Not pinging..")
+            blog.debug("[Overwatch] Client '{}' is busy. Skipping PING cycle.".format(client.get_identifier()))
 
         time.sleep(PING_PONG_TIME)
     
-    blog.info("Connection to {} lost.".format(client.get_identifier()))
+    blog.warn("[Overwatch] Connection to '{}' lost.".format(client.get_identifier()))
     client.handle_disconnect()
     manager.manager.report_system_event("Overwatch", "Connection to {} lost. Disconnected.".format(client.get_identifier()))
-    blog.info("Overwatch thread for client {} terminating.".format(client.get_identifier()))
+    blog.info("[Overwatch] Overwatch thread for client '{}' terminating.".format(client.get_identifier()))

@@ -9,7 +9,6 @@ import packagebuild
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from config import config
-from handleCommand import handleCommand 
 from manager import queue
 from manager.job import Job
 

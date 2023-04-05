@@ -693,23 +693,12 @@ def _import(bc, target_dir):
 
 def get_client_info(bc, client_name):
     clientinfo_request: BranchResponse = bc.send_recv_msg(BranchRequest("GETCLIENTINFO", client_name))
-    
-    
-    print(clientinfo_request.payload)
-
-
-
-    if(resp == "INV_CLIENT_NAME"):
-        blog.error("No such client found.")
-        return
-
-    client_info = json.loads(resp)
-    
+   
     print()
     print("Client information - {}".format(client_name))
     print()
-    for attr in client_info:
-        print("{}: {}".format(attr, client_info[attr]))
+    for attr in clientinfo_request.payload:
+        print("{}: {}".format(attr, clientinfo_request.payload[attr]))
 
 def transfer_extra_source(bc, file_path):
     blog.info("Loading extra source..")
@@ -723,42 +712,71 @@ def transfer_extra_source(bc, file_path):
     description = input()
 
     info_dict = {
-        "description": description,
+        "filedescription": description,
         "filename": file_name,
-        "filelen": byte_count
+        "filelength": byte_count
     }
-
-    resp = bc.send_recv_msg("TRANSFER_EXTRA_SOURCE {}".format(json.dumps(info_dict)))
-
-    if(not resp == "CMD_OK"):
-        blog.error("Could not switch to file transfer mode.")
-        return
+        
+    submit_es_response: BranchResponse = bc.send_recv_msg(BranchRequest("TRANSFEREXTRASOURCE", info_dict))
+     
+    match submit_es_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Switched to file transfer mode")
+            
+        case other:
+            blog.error("Server did not switch to file transfer mode.")
+            return
 
     blog.info("File transfer setup completed.")
     blog.info("Sending file..")
-    bc.send_file(file_path)
-    
-    resp = bc.send_recv_msg("COMPLETE_TRANSFER")
 
-    if(not resp == "CMD_OK"):
-        blog.error("Received error response from server: {}".format(resp))
-    else:
-        blog.info("File transfer completed.")
+    if(os.path.getsize(file_path) == 0):
+        blog.error("Filesize cannot be 0")
+        return
+
+    complete_es_response: BranchResponse = bc.send_file(file_path)
+
+    match complete_es_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Extra source transfer completed.")
+
+        case other:
+            blog.error("Server did not acknowledge file transfer.")
+    
+    commit_es_response: BranchResponse = bc.send_recv_msg(BranchRequest("COMPLETETRANSFER", ""))
+
+    match commit_es_response.statuscode:
+        case BranchStatus.OK:
+            blog.info("Extra source committed to database.")
+
+        case other:
+            blog.error("Couldn't commit to database.")
+
 
 def view_extra_sources(bc):
     blog.info("Fetching available extra sources.")
+    
+    
+    view_es_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETMANAGEDEXTRASOURCES", ""))
+    
+    match view_es_response.statuscode:
 
-    resp = json.loads(bc.send_recv_msg("GET_MANAGED_EXTRA_SOURCES"))
-    print ("\n\n{:<40} {:<50} {:<40}".format("ID", "FILENAME", "DESCRIPTION"))
+        case BranchStatus.OK:
+            print ("\n\n{:<40} {:<50} {:<40}".format("ID", "FILENAME", "DESCRIPTION"))
 
-    for es in resp:
-        print ("{:<40} {:<50} {:<40}".format(es["id"], es["filename"], es["description"]))
-
+            for es in view_es_response.payload:
+                print ("{:<40} {:<50} {:<40}".format(es["id"], es["filename"], es["description"]))
+    
+        case other:
+            blog.error("Could not fetch list of extra sources.")
 
 def remove_extra_source(bc, es_id):
-    resp = bc.send_recv_msg("REMOVE_EXTRA_SOURCE {}".format(es_id))
+    extrasource_response: BranchResponse = bc.send_recv_msg(BranchRequest("REMOVEEXTRASOURCE", es_id))
+    
+    match extrasource_response.statuscode:
 
-    if(resp == "CMD_OK"):
-        blog.info("Extra source deleted.")
-    else:
-        blog.error("Could not delete extra source.")
+        case BranchStatus.OK:
+            blog.info("Server: {}".format(extrasource_response.payload))
+        
+        case other:
+            blog.error("Server: {}".format(extrasource_response.payload))
