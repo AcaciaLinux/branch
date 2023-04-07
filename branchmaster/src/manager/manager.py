@@ -97,7 +97,13 @@ class manager():
         return res
     
     @staticmethod
-    def get_ready_build_clients():
+    def get_ready_build_clients() -> list:
+        """
+        Get all ready build clients
+
+        :return list: Of Client objects
+        """
+
         build_clients = manager.get_build_clients()
         res = [ ]
         for cl in build_clients:

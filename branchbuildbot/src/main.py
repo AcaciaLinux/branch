@@ -1,6 +1,7 @@
-# Branch - The AcaciaLinux package build system
-# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
-
+"""
+Branch - The AcaciaLinux package build system
+Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+"""
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
@@ -18,16 +19,14 @@
 BRANCH_CODENAME = "Pre Release"
 BRANCH_VERSION = "0.6-pre"
 
-import blog
-import os
-import json
 import traceback
 import branchclient
+import blog
 
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
 from handlecommand import handleCommand
 from buildenvmanager import buildenv
-from config import config
+from config.config import Config
 
 def main():
     print("Branch (BUILDBOT) - The AcaciaLinux package build system.")
@@ -37,32 +36,31 @@ def main():
 
     # load config
     blog.info("Loading configuration file..")
-    if(config.config.setup() != 0):
-        return -1
- 
-    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
+    if(not Config.setup()):
+        return
+
+    if(Config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
 
-    authkey = config.config.get_config_option("Connection")["AuthKey"]
+    authkey = Config.get_config_option("Connection")["AuthKey"]
     
     # replace authkey NONE with None
     if(authkey == "NONE"):
         authkey = None
 
-    server_address = config.config.get_config_option("Connection")["ServerAddress"]
-    server_port = int(config.config.get_config_option("Connection")["ServerPort"])
-    identifier = config.config.get_config_option("Connection")["Identifier"]
+    server_address = Config.get_config_option("Connection")["ServerAddress"]
+    server_port = int(Config.get_config_option("Connection")["ServerPort"])
+    identifier = Config.get_config_option("Connection")["Identifier"]
 
     # establish socket connection
     bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
 
     if(not bc.ready):
-        return -1
+        return
 
     # provide system performance metrics
     blog.info("Providing system information..")
-
     machineinfo_response: BranchResponse = bc.send_recv_msg(BranchRequest("SETMACHINEINFO", buildenv.get_host_info()))
 
     match machineinfo_response.statuscode:
@@ -75,7 +73,7 @@ def main():
             return
     
     
-    deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+    deploymentconf_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
 
     match deploymentconf_response.statuscode:
         
@@ -96,11 +94,9 @@ def main():
         blog.error("Received deployment configuration is invalid.")
         return
 
-
     if(not "deploy_crossroot" in deployment_config):
         blog.error("Received deployment configuration is invalid.")
         return
-
 
     if(not "packagelisturl" in deployment_config):
         blog.error("Received deployment configuration is invalid.")
@@ -118,7 +114,7 @@ def main():
     blog.info("==> PackagelistURL: {}".format(pkglist_url))
   
     # init leafcore
-    if(buildenv.init_leafcore(pkglist_url) != 0):
+    if(not buildenv.init_leafcore(pkglist_url)):
         blog.info("Buildbot could not initialize leaf. Reporting system event.")
         bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Buildbot setup failed because leaf is missing."))
         bc.disconnect()
@@ -127,7 +123,7 @@ def main():
 
     # check if the build environment is setup..
     blog.info("Checking build environments..")
-    if(buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs) != 0):
+    if(not buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)):
         blog.error("Buildbot setup failed, because leaf failed to deploy the build environment. Reporting system event.")
         
         bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Buildbot setup failed because leaf failed to deploy the build environment."))
@@ -136,6 +132,7 @@ def main():
         blog.error("Disconnected. Cannot continue.")
         return
 
+    # check if chroot binary is available
     if (not buildenv.check_host_binary("chroot")):
         blog.error("'chroot' binary is missing. Reporting system event.")
         
@@ -145,6 +142,7 @@ def main():
         blog.error("Disconnected. Cannot continue")
         return
 
+    # check if strip binary is available
     if (not buildenv.check_host_binary("strip")):
         blog.error("'strip' binary is missing. Reporting system event.")
 
@@ -174,7 +172,7 @@ def main():
         recv_request: BranchRequest = bc.recv_branch_request()
          
         # no data, server exited.
-        if(recv_request == None):
+        if(recv_request is None):
             blog.warn("Connection to server lost.")
             return
 
@@ -185,6 +183,7 @@ def main():
         # recv_msg returns NoneType if Connection is lost, except it here
         except AttributeError:
             blog.warn("Connection to server lost")
+            buildenv.clean_env()
             return
         
         # Except everything else as something else..
@@ -198,11 +197,11 @@ def main():
             buildenv.clean_env()
             return
         
-        if(res == None):
+        if(res is None):
             continue
 
         if(res == "CRIT_ERR"):
-            bc.send_recv_msg("REPORT_SYS_EVENT {}".format("Critical error. Attempting recovery.."))
+            bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Critical error while handling request. Attempting recovery.."))
             blog.error("Critical failure. Disconnecting..")
             bc.disconnect()
             blog.info("Attempting recovery..")
@@ -210,7 +209,7 @@ def main():
             blog.info("Dropping build environment..")
             buildenv.drop_buildenv()
 
-            deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+            deploymentconf_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
 
             realroot_pkgs = deployment_config["realroot_packages"]
             deploy_realroot = deployment_config["deploy_realroot"]
@@ -218,7 +217,10 @@ def main():
             pkglist_url = deployment_config["packagelisturl"]
 
             blog.info("Recreating build environment..")
-            buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
+            if(not buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)):
+                blog.error("Failed to deploy needed environment. Aborting.")
+                return
+
             blog.info("Reconnecting..")
             bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
             continue
