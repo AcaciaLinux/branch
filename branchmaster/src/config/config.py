@@ -1,48 +1,58 @@
+"""
+Config module
+"""
+import os
+import configparser
+import blog
+
 CONFIG_FILE = "/etc/branch/master.conf"
 
-import os
-import blog
-import configparser
-
-class config():
-    config = None
-
+class Config():
+    """
+    Config class based on configparser
+    """
+    config = configparser.ConfigParser()
+    
     @staticmethod
     def setup():
-        if(not os.path.exists(CONFIG_FILE)):
-            config.deploy_default_config()
-        
-        try:
-            config.config = configparser.ConfigParser()
-            config.config.read(CONFIG_FILE)
-        except Exception as ex:
-            blog.error("Could not parse configuration file: {}".format(ex))
-            return -1
+        """
+        Setup the config file
+        """
+        if (not os.path.exists(CONFIG_FILE)):
+            Config.deploy_default_config()
 
-        return 0
+        try:
+            Config.config.read(CONFIG_FILE)
+        except Exception as ex:
+            blog.error(f"Could not parse configuration file: {ex}")
+            return False
+
+        return True
 
     @staticmethod
     def deploy_default_config():
-        config = configparser.ConfigParser()
+        """
+        Deploys the default configuration to CONFIG_FILE
+        """
 
         # Deploys a default set of config options
-        config["Masterserver"] = {
+        Config.config["Masterserver"] = {
             "ListenAddress": "0.0.0.0",
             "ServerPort": 27015,
             "AuthKeys": "[default]",
             "UntrustedClients": False,
         }
-        config["HTTPServer"] = {
+        Config.config["HTTPServer"] = {
             "EnableWebServer": True,
             "HTTPPort": 8080,
             "UserFile": "/etc/branch/users.meta",
             "SendCorsHeaders": False,
             "KeyTimeout": 900
         }
-        config["Logger"] = {
+        Config.config["Logger"] = {
             "EnableDebugLog": False
         }
-        config["Deployment"] = { 
+        Config.config["Deployment"] = { 
             "CrosstoolsURL": "https://artifacts.acacialinux.org/cross-toolchain/crosstools.lfpkg",
             "CrosstoolsPkgbuildURL": "https://artifacts.acacialinux.org/cross-toolchain/crosstools.bpb",
             "RealrootPackages": "[base][glibc][gcc][make][bash][sed][grep][gawk][coreutils][binutils][findutils][automake][autoconf][file][gzip][libtool][m4][groff][patch][texinfo]",
@@ -50,28 +60,45 @@ class config():
             "DeployRealroot": True,
             "HTTPPackageList": "https://api.AcaciaLinux.org/?get=packagelist"
         }
-        
-        with open(CONFIG_FILE, "w") as default_conf_file:
-            config.write(default_conf_file)
+
+        with open(CONFIG_FILE, "w", encoding="utf8") as default_conf_file:
+            Config.config.write(default_conf_file)
 
     @staticmethod
     def get_config():
-        return config.config
+        """
+        Get ConfigParser object
+
+        :return: ConfigParser object
+        """
+        return Config.config
 
     @staticmethod
-    def get_config_option(option):
-        return config.config[option]
+    def get_config_option(option: str):
+        """
+        Get config option
+
+        :param option: Option name as str
+        """
+        return Config.config[option]
 
     @staticmethod
-    def parse_str_array(string):
-        vals = [ ]
+    def parse_str_array(string: str) -> list:
+        """
+        Parse a list formatted as string to list
+        "[a][b][c]" -> ["a", "b", "c"]
+
+        :param string: The string to be parsed
+        :return: List of strings
+        """
+        vals = []
         buff = ""
 
-        for c in string:
-            if(c == ']'):
+        for char in string:
+            if (char == ']'):
                 vals.append(buff)
                 buff = ""
-            elif(not c == '['):
-                buff = buff + c
-    
+            elif (not char == '['):
+                buff = buff + char
+
         return vals
