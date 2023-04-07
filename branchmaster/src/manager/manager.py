@@ -8,7 +8,7 @@ import packagebuild
 
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
-from config import config
+from config.config import Config
 from manager import queue
 from manager.job import Job
 
@@ -119,13 +119,13 @@ class manager():
         return: True if valid or untrusted mode, False if not
         """
 
-        if(config.config.get_config_option("Masterserver")["UntrustedClients"] == "True"):
+        if(Config.get_config_option("Masterserver")["UntrustedClients"] == "True"):
             return True
 
         # TODO: Will have to reimplement this part, once 
         # authkeys have permission levels
-        authkey_line: str = config.config.get_config_option("Masterserver")["AuthKeys"]
-        authkeys: list = config.config.parse_str_array(authkey_line)
+        authkey_line: str = Config.get_config_option("Masterserver")["AuthKeys"]
+        authkeys: list = Config.parse_str_array(authkey_line)
         
         if(authkey in authkeys):
            return True
@@ -264,7 +264,7 @@ class manager():
     #
     @staticmethod
     def determine_deployment_configuration():
-        all_packages = packagebuild.package_build.parse_str_to_array(config.config.get_config_option("Deployment")["RealrootPackages"])
+        all_packages = packagebuild.package_build.parse_str_to_array(Config.get_config_option("Deployment")["RealrootPackages"])
         can_provide_realroot = True
 
         for pkg in all_packages:
@@ -275,9 +275,9 @@ class manager():
         can_provide_crossroot = "crosstools" in packagestorage.storage().get_packages_array()
         
         try:
-            server_url = config.config.get_config_option("Deployment")["CrosstoolsURL"]
-            deploy_realroot = config.config.get_config_option("Deployment")["DeployRealroot"] == "True"
-            deploy_crossroot = config.config.get_config_option("Deployment")["DeployCrosstools"] == "True"
+            server_url = Config.get_config_option("Deployment")["CrosstoolsURL"]
+            deploy_realroot = Config.get_config_option("Deployment")["DeployRealroot"] == "True"
+            deploy_crossroot = Config.get_config_option("Deployment")["DeployCrosstools"] == "True"
         except KeyError:
             blog.error("Crosstools URLs missing in configuration file.")
             return False
@@ -295,7 +295,7 @@ class manager():
             
             blog.info("Attempting to fetch pkgbuild..")
             try:
-                pkgbuild_str = requests.get(config.config.get_config_option("Deployment")["CrosstoolsPkgbuildURL"]).content.decode("utf-8")
+                pkgbuild_str = requests.get(Config.get_config_option("Deployment")["CrosstoolsPkgbuildURL"]).content.decode("utf-8")
             except KeyError:
                 blog.error("Crosstools URLs missing in configuration file.")
                 return False
@@ -365,7 +365,7 @@ class manager():
                     return import_crosstools_pkg(server_url)
         # config options
         manager.deployment_config["realroot_packages"] = all_packages
-        manager.deployment_config["packagelisturl"] = config.config.get_config_option("Deployment")["HTTPPackageList"]
+        manager.deployment_config["packagelisturl"] = Config.get_config_option("Deployment")["HTTPPackageList"]
 
         manager.report_system_event("Branchmaster", "Deployment configuration reevaluated. Crosstools: {}, Realroot: {}".format(manager.deployment_config["deploy_crossroot"], manager.deployment_config["deploy_realroot"]))
         return True

@@ -1,6 +1,7 @@
-# branch - The AcaciaLinux package build and distribution system
-# Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
-
+"""
+branch - The AcaciaLinux package build and distribution system
+Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
+"""
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
@@ -15,20 +16,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Pre Release"
-BRANCH_VERSION = "0.6-pre"
-BRANCH_PROTOCOL_VERSION = 0
-
 import threading
-import blog
 
+import blog
 from branchweb import webserver
-from config import config
+from config.config import Config
 from bsocket import server
 from manager import manager
 from localstorage import pkgbuildstorage
 from localstorage import extrasourcestorage
 from web import endpoints
+
+BRANCH_CODENAME = "Pre Release"
+BRANCH_VERSION = "0.6-pre"
+BRANCH_PROTOCOL_VERSION = 0
 
 def main():
     print("Branch (SERVER) - The AcaciaLinux package build / distribution system.")
@@ -36,32 +37,31 @@ def main():
     print("Version: "+ BRANCH_VERSION +" (" + BRANCH_CODENAME +")")
     print()
     print()
-    
-    manager.manager.report_system_event("Branchmaster", "Starting up..") 
 
+    manager.manager.report_system_event("Branchmaster", "Starting up..")
     blog.info("Masterserver initializing..")
 
     blog.info("Loading masterserver configuration..")
-    if(config.config.setup() != 0):
-        return -1
+    if(not Config.setup()):
+        return False
 
-    if(config.config.get_config_option("Logger")["EnableDebugLog"] == "True"):
+    if(Config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
 
-    listen_addr = config.config.get_config_option("Masterserver")["ListenAddress"]   
-    listen_port = config.config.get_config_option("Masterserver")["ServerPort"]
-    http_port = config.config.get_config_option("HTTPServer")["HTTPPort"]
+    listen_addr = Config.get_config_option("Masterserver")["ListenAddress"]
+    listen_port = Config.get_config_option("Masterserver")["ServerPort"]
+    http_port = Config.get_config_option("HTTPServer")["HTTPPort"]
 
     blog.info("Setting up webserver configuration..")   
     webserver.WEB_CONFIG["logger_function_debug"] = blog.debug
     webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
-    webserver.WEB_CONFIG["web_debug"] = config.config.get_config_option("Logger")["EnableDebugLog"] == "True" 
-    webserver.WEB_CONFIG["send_cors_headers"] = config.config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
-    webserver.WEB_CONFIG["key_timeout"] = int(config.config.get_config_option("HTTPServer")["KeyTimeout"])
+    webserver.WEB_CONFIG["web_debug"] = Config.get_config_option("Logger")["EnableDebugLog"] == "True"
+    webserver.WEB_CONFIG["send_cors_headers"] = Config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
+    webserver.WEB_CONFIG["key_timeout"] = int(Config.get_config_option("HTTPServer")["KeyTimeout"])
 
     blog.info("Setting up user manager..")
-    endpoints.branch_web_providers.setup_usermgr(config.config.get_config_option("HTTPServer")["UserFile"])
+    endpoints.branch_web_providers.setup_usermgr(Config.get_config_option("HTTPServer")["UserFile"])
 
     blog.info("Registering webserver endpoints..")
     webserver.web_server.register_get_endpoints(
@@ -81,8 +81,8 @@ def main():
         return -1
 
     web_thread = None
-    if(config.config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
-        blog.info("Launching webserver daemon on {} port {}..".format(listen_addr, http_port))
+    if(Config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
+        blog.info(f"Launching webserver daemon on {listen_addr} port {http_port}..")
         web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(listen_addr, int(http_port)))
         try:
             web_thread.start()
