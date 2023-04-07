@@ -1,10 +1,8 @@
-import os
-import json
 import blog
 import packagebuild
 
 from builder import builder
-from branchpacket import BranchRequest, BranchResponse, BranchStatus
+from branchpacket import BranchRequest
 
 def handle_command(bc, branch_request) -> BranchRequest:
      
@@ -25,7 +23,7 @@ def handle_command(bc, branch_request) -> BranchRequest:
             try:
                 buildtype = branch_request.payload["buildtype"]
                 pkgbuild = packagebuild.package_build.from_dict(branch_request.payload["pkgbuild"])
-            except Exception as ex:
+            except Exception:
                 return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
 
             match builder.handle_build_request(bc, pkgbuild, buildtype == "CROSS"):
@@ -53,6 +51,6 @@ def handle_command(bc, branch_request) -> BranchRequest:
         # just in case, but really shouldn't happen.
         #
         case other:
-            return "ERR_CMD_UNHANDLED"
+            return BranchRequest("", "")
             
             

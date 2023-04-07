@@ -1,21 +1,21 @@
+"""
+Builder module
+"""
 import tarfile
-import pycurl
 import os
 import subprocess
-import shutil
-import tarfile
-import json
 import datetime
-import blog
-import packagebuild
-import leafpkg
 import threading
 import sys
-import branchclient
 
-from config import config
-from buildenvmanager import buildenv
+import blog
+import pycurl
+import leafpkg
+
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
+
+from config.config import Config
+from buildenvmanager import buildenv
 
 ELF_MAGIC_BYTES=b'\x7fELF'
 ELF_TYPE_EXE=b'\x02'
@@ -39,7 +39,7 @@ def handle_build_request(bc, pkgbuild, use_crosstools) -> bool:
     # acquire new deployment config
     blog.info("Acquiring deployment config..")
     
-    deploymentconf_response: BranchResposne = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
+    deploymentconf_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
     match deploymentconf_response.statuscode:
         
         case BranchStatus.OK:
@@ -54,12 +54,14 @@ def handle_build_request(bc, pkgbuild, use_crosstools) -> bool:
     realroot_pkgs = deployment_config["realroot_packages"]
     deploy_realroot = deployment_config["deploy_realroot"]
     deploy_crossroot = deployment_config["deploy_crossroot"]
-    pkglist_url = deployment_config["packagelisturl"]
 
-    buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)
+    if(not buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)):
+        blog.error("Could not setup environment.")
+        bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
+        return False
 
     # Setup buildenvironment
-    if(buildenv.setup_env(use_crosstools)  == -1):
+    if(not buildenv.setup_env(use_crosstools)):
         bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Build failed because leaf failed to upgrade the real root. Reinstalling build environment."))
         buildenv.drop_buildenv()
         bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_FAILED"))
@@ -175,7 +177,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
 
     if(package_build_obj.source):
         source_file = fetch_file_http(build_dir, package_build_obj.source)
-        if(not source_file):
+        if(source_file is None):
             blog.warn("Could not fetch main source.")
             status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch main source."]))
             
@@ -194,7 +196,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
             if(tarfile.is_tarfile(source_file)):
                 blog.info("Source is a tar file. Extracting...")
                 tar_file = tarfile.open(source_file, "r")
-                tar_obj = tar_file.extractall(build_dir)
+                tar_file.extractall(build_dir)
             else:
                 blog.warn("Source is not a tar file. Manual extraction required in build script.")
 
@@ -222,11 +224,8 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
         # check if it starts with http or https
         if("http://" in extra_src or "https://" in extra_src):
             blog.info("Extra source is remote, using http..")
-            if(not fetch_file_http(build_dir, extra_src) != 0):
-                dl_log = json.dumps(["Failed to fetch extra source:", extra_src])
-                res = bc.send_recv_msg("SUBMIT_LOG {}".format(dl_log))
-
-                status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource."]))
+            if(fetch_file_http(build_dir, extra_src) is None):
+                status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", [f"Failed to fetch extrasource: {extra_src}"]))
                 
                 match status_response.statuscode:
 
@@ -266,11 +265,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
 
             esrc_info = esrcinfo_response.payload
             
-            if(not "filename" in esrc_info):
-                bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource with ID '{}'.".format(extra_src)]))
-                return False
-
-            if(not "datalength" in esrc_info):
+            if(not "filename" in esrc_info or not "datalength" in esrc_info):
                 bc.send_recv_msg(BranchRequest("SUBMITLOG", ["Could not fetch extrasource with ID '{}'.".format(extra_src)]))
                 return False
 
@@ -304,15 +299,15 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
     if(use_crosstools):
         if(package_build_obj.cross_dependencies == [ ]):
             blog.info("Falling back, no cross dependencies set. Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
-            if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
+            if(not buildenv.install_pkgs(package_build_obj.build_dependencies)):
                 deps_failed = True
         else:
             blog.info("Installing 'cross' dependencies: {}".format(package_build_obj.cross_dependencies))
-            if(buildenv.install_pkgs(package_build_obj.cross_dependencies) != 0):
+            if(not buildenv.install_pkgs(package_build_obj.cross_dependencies)):
                 deps_failed = True
     else:
         blog.info("Installing 'build' dependencies: {}".format(package_build_obj.build_dependencies))
-        if(buildenv.install_pkgs(package_build_obj.build_dependencies) != 0):
+        if(not buildenv.install_pkgs(package_build_obj.build_dependencies)):
             deps_failed = True
 
     if(deps_failed):
@@ -386,7 +381,7 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
         case other:
             blog.error("Could not report status update.")
 
-    if(config.config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
+    if(Config.get_config_option("BuildOptions")["RealtimeBuildlog"] == "True"):
         proc = subprocess.Popen(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         std_output = [ ]
         
@@ -411,7 +406,8 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
         proc = subprocess.run(["chroot", temp_root, "/usr/bin/env", "-i", "HOME=root", "TERM=$TERM", "PATH=/usr/bin:/usr/sbin","/usr/bin/bash", "/entry.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         # stdout log
-        std_out_str = proc.stdout   
+        std_out_str = proc.stdout
+
 
     # stdout log
     std_out = std_out_str.split("\n")
@@ -455,12 +451,15 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
     blog.info("Build completed successfully.")
     return True
 
-#
-# download a file from web
-# 0 success
-# -1 failure
-#
-def fetch_file_http(destdir, url):
+
+def fetch_file_http(destdir: str, url: str):
+    """
+    Fetches a file from a remote HTTP server
+
+    :param destdir: The destination directory
+    :param url: The url
+    :return bool: source_file if completed, None if failed 
+    """
     source_file = os.path.join(destdir, url.split("/")[-1])
     
     out_file = open(source_file, "wb")
@@ -479,7 +478,7 @@ def fetch_file_http(destdir, url):
         curl.perform()
     except Exception as ex:
         blog.error("Fetching source failed. {}".format(ex))
-        return False
+        return None
 
     blog.info("Source fetched to {}. File size on disk: {}".format(source_file, os.path.getsize(source_file)))
 
@@ -487,15 +486,18 @@ def fetch_file_http(destdir, url):
     curl.close()
     return source_file
 
-#
-# Strips files in a given root_directory with ELF magic bytes
-#
-def strip(root_dir):
-    blog.info("Stripping unneeded symbols from {}".format(root_dir))
+def strip(root_dir: str) -> list:
+    """
+    Strips binaries from a given root_dir
+
+    :param root_dir: Directory to strip
+    :return:  List of all stripped files.
+    """
+    blog.info(f"Stripping unneeded symbols from {root_dir}")
 
     stripped_files = []
 
-    for root, dir, files in os.walk(root_dir):
+    for root, _dir, files in os.walk(root_dir):
         for file in files:
             file_abs = os.path.join(root, file)
             
@@ -514,19 +516,19 @@ def strip(root_dir):
                     elf_type = f.read(0x01)
 
                     if (elf_type == ELF_TYPE_EXE or elf_type == ELF_TYPE_DYN):
-                        blog.debug("[strip] Stripping file {}!".format(file_abs))
+                        blog.debug(f"[strip] Stripping file {file_abs}!")
                         res = subprocess.run(["strip", file_abs], shell=False, capture_output=True)
 
                         if (res.returncode == 0):
-                            blog.debug("[strip] {}".format(file_abs))
+                            blog.debug(f"[strip] {file_abs}")
                             stripped_files.append(file_abs)
 
                     else:
-                        blog.debug("[strip] Skipped file {}, an ELF, but not strippable (exe/dyn)!".format(file_abs))
+                        blog.debug(f"[strip] Skipped file {file_abs}, an ELF, but not strippable (exe/dyn)!")
 
 
                 else:
-                    blog.debug("[strip] Skipped file {}, not ELF binary!".format(file_abs))
+                    blog.debug(f"[strip] Skipped file {file_abs}, not ELF binary!")
 
     return stripped_files
 

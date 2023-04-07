@@ -1,20 +1,27 @@
+"""
+Buildenvironment manager module
+"""
 import os
 import shutil
 import time
-import blog
 import platform
-import psutil
+from pathlib import Path
 from datetime import datetime
 
-from pyleafcore import *
-from pathlib import Path
+import psutil
+import blog
+from pyleafcore import LeafConfig_bool, LeafConfig_string, Leafcore, LeafException
 from buildenvmanager import buildenv
-from config import config
 
 LAUNCH_DIR = os.getcwd()
 leafcore_instance = None
 
-def cpu_test():
+def cpu_test() -> float:
+    """
+    Runs a very simple CPU performance test
+
+    :return: (float) performance metric (lower is better)
+    """
     blog.info("Running CPU performance test..")
     cpu_count = psutil.cpu_count(logical=True)
     start_time = datetime.now().timestamp()
@@ -28,7 +35,12 @@ def cpu_test():
     blog.info("CPU performance results (lower is better): {}".format(res))
     return round(res, 6) 
 
-def get_host_info():
+def get_host_info() -> dict:
+    """
+    Get host info array to submit to masterserver
+
+    :return: (dict) Dictionary of Hostinfo
+    """
     info = { }
 
     with open("/proc/cpuinfo", "r") as f:
@@ -50,8 +62,10 @@ def get_host_info():
     info["Performance Rating"] = cpu_test() 
     return info
 
-# leafcore init
-def init_leafcore(pkglist_url):
+def init_leafcore(pkglist_url: str) -> bool:
+    """
+    Initialize leafcore global
+    """
     global leafcore_instance
 
     blog.debug("Initializing leafcore..")
@@ -59,7 +73,7 @@ def init_leafcore(pkglist_url):
         leafcore_instance = Leafcore()
     except Exception as ex:
         blog.error("Failed to initialize leafcore. Exception raised: {}".format(ex))
-        return -1
+        return False
 
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_NOASK, True)
     leafcore_instance.setBoolConfig(LeafConfig_bool.CONFIG_FORCEOVERWRITE, True)
@@ -67,15 +81,19 @@ def init_leafcore(pkglist_url):
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_PKGLISTURL, pkglist_url)
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_DOWNLOADCACHE, os.path.join(LAUNCH_DIR, "leafcache/"))
     blog.debug("Leafcore initialized.")
-    return 0
+    return True
 
-# fetches logs
 def fetch_leaf_logs():
+    """
+    Fetch latest leafcore log
+    """
     global leafcore_instance
     return leafcore_instance.get_log()
 
-# clears logs post action
 def clear_leaf_logs():
+    """
+    Clear leafcore log if leafcore_instance is not None
+    """
     global leafcore_instance
     
     # check if leafcore instance is None before clearing
@@ -85,6 +103,9 @@ def clear_leaf_logs():
     return leafcore_instance.clear_log()
 
 def drop_buildenv():
+    """
+    Drop the current environment
+    """
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
     
@@ -98,9 +119,10 @@ def drop_buildenv():
     except FileNotFoundError:
         blog.info("No cross root available.")
 
-
-# checks if the build environment is setup
-def check_buildenv(crossroot_enabled, realroot_enabled, realroot_pkgs):
+def check_buildenv(crossroot_enabled: bool, realroot_enabled: bool, realroot_pkgs: list) -> bool:
+    """
+    Check the current build environment
+    """
     # 3 directories required for overlayFS
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
@@ -148,9 +170,9 @@ def check_buildenv(crossroot_enabled, realroot_enabled, realroot_pkgs):
     
     if(realroot_enabled):
         if(not os.path.exists(control_file)):
-            if(deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs) != 0):
-                blog.error("Real root deployment failed. Sending system event to masterserver..")
-                return -1
+            if(deploy_buildenv(root_dir, realroot_pkgs) != 0):
+                blog.error("Real root deployment failed.")
+                return False
     else:
         blog.warn("Deployment config: Will not deploy realroot.")
 
@@ -159,18 +181,20 @@ def check_buildenv(crossroot_enabled, realroot_enabled, realroot_pkgs):
     
     if(crossroot_enabled):
         if(not os.path.exists(control_file)):
-            if(deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir) != 0):
-                blog.error("Crosstools deployment failed. Sending system event to masterserver..")
-                return -1
+            if(not deploy_crossenv(cross_dir)):
+                blog.error("Crosstools deployment failed.")
+                return False
     else:
         blog.warn("Deployment config: Will not deploy crossroot.")
 
 
     blog.info("Build environment setup completed.")
-    return 0
+    return True
 
-# Checks if a binary on the host is accessible through the PATH variable
-def check_host_binary(binary):
+def check_host_binary(binary) -> bool:
+    """
+    Check if a host binary is accessible through the PATH environment var
+    """
     for path in os.environ["PATH"].split(":"):
         for root, dirs, files in os.walk(path):
             for file in files:
@@ -179,8 +203,10 @@ def check_host_binary(binary):
 
     return False
 
-# installs packages to overlayfs temproot
-def install_pkgs(packages):
+def install_pkgs(packages) -> bool:
+    """
+    Install packages in the overlayfs temproot
+    """
     global leafcore_instance
 
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
@@ -192,19 +218,22 @@ def install_pkgs(packages):
         leafcore_instance.a_update()
     except LeafException as ex:
         blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
-        return -1
+        return False
 
     if(packages):
         try:
             leafcore_instance.a_install(packages)
         except LeafException as ex:
             blog.error("Leaf error when executing a_install({}) ({}): {}".format(packages, ex.code, ex.message))
-            return -1
+            return False
 
     blog.info("Package install completed.")
-    return 0
+    return True
 
-def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs):
+def deploy_buildenv(root_dir, realroot_pkgs) -> bool:
+    """
+    Deploy the realroot build environment
+    """
     global leafcore_instance
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, root_dir)
@@ -213,13 +242,13 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs):
         leafcore_instance.a_update()
     except LeafException as ex:
         blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
-        return -1
+        return False
 
     try:
         leafcore_instance.a_install(realroot_pkgs)
     except LeafException as ex:
         blog.error("Leaf error when executing a_install({}) ({}): {}".format(realroot_pkgs, ex.code, ex.message))
-        return -1
+        return False
 
     Path(os.path.join(root_dir, "installed")).touch()
     blog.info("Realroot deployment completed.")
@@ -233,9 +262,9 @@ def deploy_buildenv(root_dir, diff_dir, work_dir, temp_dir, realroot_pkgs):
         f.write("nameserver 1.1.1.1\n")
     
     blog.info("Resolver set.")
-    return 0
+    return True
 
-def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
+def deploy_crossenv(cross_dir) -> bool:
     global leafcore_instance
 
     leafcore_instance.setStringConfig(LeafConfig_string.CONFIG_ROOTDIR, cross_dir)
@@ -244,7 +273,7 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
         leafcore_instance.a_update()
     except LeafException as ex:
         blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
-        return -1
+        return False
 
     pkgs = ["crosstools"]
 
@@ -252,7 +281,7 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
         leafcore_instance.a_install(pkgs)
     except LeafException as ex:
         blog.error("Leaf error when executing a_install({}) ({}): {}".format(pkgs, ex.code, ex.message))
-        return -1
+        return False
 
     Path(os.path.join(cross_dir, "installed")).touch()
     blog.info("Crossroot deployment completed.")
@@ -266,23 +295,32 @@ def deploy_crossenv(cross_dir, diff_dir, work_dir, temp_dir):
         f.write("nameserver 1.1.1.1\n")
     
     blog.info("Resolver set.")
-    return 0
+    return True
 
-# first mount the overlayfs
-def setup_env(use_crossroot):
-    # 3 directories required for overlayFS
+def setup_env(use_crossroot: bool) -> bool:
+    """
+    Setup the buildbot environment
+
+    :param use_crossroot: Use crossroot to handle this buildrequest
+    :return: (bool) True -> OK, False -> Couldn't setup
+    """
+
+    # actual filesystems
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     cross_dir = os.path.join(LAUNCH_DIR, "crosstools")
+    
+    # 3 directories required for overlayFS
     diff_dir = os.path.join(LAUNCH_DIR, "diffdir")
     work_dir = os.path.join(LAUNCH_DIR, "overlay")
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
 
     blog.info("Upgrading real root..")
-    if(upgrade_real_root() == -1):
-        return -1
+    if(not upgrade_real_root()):
+        return False
 
-    if(upgrade_cross_root() == -1):
-        return -1
+    blog.info("Upgrading cross root..")
+    if(not upgrade_cross_root()):
+        return False
 
     if(not Path(temp_dir).is_mount()):
         blog.info("Mounting overlayfs..")
@@ -298,6 +336,7 @@ def setup_env(use_crossroot):
         remount_env(use_crossroot)
     
     setup_kfs()
+    return True
 
 def setup_kfs():
     temp_dir = os.path.join(LAUNCH_DIR, "temproot")
@@ -387,7 +426,7 @@ def clean_env():
     blog.info("Cleanup completed.")
 
 
-def upgrade_cross_root():
+def upgrade_cross_root() -> bool:
     root_dir = os.path.join(LAUNCH_DIR, "crosstools")
     global leafcore_instance
 
@@ -396,21 +435,21 @@ def upgrade_cross_root():
     try:
         leafcore_instance.a_update()
     except LeafException as ex:
-        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
+        blog.error(f"Leaf error when executing a_update() ({ex.code}): {ex.message}")
         blog.error("Failed to update cross root. Cannot continue.")
-        return -1
+        return False
 
     try:
         leafcore_instance.a_upgrade([])
     except LeafException as ex:
-        blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
+        blog.error(f"Leaf error when executing a_upgrade([]) ({ex.code}): {ex.message}")
         blog.error("Failed to upgrade cross root. Cannot continue")
-        return -1
+        return False
     
     leafcore_instance.clear_log()
+    return True
 
-
-def upgrade_real_root():
+def upgrade_real_root() -> bool:
     root_dir = os.path.join(LAUNCH_DIR, "realroot")
     global leafcore_instance
 
@@ -419,22 +458,21 @@ def upgrade_real_root():
     try:
         leafcore_instance.a_update()
     except LeafException as ex:
-        blog.error("Leaf error when executing a_update() ({}): {}".format(ex.code, ex.message))
+        blog.error(f"Leaf error when executing a_update() ({ex.code}): {ex.message}")
         blog.error("Failed to update real root. Cannot continue.")
-        return -1
+        return False
 
     try:
         leafcore_instance.a_upgrade([])
     except LeafException as ex:
-        blog.error("Leaf error when executing a_upgrade([]) ({}): {}".format(ex.code, ex.message))
+        blog.error(f"Leaf error when executing a_upgrade([]) ({ex.code}): {ex.message}")
         blog.error("Failed to upgrade real root. Cannot continue")
-        return -1
+        return False
 
     leafcore_instance.clear_log()
+    return True
 
-    
-
-def umount_busy_wait(path):
+def umount_busy_wait(path: str):
     blog.info("Unmounting {}".format(path))
     umount_failed = False
     
@@ -451,4 +489,7 @@ def umount_busy_wait(path):
     blog.info("Unmounted.")
 
 def get_build_path():
+    """
+    Get path to temproot
+    """
     return os.path.join(LAUNCH_DIR, "temproot")
