@@ -11,7 +11,8 @@ from branchweb.usermanager import USER_FILE
 
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
-from manager import manager
+from manager.manager import Manager
+from manager.manager import Job
 
 class branch_web_providers():
 
@@ -229,10 +230,9 @@ class branch_web_providers():
              
             pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
 
-            # get a job obj, use_crosstools = True
-            job = manager.manager.new_job(use_crosstools, pkgbuild, user.name)
-            res = manager.manager.get_queue().add_to_queue(job)
-            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package build queued successfully: {}.".format(res))
+            Manager.get_queue().add_job(Job(True, pkgbuild, user.name))
+            Manager.get_scheduler().schedule()
+            httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package build queued successfully.")
         else:
             blog.info("Web client requested release build for invalid package.")
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "No such package available: {}".format(pkgname))
@@ -261,7 +261,7 @@ class branch_web_providers():
         blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
         user.authkeys[authkey].refresh()
 
-        manager.manager.clear_completed_jobs()  
+        Manager.get_queue().clear_completed_jobs()
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Completed jobs cleared successfully")
 
     #
@@ -296,13 +296,13 @@ class branch_web_providers():
 
         # cant delete crosstools if they are enabled
         if(pkg_name == "crosstools"):
-            if(manager.manager.deployment_config["deploy_crossroot"]):
+            if(Manager.deployment_config["deploy_crossroot"]):
                 httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Cannot delete package 'crosstools', because it is part of the current deployment configuration.")
                 return
         
         # cant delete realroot packages if they are enabled.
-        if(pkg_name in manager.manager.deployment_config["realroot_packages"]):
-            if(manager.manager.deployment_config["deploy_realroot"]):
+        if(pkg_name in Manager.deployment_config["realroot_packages"]):
+            if(Manager.deployment_config["deploy_realroot"]):
                 httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Cannot delete package '{}', because it is part of the current deployment configuration.".format(pkg_name))
                 return
 
@@ -354,7 +354,7 @@ class branch_web_providers():
             return
 
         jobid = post_data["jobid"]
-        job = manager.manager.get_job_by_id(jobid)
+        job = Manager.get_queue().get_job_by_id(jobid)
             
         if(job is None):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid job id: {}".format(jobid))
@@ -443,12 +443,9 @@ class branch_web_providers():
     # ENDPOINT /?get=joblist (GET)
     @staticmethod
     def get_endpoint_jobs(httphandler):
-        manager_obj = manager.manager
-
-        completed_jobs = manager_obj.get_completed_jobs()
-        running_jobs = manager_obj.get_running_jobs()
-        queued_jobs = manager_obj.get_queued_jobs()
-
+        completed_jobs = Manager.get_queue().get_completed_jobs()
+        running_jobs = Manager.get_queue().get_running_jobs()
+        queued_jobs = Manager.get_queue().get_queued_jobs()
 
         all_jobs = {
             "completed_jobs": [obj.get_info_dict() for obj in completed_jobs],
@@ -479,8 +476,8 @@ class branch_web_providers():
     # ENDPOINT /?get=clientlist
     @staticmethod
     def get_endpoint_clientlist(httphandler):
-        clients = manager.manager.get_controller_names()
-        buildbots = manager.manager.get_buildbot_names()
+        clients: list = Manager.get_controller_names()
+        buildbots: list = Manager.get_buildbot_names()
 
         _dict = {
             "controllers": clients,
@@ -517,7 +514,7 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data for clientinfo: Client name (clientname)")
             return
         
-        target_client = manager.manager.get_client_by_name(post_data["clientname"])
+        target_client: list = Manager.get_client_by_name(post_data["clientname"])
         if(target_client == None):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid client name.")
             return
@@ -580,7 +577,7 @@ class branch_web_providers():
         blog.debug("Updating authkey {} for user {}".format(authkey, user.name))
         user.authkeys[authkey].refresh()
 
-        manager.manager.cancel_all_queued_jobs()
+        Manager.get_queue().cancel_queued_jobs()
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting jobs cancelled.")
 
     #
@@ -611,13 +608,13 @@ class branch_web_providers():
             httphandler.send_web_response(webserver.webstatus.MISSING_DATA, "Missing request data: Job ID (jobid)")
             return
         
-        job = manager.manager.get_job_by_id(post_data["jobid"])
+        job = Manager.get_queue().get_job_by_id(post_data["jobid"])
 
         if(job == None):
             httphandler.send_web_response(webserver.webstatus.SERV_FAILURE, "Invalid job ID.")
-            return 
-
-        manager.manager.cancel_queued_job(job)
+            return
+        
+        Manager.get_queue().cancel_queued_job(job)
         httphandler.send_web_response(webserver.webstatus.SUCCESS, "Waiting job cancelled.")
 
     #
