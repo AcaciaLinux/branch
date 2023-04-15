@@ -8,7 +8,8 @@ import shutil
 
 from bsocket import server
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
-from manager.manager import manager
+from manager.manager import Manager
+from manager.job import Job
 from localstorage import extrasourcestorage
 from dependency import dependency
 from localstorage import packagestorage 
@@ -59,7 +60,7 @@ def handle_command_untrusted(branch_client, branch_request: BranchRequest) -> Br
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Protocol version is not matching. Requested protocol {}, while the server only provides protocol {}.".format(main.BRANCH_PROTOCOL_VERSION, machine_version))
             
             # Check if authkey is valid
-            if(manager.is_authkey_valid(machine_authkey)):
+            if(Manager.is_authkey_valid(machine_authkey)):
                 blog.info("Client authentication completed for '{}'.".format(branch_client.get_identifier()))
             else:
                 blog.warn("Client authentication failed for '{}'.".format(branch_client.get_identifier()))
@@ -137,28 +138,21 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             if(pkgbuild is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such packagebuild")
             
-            if(branch_request.payload["buildtype"] == "CROSS" and not manager.deployment_config["deploy_crossroot"]):
+            if(branch_request.payload["buildtype"] == "CROSS" and not Manager.deployment_config["deploy_crossroot"]):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Could not request crossbuild, because the cross environment is disabled.")
 
-            if(branch_request.payload["buildtype"] == "RELEASE" and not manager.deployment_config["deploy_realroot"]):
+            if(branch_request.payload["buildtype"] == "RELEASE" and not Manager.deployment_config["deploy_realroot"]):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Could not request releasebuild, because the release environment is disabled.")
 
-            job = manager.new_job(branch_request.payload["buildtype"] == "CROSS", pkgbuild, branch_client.get_identifier())
-            res = manager.get_queue().add_to_queue(job)
-            manager.get_queue().update()
-
-            # 0 -> BUILD QUEUED
-            if(res == 0):
-                return BranchResponse(BranchStatus.OK, "Build request added to queue.")
-            # 1 -> BUILD SUBMITTED
-            elif(res == 1):
-                return BranchResponse(BranchStatus.OK, "Build request immediately handled.")
+            job = Manager.get_queue().add_job(Job(branch_request.payload["buildtype"] == "CROSS", pkgbuild, branch_client.get_identifier()))
+            Manager.get_scheduler().schedule()
+            return BranchResponse(BranchStatus.OK, "Build request added to queue.")
         
         #
         # Get job log
         #
         case "GETJOBLOG":
-            job = manager.get_job_by_id(branch_request.payload)
+            job = Manager.get_queue().get_job_by_id(branch_request.payload)
             
             if(job is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such job is available.")
@@ -173,7 +167,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         # Get syslog
         #
         case "GETSYSLOG":
-            return BranchResponse(BranchStatus.OK, manager.system_events)
+            return BranchResponse(BranchStatus.OK, Manager.system_events)
 
         #
         # Get dependers
@@ -218,16 +212,17 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
                 blog.info("Creating releasebuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = False
-                job = manager.new_job(False, pkgbuild, branch_client.get_identifier())
+                Manager.get_queue().add_job(Job(False, pkgbuild, branch_client.get_identifier()))
             
             for dep in cross_build:
                 pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(dep)
                 blog.info("Creating crossbuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = True
-                job = manager.new_job(True, pkgbuild, branch_client.get_identifier())
+                Manager.get_queue().add_job(Job(True, pkgbuild, branch_client.get_identifier()))
+
             
-            manager.get_queue().update()
+            Manager.get_scheduler().schedule()
             return BranchResponse(BranchStatus.OK, "Rebuild dependers requested.")
 
         
@@ -235,9 +230,9 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         # Get job status
         #
         case "GETJOBSTATUS":
-            queued_jobs = manager.get_queued_jobs()
-            running_jobs = manager.get_running_jobs()
-            completed_jobs = manager.get_completed_jobs()
+            queued_jobs = Manager.get_queue().queued_jobs
+            running_jobs = Manager.get_queue().running_jobs
+            completed_jobs = Manager.get_queue().completed_jobs
             
             return BranchResponse(BranchStatus.OK, {
                 "queuedjobs": [obj.get_info_dict() for obj in queued_jobs],
@@ -249,8 +244,8 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         # Get connected clients
         #
         case "GETCONNECTEDCLIENTS":
-            controllers = manager.get_controller_names()
-            buildbots = manager.get_buildbot_names()
+            controllers = Manager.get_controller_names()
+            buildbots = Manager.get_buildbot_names()
         
             return BranchResponse(BranchStatus.OK, {
                 "controllers": controllers,
@@ -274,29 +269,29 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         # Clear all completed jobs
         #
         case "CLEARCOMPLETEDJOBS":
-            manager.clear_completed_jobs()  
+            Manager.get_queue().clear_completed_jobs()
             return BranchResponse(BranchStatus.OK, "Completed jobs cleared.")
         
         #
         # Cancel all queued jobs
         #
         case "CANCELQUEUEDJOBS":
-            manager.cancel_all_queued_jobs()
+            Manager.get_queue().cancel_queued_jobs()
             return BranchResponse(BranchStatus.OK, "All queued jobs canceled.")
         
         #
         # Cancel a queued job by id
         #
         case "CANCELQUEUEDJOB":
-            job = manager.get_job_by_id(branch_request.payload)
+            job = Manager.get_queue().get_job_by_id(branch_request.payload)
             
             if(job == None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such job found")
-           
-            if(manager.cancel_queued_job(job)):
+
+            if(Manager.get_queue().cancel_queued_job(job.id)):
                 return BranchResponse(BranchStatus.OK, "Job canceled successfully.")
             else:
-                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Specified job is not queued.")
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such job.")
 
         #
         # Submit a solution for building
@@ -308,10 +303,10 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             if(not "buildtype" in branch_request.payload):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Missing request data: buildtype")
             
-            if(branch_request.payload["buildtype"] == "RELEASE" and not manager.deployment_config["deploy_realroot"]):
+            if(branch_request.payload["buildtype"] == "RELEASE" and not Manager.deployment_config["deploy_realroot"]):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Release build environment is disabled or unavailable.")
  
-            if(branch_request.payload["buildtype"] == "CROSS" and not manager.deployment_config["deploy_crossroot"]):
+            if(branch_request.payload["buildtype"] == "CROSS" and not Manager.deployment_config["deploy_crossroot"]):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Cross build environment is disabled or unavailable.")
 
 
@@ -324,20 +319,17 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Required package build '{}' is missing.".format(status))
 
             for job in jobs:
-                manager.add_job_to_queue(job)
+                Manager.get_queue().add_job(job)
 
-            # queue every job
-            for job in jobs:
-                manager.get_queue().add_to_queue(job)
-                manager.get_queue().update()
-
+            Manager.get_scheduler().schedule()
             return BranchResponse(BranchStatus.OK, "Solution queued.")
         
         #
         # Get all available client info
         #
         case "GETCLIENTINFO":
-            target_client = manager.get_client_by_name(branch_request.payload)
+            target_client = Manager.get_client_by_name(branch_request.payload)
+
             if(target_client == None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such client found.")
 
@@ -352,12 +344,12 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             
             # cant delete crosstools if they are enabled
             if(branch_request.payload == "crosstools"):
-                if(manager.deployment_config["deploy_crossroot"]):
+                if(Manager.deployment_config["deploy_crossroot"]):
                     return BranchResponse(BranchStatus.REQUEST_FAILURE, "The requested package is enabled in the current deployment configuration. Cannot delete.")
             
             # cant delete realroot packages if they are enabled.
-            if(branch_request.payload in manager.deployment_config["realroot_packages"]):
-                if(manager.deployment_config["deploy_realroot"]):
+            if(branch_request.payload in Manager.deployment_config["realroot_packages"]):
+                if(Manager.deployment_config["deploy_realroot"]):
                     return BranchResponse(BranchStatus.REQUEST_FAILURE, "The requested package is enabled in the current deployment configuration. Cannot delete.")
 
             blog.debug("Deleting packagebuild..")
@@ -425,7 +417,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
                     self.desc = desc
                     self.file_name = file_name
 
-            manager.add_pending_extra_source(extra_source_pending(branch_client, _id, file_name, desc))
+            Manager.add_pending_extra_source(extra_source_pending(branch_client, _id, file_name, desc))
 
             branch_client.file_target = os.path.join(server.STAGING_AREA, "{}.es".format(_id))
             branch_client.file_target_bytes = byte_count
@@ -439,7 +431,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             pending_extra_src = None
 
             # find correct pending job
-            for pes in manager.get_pending_extra_sources():
+            for pes in Manager.get_pending_extra_sources():
                 if(pes.client.client_uuid == branch_client.client_uuid):
                     pending_extra_src = pes
                     break
@@ -453,7 +445,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Could not insert to database.")
             
             # remove pending extra src
-            manager.remove_pending_extra_source(pending_extra_src)
+            Manager.remove_pending_extra_source(pending_extra_src)
             
             # delete staged extra sourcefile
             blog.info("Removing temporary file in staging directory..")
@@ -478,7 +470,7 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
         # Ready signal from buildbot.
         #
         case "SIGREADY":
-            job = manager.get_job_by_client(branch_client)
+            job = Manager.get_queue().get_running_job_by_client(branch_client)
             if(not job is None):
                 blog.info("Build job '{}' completed.".format(job.get_jobid()))
 
@@ -499,7 +491,7 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
                     shutil.move(job.buildbot.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
                     job.set_status("COMPLETED")
 
-                manager.move_inactive_job(job)
+                Manager.get_queue().notify_job_completed(job)
  
             # we are done, reset
             branch_client.file_target = None
@@ -509,9 +501,10 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             blog.info("Client {} is ready for commands.".format(branch_client.get_identifier()))
 
             branch_client.is_ready = True
-            manager.queue.update()
+            Manager.get_scheduler().schedule()
+
             blog.info("Reevaluating deployment configuration..")
-            manager.determine_deployment_configuration()
+            Manager.determine_deployment_configuration()
 
         
         #
@@ -523,13 +516,13 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             branch_client.alive = True
 
             # notify queue, because we might have got a job while sending keepalive
-            manager.queue.update()
+            Manager.get_scheduler().schedule()
             return None
         #
         # Get deployment configuration
         #
         case "GETDEPLOYMENTCONFIG":
-            return BranchResponse(BranchStatus.OK, manager.deployment_config)
+            return BranchResponse(BranchStatus.OK, Manager.deployment_config)
 
         #
         # Report status update 
@@ -538,7 +531,7 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             if(branch_request.payload == ""):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid status update.")
 
-            job = manager.get_job_by_client(branch_client)
+            job = Manager.get_queue().get_running_job_by_client(branch_client)
             if(job is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned to client.")
 
@@ -570,7 +563,7 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
         # Submit a log for the current job
         #
         case "SUBMITLOG":
-            job = manager.get_job_by_client(branch_client)
+            job = Manager.get_queue().get_running_job_by_client(branch_client)
 
             if(not job is None):
                 blog.info("Build job '{}' log received.".format(job.get_jobid()))
@@ -589,14 +582,14 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             except Exception:
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Datalength is invalid.")
 
-            job = manager.get_job_by_client(branch_client)
+            job = Manager.get_queue().get_running_job_by_client(branch_client)
 
             if(job is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned.")
 
             job.set_status("UPLOADING")
             branch_client.file_transfer_mode = True
-            branch_client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.job_id))
+            branch_client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.id))
             branch_client.file_target_bytes = datalength
             return BranchResponse(BranchStatus.OK, "File transfer setup completed.")
 

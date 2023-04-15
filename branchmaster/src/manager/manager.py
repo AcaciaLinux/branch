@@ -3,33 +3,27 @@ import blog
 import requests
 import hashlib
 import shutil
-import os
 import packagebuild
 
 from localstorage import packagestorage
 from localstorage import pkgbuildstorage
 from config.config import Config
-from manager import queue
 from manager.job import Job
+from scheduler.branchqueue import BranchQueue
+from scheduler.scheduler import BranchScheduler
 
-class manager():
+class Manager():
     
     #
-    # Static queue Object
+    # Static Objects
     #
-    queue = queue.queue()
+    branch_queue = BranchQueue()
+    branch_scheduler = BranchScheduler()
 
     #
     # Currently connected clients
     #
     client_array = [ ]
-    
-    #
-    # Queued, running and completed jobs 
-    #
-    queued_jobs = [ ]
-    running_jobs = [ ]
-    completed_jobs = [ ]
     
     #
     # Array of system Events
@@ -48,20 +42,24 @@ class manager():
     
     @staticmethod
     def get_queue():
-        return manager.queue
+        return Manager.branch_queue
+    
+    @staticmethod
+    def get_scheduler():
+        return Manager.branch_scheduler
 
     @staticmethod
     def register_client(client):
-        blog.info("Adding client to manager '{}'.".format(client.get_identifier()))
-        manager.client_array.append(client)
+        blog.info(f"Adding client to manager '{client.get_identifier()}' with type '{client.client_type}'.")
+        Manager.client_array.append(client)
     
     @staticmethod
     def get_client(uuid):
-        return manager.client_array[uuid]
+        return Manager.client_array[uuid]
     
     @staticmethod
     def get_client_by_name(name):
-        for client in manager.client_array:
+        for client in Manager.client_array:
             if(client.get_identifier() == name):
                 return client
 
@@ -69,21 +67,19 @@ class manager():
 
     @staticmethod
     def remove_client(client):
-        job = manager.get_job_by_client(client)
+        job = Manager.get_queue().get_running_job_by_client(client)
 
         if(job is not None):
-            blog.warn("Build job '{}' aborted because the buildbot disconnected. Readding to head of queue..".format(job.get_jobid()))
-            job.set_status("WAITING")
-            manager.running_jobs.remove(job)
-            manager.queued_jobs = [job] + manager.queued_jobs
-
+            blog.warn("Build job '{}' aborted because the buildbot disconnected.".format(job.get_jobid()))
+            Manager.get_queue().notify_job_aborted(job)
+            
         blog.info("Removing client '{}' from manager.".format(client.get_identifier()))
-        manager.client_array.remove(client)
+        Manager.client_array.remove(client)
 
     @staticmethod
     def get_controller_clients():
         res = [ ]
-        for cl in manager.client_array:
+        for cl in Manager.client_array:
             if(cl.client_type == "CONTROLLER"):
                 res.append(cl)
         return res
@@ -91,7 +87,7 @@ class manager():
     @staticmethod
     def get_build_clients():
         res = [ ]
-        for cl in manager.client_array:
+        for cl in Manager.client_array:
             if(cl.client_type == "BUILD"):
                 res.append(cl)
         return res
@@ -104,7 +100,7 @@ class manager():
         :return list: Of Client objects
         """
 
-        build_clients = manager.get_build_clients()
+        build_clients = Manager.get_build_clients()
         res = [ ]
         for cl in build_clients:
             if(cl.is_ready):
@@ -132,66 +128,11 @@ class manager():
         else:
            return False
 
-    # TODO: ------- job stuff should be moved to queue.py -------
-
-    @staticmethod 
-    def new_job(use_crosstools: bool, pkg_payload, requesting_client: str):
-        job = Job(use_crosstools, pkg_payload, requesting_client)
-        manager.queued_jobs.append(job)
-        return job
-
-    @staticmethod
-    def add_job_to_queue(job):
-        manager.queued_jobs.append(job)
-    
-    @staticmethod
-    def move_inactive_job(job):
-        manager.running_jobs.remove(job)
-        manager.completed_jobs.append(job)
-
-    @staticmethod 
-    def get_job_by_client(client):
-        for job in manager.running_jobs:
-            if job in manager.running_jobs:
-                if(job.buildbot == client):
-                    return job
-
-        return None
-    
-    @staticmethod
-    def get_job_by_id(jid):
-        for job in manager.running_jobs:
-            if(job.job_id == jid):
-                return job
-        for job in manager.queued_jobs:
-            if(job.job_id == jid):
-                return job
-
-        for job in manager.completed_jobs:
-            if(job.job_id == jid):
-                return job
-        return None
-    
-    @staticmethod
-    def get_queued_jobs():
-        return manager.queued_jobs
-    
-    @staticmethod
-    def get_running_jobs():
-        return manager.running_jobs
-    
-    @staticmethod
-    def get_completed_jobs():
-        return manager.completed_jobs
-    
-    
-    # TODO: -------------------------------------------------------
-
     @staticmethod
     def get_controller_names():
         res = [ ]
 
-        for client in manager.client_array:
+        for client in Manager.client_array:
             if(client.client_type == "CONTROLLER"):
                 res.append(client.get_identifier())
 
@@ -201,63 +142,34 @@ class manager():
     def get_buildbot_names():
         res = [ ]
 
-        for client in manager.client_array:
+        for client in Manager.client_array:
             if(client.client_type == "BUILD"):
                 res.append(client.get_identifier())
 
         return res
     
-    # TODO: ------- job stuff should be moved to queue.py -------
-
-    @staticmethod
-    def clear_completed_jobs():
-        manager.completed_jobs = None
-        manager.completed_jobs = [ ]
-        manager.get_queue().update()
-
-    @staticmethod 
-    def cancel_queued_job(job):
-        """
-        Cancel a queued job.
-
-        :param job: Job
-        """
-        if(not job in manager.queued_jobs):
-            return False
-
-        manager.queued_jobs.remove(job)
-        manager.get_queue().update()
-        return True
-
-    @staticmethod
-    def cancel_all_queued_jobs():
-        manager.queued_jobs = [ ] 
-    
-
-    # TODO: -------------------------------------------------------
-    
     @staticmethod
     def report_system_event(issuer, event):
         current_time = time.strftime("%H:%M:%S %d-%m-%Y", time.localtime())
         
-        if(len(manager.system_events) > 50):
-            manager.system_events.clear()
-            manager.system_events.append("[{}] Branchmaster => Syslogs cleared.".format(current_time))
+        if(len(Manager.system_events) > 50):
+            Manager.system_events.clear()
+            Manager.system_events.append("[{}] Branchmaster => Syslogs cleared.".format(current_time))
 
-        manager.system_events.append("[{}] {} => {}".format(current_time, issuer, event))
+        Manager.system_events.append("[{}] {} => {}".format(current_time, issuer, event))
 
     
     @staticmethod
     def get_pending_extra_sources():
-        return manager.pending_extra_sources
+        return Manager.pending_extra_sources
     
     @staticmethod
     def add_pending_extra_source(pending_extra_src):
-        manager.pending_extra_sources.append(pending_extra_src)
+        Manager.pending_extra_sources.append(pending_extra_src)
 
     @staticmethod
     def remove_pending_extra_source(pending_extra_src):
-        manager.pending_extra_sources.remove(pending_extra_src)
+        Manager.pending_extra_sources.remove(pending_extra_src)
     
     #
     # Determine deployment configuration. 
@@ -330,7 +242,7 @@ class manager():
             shutil.move("crosstools.lfpkg", stor.add_package(pkgb, md5_hash.hexdigest()))
             return True
         
-        manager.deployment_config["deploy_realroot"] = can_provide_realroot and deploy_realroot
+        Manager.deployment_config["deploy_realroot"] = can_provide_realroot and deploy_realroot
 
         # Check if crossroot is enabled, but not deployed.
         if(deploy_crossroot and not can_provide_crossroot):
@@ -343,7 +255,7 @@ class manager():
                 blog.error("Could not import crosstools.")
                 return False
 
-        manager.deployment_config["deploy_crossroot"] = can_provide_crossroot and deploy_crossroot
+        Manager.deployment_config["deploy_crossroot"] = can_provide_crossroot and deploy_crossroot
 
         #
         # Check if atleast one environment is available
@@ -357,15 +269,15 @@ class manager():
 
                 if(can_provide_crossroot):
                     blog.warn("Crossroot is disabled in config, but is the only environment the server can provide.")
-                    manager.deployment_config["deploy_crossroot"] = True
-                    manager.report_system_event("Branchmaster", "Deployment configuration is invalid. Crosstools enabled, because it's the only environment the server can provide.")
+                    Manager.deployment_config["deploy_crossroot"] = True
+                    Manager.report_system_event("Branchmaster", "Deployment configuration is invalid. Crosstools enabled, because it's the only environment the server can provide.")
 
                 else:
                     blog.warn("Crossroot and realroot unavailable. Attempting to import crosstools from upstream..")
                     return import_crosstools_pkg(server_url)
         # config options
-        manager.deployment_config["realroot_packages"] = all_packages
-        manager.deployment_config["packagelisturl"] = Config.get_config_option("Deployment")["HTTPPackageList"]
+        Manager.deployment_config["realroot_packages"] = all_packages
+        Manager.deployment_config["packagelisturl"] = Config.get_config_option("Deployment")["HTTPPackageList"]
 
-        manager.report_system_event("Branchmaster", "Deployment configuration reevaluated. Crosstools: {}, Realroot: {}".format(manager.deployment_config["deploy_crossroot"], manager.deployment_config["deploy_realroot"]))
+        Manager.report_system_event("Branchmaster", "Deployment configuration reevaluated. Crosstools: {}, Realroot: {}".format(Manager.deployment_config["deploy_crossroot"], Manager.deployment_config["deploy_realroot"]))
         return True

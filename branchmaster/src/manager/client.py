@@ -4,7 +4,7 @@ import traceback
 import time
 
 from json.decoder import JSONDecodeError
-from manager import manager
+from manager.manager import Manager
 from threading import Lock
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
 from commands import commands
@@ -53,7 +53,7 @@ class Client():
         self.lock = Lock()
 
         # register the client
-        manager.manager.register_client(self)
+        Manager.register_client(self)
 
         # connected at
         self.connection_start_timestamp = time.time()
@@ -63,6 +63,9 @@ class Client():
         Set buildbot system information dictionary.
         :param info: Client system info
         """
+        if(not "Performance Rating" in info):
+            blog.info("Connected buildbot did not provide performance rating, forcing rating 100")
+            info["Performance Rating"] = 100
         
         self.sysinfo: dict = info 
 
@@ -111,7 +114,7 @@ class Client():
                 return None
 
         except Exception as ex:
-            manager.manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
+            Manager.report_system_event("Branchmaster", "Exception raised while handling client command. Traceback: {}".format(ex))
             blog.debug("An endpoint handler function raised an exception:")
             blog.debug("Traceback:")
             traceback.print_exc()
@@ -228,7 +231,7 @@ class Client():
         
         try:
             blog.info("Client {} has disconnected.".format(self.get_identifier()))
-            manager.manager.remove_client(self)
+            Manager.remove_client(self)
             self.socket.close()
             self.alive = False
         except Exception:
