@@ -103,12 +103,14 @@ class BranchQueue():
     
     def get_blocked_jobs(self) -> list:
         """
+        STUB!
         Fetch blocked jobs that cannot be executed
         
         :return: list of blocked jobs
         """
-        pass
         # TODO: implement this
+        pass
+
 
     def get_running_job_by_client(self, client) -> Job:
         """
@@ -130,6 +132,18 @@ class BranchQueue():
         :param id: JobID
         :return: Job or None
         """
+        for job in self.running_jobs:
+            if(job.job_id == id):
+                return job
+        for job in self.queued_jobs:
+            if(job.job_id == id):
+                return job
+
+        for job in self.completed_jobs:
+            if(job.job_id == id):
+                return job
+            
+        return None
 
     def notify_job_started(self, job: Job) -> bool:
         """
@@ -144,6 +158,7 @@ class BranchQueue():
 
         self.queued_jobs.remove(job)
         self.running_jobs.append(job)
+        self.update_job_blocking()
         return True
 
     def notify_job_aborted(self, job: Job) -> bool:
@@ -163,7 +178,7 @@ class BranchQueue():
         # push to head of list
         self.queued_jobs = [ job ] + self.queued_jobs
 
-        # TODO: calling this needs to reevaluate blockers?
+        self.update_job_blocking()
         return True
 
     def notify_job_completed(self, job: Job) -> bool:
@@ -177,7 +192,7 @@ class BranchQueue():
         self.running_jobs.remove(job)
         self.completed_jobs.append(job)
 
-        # TODO: calling this needs to reevaluate blockers?
+        self.update_job_blocking()
         return True
 
     def get_queued_jobs(self) -> list:
@@ -204,7 +219,6 @@ class BranchQueue():
         """
         self.completed_jobs = [ ]
         self.update_job_blocking()
-        # TODO: calling this needs to reevaluate blockers?
 
     def cancel_queued_job(self, id: str) -> bool:
         """
@@ -219,8 +233,9 @@ class BranchQueue():
         if(job is None):
             return False
 
-        self.update_job_blocking()
         self.queued_jobs.remove(job)
+        self.update_job_blocking()
+
 
     def cancel_queued_jobs(self):
         """
