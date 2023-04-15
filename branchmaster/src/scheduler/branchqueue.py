@@ -133,14 +133,14 @@ class BranchQueue():
         :return: Job or None
         """
         for job in self.running_jobs:
-            if(job.job_id == id):
+            if(job.id == id):
                 return job
         for job in self.queued_jobs:
-            if(job.job_id == id):
+            if(job.id == id):
                 return job
 
         for job in self.completed_jobs:
-            if(job.job_id == id):
+            if(job.id == id):
                 return job
             
         return None
