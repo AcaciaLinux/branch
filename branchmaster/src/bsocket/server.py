@@ -2,7 +2,7 @@ import selectors
 import socket
 import blog
 
-from manager import client
+from manager.client import Client
 from _thread import *
 import os
 
@@ -43,7 +43,7 @@ def init_server(addr, port):
 def threaded_client_handler(client_socket):
     blog.debug("Starting thread client handler.")
     
-    _client = client.Client(client_socket)
+    _client = Client(client_socket)
     blog.info("New client initialized. UUID: {}".format(_client.get_identifier()))
 
     while True:

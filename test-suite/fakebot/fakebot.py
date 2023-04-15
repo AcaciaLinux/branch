@@ -13,10 +13,9 @@ ALWAYS_IGNORE_COMMANDS=False
 import platform
 import psutil
 import random
+from branchpacket import BranchRequest, BranchResponse
 from datetime import datetime
 import os
-import json
-import socket
 import blog
 import time
 import sys
@@ -215,8 +214,7 @@ def main():
         bc = handshake(host, int(port), authkey)
     
     blog.info("Ready to receive commands!")
-    bc.send_recv_msg("SET_MACHINE_INFORMATION {}".format(json.dumps(get_host_info())))
-
+    bc.send_recv_msg(BranchRequest("SETMACHINEINFORMATION", get_host_info()))
     receive_commands(bc)
 
 if __name__ == "__main__":

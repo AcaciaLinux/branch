@@ -14,7 +14,7 @@ class Job():
 
         uid = uuid.uuid4();
         blog.debug("Initializing new job with uuid: {}".format(str(uid)))
-        self.job_id = str(uid)
+        self.id = str(uid)
 
         self.use_crosstools: bool = use_crosstools
         self.solution_mode: bool = solution_mode
@@ -33,7 +33,7 @@ class Job():
         Get information as a dictionary
         """
         return {
-            "job_id": self.job_id,
+            "job_id": self.id,
             "job_status": self.job_status,
             "job_name": self.pkg_payload.name,
             "requesting_client": self.requesting_client
@@ -43,7 +43,7 @@ class Job():
         """
         Get the current jobs id
         """
-        return self.job_id
+        return self.id
 
     def set_status(self, status: str):
         """

@@ -22,7 +22,7 @@ import blog
 from branchweb import webserver
 from config.config import Config
 from bsocket import server
-from manager import manager
+from manager.manager import Manager
 from localstorage import pkgbuildstorage
 from localstorage import extrasourcestorage
 from web import endpoints
@@ -38,7 +38,7 @@ def main():
     print()
     print()
 
-    manager.manager.report_system_event("Branchmaster", "Starting up..")
+    Manager.report_system_event("Branchmaster", "Starting up..")
     blog.info("Masterserver initializing..")
 
     blog.info("Loading masterserver configuration..")
@@ -76,7 +76,7 @@ def main():
     extrasourcestorage.storage.populate()
 
     blog.info("Determining deployment configuration..")
-    if(not manager.manager.determine_deployment_configuration()):
+    if(not Manager.determine_deployment_configuration()):
         blog.error("Requested deployment configuration is invalid.")
         return -1
 
@@ -101,7 +101,7 @@ def main():
         blog.error("Socket server failed to start: {}".format(ex))
     
     blog.info("Branchmaster ready. Waiting for connections.")
-    manager.manager.report_system_event("Branchmaster", "Ready for connections.")
+    Manager.report_system_event("Branchmaster", "Ready for connections.")
     cli_thread.join()
     
     if(not web_thread is None):
