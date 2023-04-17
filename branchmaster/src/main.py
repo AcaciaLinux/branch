@@ -48,20 +48,26 @@ def main():
     if(Config.get_config_option("Logger")["EnableDebugLog"] == "True"):
         blog.enable_debug_level()
         blog.debug("Debug log enabled.")
+    
+    try:
+        listen_addr = Config.get_config_option("Masterserver")["ListenAddress"]
+        listen_port = Config.get_config_option("Masterserver")["ServerPort"]
+        http_port = Config.get_config_option("HTTPServer")["HTTPPort"]
 
-    listen_addr = Config.get_config_option("Masterserver")["ListenAddress"]
-    listen_port = Config.get_config_option("Masterserver")["ServerPort"]
-    http_port = Config.get_config_option("HTTPServer")["HTTPPort"]
+        blog.info("Setting up webserver configuration..")   
+        webserver.WEB_CONFIG["logger_function_debug"] = blog.debug
+        webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
+        webserver.WEB_CONFIG["web_debug"] = Config.get_config_option("Logger")["EnableDebugLog"] == "True"
+        webserver.WEB_CONFIG["send_cors_headers"] = Config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
+        webserver.WEB_CONFIG["key_timeout"] = int(Config.get_config_option("HTTPServer")["KeyTimeout"])
 
-    blog.info("Setting up webserver configuration..")   
-    webserver.WEB_CONFIG["logger_function_debug"] = blog.debug
-    webserver.WEB_CONFIG["logger_function_info"] = blog.web_log
-    webserver.WEB_CONFIG["web_debug"] = Config.get_config_option("Logger")["EnableDebugLog"] == "True"
-    webserver.WEB_CONFIG["send_cors_headers"] = Config.get_config_option("HTTPServer")["SendCorsHeaders"] == "True"
-    webserver.WEB_CONFIG["key_timeout"] = int(Config.get_config_option("HTTPServer")["KeyTimeout"])
+        blog.info("Setting up user manager..")
+        endpoints.branch_web_providers.setup_usermgr(Config.get_config_option("HTTPServer")["UserFile"])
 
-    blog.info("Setting up user manager..")
-    endpoints.branch_web_providers.setup_usermgr(Config.get_config_option("HTTPServer")["UserFile"])
+        start_webserver: bool = Config.get_config_option("HTTPServer")["EnableWebServer"] == "True" 
+    except KeyError as e:
+        blog.error("Required configuration key missing: {}".format(e))
+        return
 
     blog.info("Registering webserver endpoints..")
     webserver.web_server.register_get_endpoints(
@@ -81,7 +87,7 @@ def main():
         return -1
 
     web_thread = None
-    if(Config.get_config_option("HTTPServer")["EnableWebServer"] == "True"):
+    if(start_webserver):
         blog.info(f"Launching webserver daemon on {listen_addr} port {http_port}..")
         web_thread = threading.Thread(target=webserver.start_web_server, daemon=True, args=(listen_addr, int(http_port)))
         try:
