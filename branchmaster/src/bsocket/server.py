@@ -1,16 +1,25 @@
+"""
+Branch Socket Server implementation
+"""
 import selectors
-import socket
-import blog
-
-from manager.client import Client
-from _thread import *
 import os
+import socket
+from _thread import *
+
+import blog
+from manager.client import Client
 
 # Initialize DefaultSelector
 sel = selectors.DefaultSelector()
 STAGING_AREA = "staging"
 
-def init_server(addr, port):
+def init_server(addr: str, port: int):
+    """
+    Initialize the server
+
+    :param addr: Address as a string
+    :param int: Port as an integer
+    """
     blog.debug("Socket server initializing.")
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,6 +50,11 @@ def init_server(addr, port):
 
 
 def threaded_client_handler(client_socket):
+    """
+    Thread spawned for every accepted client.
+
+    :param client: Client socket
+    """
     blog.debug("Starting thread client handler.")
     
     _client = Client(client_socket)
@@ -112,7 +126,7 @@ def threaded_client_handler(client_socket):
     
     blog.debug("Client thread exiting.")
 
-def receive_data(client):
+def receive_data(client: Client):
     try:
         return client.socket.recv(4096)
     except ConnectionResetError:
