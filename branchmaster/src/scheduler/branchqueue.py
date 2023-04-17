@@ -16,10 +16,6 @@ class BranchQueue():
         and checks if it should be "BLOCKED"
         or "WAITING"
         """
-        # TODO: Add the "BLOCKED" or "WAITING"
-        # LOGIC HERE!!
-
-        # also need to actually calculate blockers!!
         self.queued_jobs.append(job)
         self.update_job_blocking()
 
