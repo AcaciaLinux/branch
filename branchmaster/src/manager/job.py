@@ -20,6 +20,7 @@ class Job():
         self.solution_mode: bool = solution_mode
         self.pkg_payload: package_build = pkg_payload
         self.requesting_client: str = requesting_client
+        self.build_log = None
         self.set_status("WAITING")
 
         self.buildbot = None

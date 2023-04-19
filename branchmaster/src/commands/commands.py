@@ -1,19 +1,18 @@
-import main
-import blog
-import packagebuild
 import os
 import uuid
 import hashlib
 import shutil
 
-from bsocket import server
+import blog
+import packagebuild
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
+
+import main
+from bsocket import server
 from manager.manager import Manager
 from manager.job import Job
-from localstorage import extrasourcestorage
 from dependency import dependency
-from localstorage import packagestorage 
-from localstorage import pkgbuildstorage
+from localstorage import packagestorage, pkgbuildstorage, extrasourcestorage
 from overwatch import overwatch
 
 def handle_command(branch_client, branch_request: BranchRequest) -> BranchResponse:
@@ -36,7 +35,6 @@ def handle_command_untrusted(branch_client, branch_request: BranchRequest) -> Br
     match branch_request.command:
         case "AUTH":
             blog.debug("Got authentication request from {}..".format(branch_client.get_identifier()))
-            
             if(not "machine_identifier" in branch_request.payload):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Required field 'machine_identifier' missing.")
 
@@ -57,24 +55,24 @@ def handle_command_untrusted(branch_client, branch_request: BranchRequest) -> Br
             
             # Check if protocol version matches
             if(main.BRANCH_PROTOCOL_VERSION != machine_version):
-                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Protocol version is not matching. Requested protocol {}, while the server only provides protocol {}.".format(main.BRANCH_PROTOCOL_VERSION, machine_version))
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, f"Protocol version is not matching. Requested protocol {main.BRANCH_PROTOCOL_VERSION}, while the server only provides protocol {machine_version}.")
             
             # Check if authkey is valid
             if(Manager.is_authkey_valid(machine_authkey)):
-                blog.info("Client authentication completed for '{}'.".format(branch_client.get_identifier()))
+                blog.info(f"Client authentication completed for '{branch_client.get_identifier()}'.")
             else:
-                blog.warn("Client authentication failed for '{}'.".format(branch_client.get_identifier()))
+                blog.warn(f"Client authentication failed for '{branch_client.get_identifier()}'.")
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Authkey is invalid.")
             
             # Check if identifier is valid
             if(branch_client.set_identifier(machine_identifier)):
-                blog.info("Client with UUID '{}' is now known as '{}'.".format(branch_client.client_uuid, branch_client.get_identifier())) 
+                blog.info(f"Client with UUID '{branch_client.client_uuid}' is now known as '{branch_client.get_identifier()}'.") 
             else:
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Requested client name is not permitted.")
 
             # Check if machine type is valid
             if(branch_client.set_type(machine_type)):
-                blog.info("Client type '{}' assigned to '{}'.".format(machine_type, branch_client.get_identifier()))
+                blog.info(f"Client type '{machine_type}' assigned to '{branch_client.get_identifier()}'.")
                 
                 # if the client is a buildbot, setup overwatch
                 if(machine_type == "BUILD"):
@@ -285,7 +283,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         case "CANCELQUEUEDJOB":
             job = Manager.get_queue().get_job_by_id(branch_request.payload)
             
-            if(job == None):
+            if(job is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such job found")
 
             if(Manager.get_queue().cancel_queued_job(job.id)):
@@ -330,7 +328,7 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         case "GETCLIENTINFO":
             target_client = Manager.get_client_by_name(branch_request.payload)
 
-            if(target_client == None):
+            if(target_client is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such client found.")
 
             return BranchResponse(BranchStatus.OK, target_client.get_sysinfo())
@@ -379,8 +377,8 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         case "REMOVEEXTRASOURCE":
             if(extrasourcestorage.storage.remove_extrasource_by_id(branch_request.payload)):
                 return BranchResponse(BranchStatus.OK, "Extra source removed.")
-            else:
-                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Could not delete specified extra source.")
+            
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, "Could not delete specified extra source.")
         
         #
         # Setup extra source transfer. 
@@ -410,14 +408,14 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             #
             # Extra Source pending class
             #
-            class extra_source_pending():
+            class ExtraSourcePending():
                 def __init__(self, client, _id, file_name, desc):
                     self.client = client
                     self.id = _id
                     self.desc = desc
                     self.file_name = file_name
 
-            Manager.add_pending_extra_source(extra_source_pending(branch_client, _id, file_name, desc))
+            Manager.add_pending_extra_source(ExtraSourcePending(branch_client, _id, file_name, desc))
 
             branch_client.file_target = os.path.join(server.STAGING_AREA, "{}.es".format(_id))
             branch_client.file_target_bytes = byte_count
@@ -481,15 +479,14 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
                     
                     blog.info("Hashing package..")
                     md5_hash = hashlib.md5()
-                    hash_file = open(job.buildbot.file_target, "rb")
+                    with open(job.buildbot.file_target, "rb") as hash_file:
+                        # read chunk by chunk
+                        for chunk in iter(lambda: hash_file.read(4096), b""):
+                            md5_hash.update(chunk)
 
-                    # read chunk by chunk
-                    for chunk in iter(lambda: hash_file.read(4096), b""):
-                        md5_hash.update(chunk)
-
-                    blog.info("Deploying package to storage..")
-                    shutil.move(job.buildbot.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
-                    job.set_status("COMPLETED")
+                        blog.info("Deploying package to storage..")
+                        shutil.move(job.buildbot.file_target, stor.add_package(job.pkg_payload, md5_hash.hexdigest()))
+                        job.set_status("COMPLETED")
 
                 Manager.get_queue().notify_job_completed(job)
  
@@ -600,7 +597,7 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
         case "GETEXTRASOURCEINFO":
             res = extrasourcestorage.storage.get_extra_source_blob_by_id(branch_request.payload)
             
-            if(res == None):
+            if(res is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such extrasource available.")
 
             blob = res[0]

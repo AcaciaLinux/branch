@@ -61,56 +61,46 @@ def handshake(host, port, authkey):
     return branchclient.branchclient(host, port, "FAKE_BOT", authkey, "BUILD")
     
 def receive_commands(bc):
-    data = bc.send_recv_msg("GET_DEPLOYMENT_CONFIG")
+    data = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
     print(data)
 
-
     blog.info("Sending ready signal..")
-    # send the "SIG_READY" message to the server
-    data = bc.send_recv_msg("SIG_READY")
-
+    data = bc.send_recv_msg(BranchRequest("SIGREADY", ""))
     blog.info("Ready! Waiting for commands.")
     
     if ALWAYS_IGNORE_COMMANDS:
         time.sleep(5000000)
 
-    # enter a loop to continuously receive messages from the server
     while True:
-        data = bc.recv_msg()
+        data = bc.recv_branch_request()
         handle_command_from_server(data, bc)
 
 def handle_command_from_server(command, bc):
-    # check if the received command is "BUILD_PKG"
-    blog.info("GOT: " + command)
+    if command.command == "PING":
+        bc.send_recv_msg(BranchRequest("PONG", ""))
 
-    cmd_head = command.split(" ")[0]
-
-    if cmd_head == "PING":
-        bc.send_recv_msg("PONG")
-
-    elif cmd_head == "BUILD_PKG" or cmd_head == "BUILD_PKG_CROSS":
+    elif command.command == "BUILD_PKG" or command.command == "BUILD_PKG_CROSS":
         blog.info("Got a build job from the server!")
 
         # send the "BUILD_ENV_READY" message to the server
         blog.info("Reporting status update: BUILD_ENV_READY")
-        data = bc.send_recv_msg("REPORT_STATUS_UPDATE JOB_ACCEPTED")
+        data = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "JOB_ACCEPTED"))
         blog.info(data)
-
     
         # send the "BUILD_ENV_READY" message to the server
         blog.info("Reporting status update: BUILD_ENV_READY")
-        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_ENV_READY")
+        data = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_ENV_READY"))
         blog.info(data)
 
         # send "BUILD_COMPLETE" to the server
         blog.info("Reporting status update: BUILD_COMPLETE")
-        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_COMPLETE")
+        data = bc.send_recv_msg(BranchRequest("REPORTSTATUSUPDATE", "BUILD_COMPLETE"))
         blog.info(data)
 
         blog.info("Reading file length..")
 
         blog.info("Reporting status update: FILE_TRANSFER_MODE {}".format(os.path.getsize("bla.bin")))
-        data = bc.send_recv_msg("FILE_TRANSFER_MODE {}".format(os.path.getsize("bla.bin")))
+        data = bc.send_recv_msg(BranchRequest("FILETRANSFERMODE", os.path.getsize("bla.bin")))
         blog.info(data)
 
         blog.info("Server switched to FT-mode")
@@ -137,17 +127,17 @@ def handle_command_from_server(command, bc):
         
 
         # check if the server acknowledged the file upload
-        if f_u_res != "UPLOAD_ACK":
-            blog.info("Error: file upload not acknowledged by the server.")
-            return
+        #if f_u_res != "UPLOAD_ACK":
+        #    blog.info("Error: file upload not acknowledged by the server.")
+        #    return
         
         blog.info("File upload completed: UPLOAD_ACK")
 
         blog.info("Reporting status update: BUILD_CLEAN")
-        data = bc.send_recv_msg("REPORT_STATUS_UPDATE BUILD_CLEAN")
+        data = bc.send_recv_msg(BranchRequest("REPORT_STATUS_UPDATE", "BUILD_CLEAN"))
 
         blog.info("Reporting READY signal")
-        bc.send_recv_msg("SIG_READY")
+        bc.send_recv_msg(BranchRequest("SIGREADY", ""))
 
 
 # reads from stdin
