@@ -419,6 +419,14 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
     # get last 5k lines of std_out
     std_out_trimmed = std_out[-5000:]
 
+    # leaf and build log
+    log = [ ]
+    for line in leaflog_arr:
+        log.append("[leaf] {}".format(line))
+
+    for line in std_out_trimmed:
+        log.append(line)
+
     # strip unneeded symbols from binaries
     stripped_files = [ ]
     if(proc.returncode == 0):
@@ -427,15 +435,18 @@ def build(directory, package_build_obj, lfpkg, bc, use_crosstools) -> bool:
         stripped_files = strip(destdir)
     else:
         blog.error("Package build script failed.")
+        status_response: BranchResponse = bc.send_recv_msg(BranchRequest("SUBMITLOG", log))
+
+        match status_response.statuscode:
+            case BranchStatus.OK:
+                blog.info("Log upload completed.")
+
+            case other:
+                blog.error("Could not update log.")
+
         return False
 
-    log = [ ]
-    for line in leaflog_arr:
-        log.append("[leaf] {}".format(line))
-
-    for line in std_out_trimmed:
-        log.append(line)
-
+    # list stripped files   
     for line in stripped_files:
         log.append("[strip] {}".format(line))
 
