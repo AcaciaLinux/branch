@@ -367,7 +367,7 @@ BYTE_LEN {
 ```json
 BYTE_LEN {
 	"command": "GETCLIENTINFO",
-	"payload": ""
+	"payload": "CLIENT_NAME"
 }
 ```
 ### Response
