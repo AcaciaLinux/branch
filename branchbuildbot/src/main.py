@@ -16,8 +16,8 @@ Copyright (c) 2021-2022 zimsneexh (https://zsxh.eu/)
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-BRANCH_CODENAME = "Pre Release"
-BRANCH_VERSION = "0.6-pre"
+BRANCH_CODENAME = "The Northern Star"
+BRANCH_VERSION = "0.6"
 
 import traceback
 import branchclient

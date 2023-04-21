@@ -23,8 +23,8 @@ import branchclient
 from commands import commands
 from config.config import Config
 
-BRANCH_CODENAME = "Pre Release"
-BRANCH_VERSION = "0.6-pre"
+BRANCH_CODENAME = "The Northern Star"
+BRANCH_VERSION = "0.6"
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")

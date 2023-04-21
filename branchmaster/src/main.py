@@ -27,8 +27,8 @@ from localstorage import pkgbuildstorage
 from localstorage import extrasourcestorage
 from web import endpoints
 
-BRANCH_CODENAME = "Pre Release"
-BRANCH_VERSION = "0.6-pre"
+BRANCH_CODENAME = "The Northern Star"
+BRANCH_VERSION = "0.6"
 BRANCH_PROTOCOL_VERSION = 0
 
 def main():
