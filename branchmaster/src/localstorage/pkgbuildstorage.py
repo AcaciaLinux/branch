@@ -34,7 +34,42 @@ class storage():
             manager.manager.report_system_event("PKGBUILDSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
         storage.lock.release()
-       
+    
+    @staticmethod
+    def get_direct_dependers(name: str, crosstools: bool):
+        blog.debug("Acquiring Database lock")
+        storage.lock.acquire()
+
+
+        search_target: str = f"%[{name}]%"
+
+        try:
+            db_connection = sqlite3.connect(PKG_BUILD_STORAGE_FILE)
+            cur = db_connection.cursor()
+            if(crosstools):
+                res = cur.execute("SELECT name FROM pkgbuilds WHERE cross_dependencies LIKE ?", (search_target,))
+            else:
+                res = cur.execute("SELECT name FROM pkgbuilds WHERE build_dependencies LIKE ?", (search_target,))
+            
+            depender_result = res.fetchall()
+            if(depender_result is None):
+                blog.debug("No dependers found.")
+                return None
+
+            dependencies = [ ]
+            
+            for depender in depender_result:
+                dependencies.append(depender[0])
+            
+            blog.debug("Releasing Database lock")
+            storage.lock.release()
+            return dependencies
+
+        except Exception as ex:
+            storage.lock.release()
+            return None
+
+
     @staticmethod
     def get_packagebuild_obj(name):
         blog.debug("Acquiring Database lock")

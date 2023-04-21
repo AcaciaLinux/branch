@@ -19,6 +19,10 @@ class BranchQueue():
         self.queued_jobs.append(job)
         self.update_job_blocking()
 
+    def add_jobs(self, jobs: list):
+        self.queued_jobs.extend(jobs)
+        self.update_job_blocking()
+
     def update_job_blocking(self):
         """
         Update job blocking for queued jobs

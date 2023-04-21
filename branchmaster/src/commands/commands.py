@@ -172,16 +172,14 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         #
         case "GETDEPENDERS":
             names = pkgbuildstorage.storage.get_all_packagebuild_names()
-            pkgbuilds = pkgbuildstorage.storage.get_all_packagebuilds()
-            
             if(not branch_request.payload in names):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Specified packagebuild does not exist.")
 
-            release_build, cross_build = dependency.find_dependers(pkgbuilds, branch_request.payload, set())
+            release_dependers, cross_dependers = dependency.find_dependers(branch_request.payload, set(), False)
             
             all_dependers = {
-                "releasebuild": release_build,
-                "crossbuild": cross_build
+                "releasebuild": list(release_dependers),
+                "crossbuild": list(cross_dependers)
             }
 
             return BranchResponse(BranchStatus.OK, all_dependers)
@@ -196,30 +194,29 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             if(not branch_request.payload in names):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "Specified packagebuild does not exist.")
 
-            release_build, cross_build = dependency.find_dependers(pkgbuilds, branch_request.payload, set())
+            release_dependers, cross_dependers = dependency.find_dependers(branch_request.payload, set(), False)
             
-            # start node
-            start_pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(branch_request.payload)
-            if(start_pkgbuild.cross_dependencies == [ ]):
-                release_build.append(start_pkgbuild.name)
-            else:
-                cross_build.append(start_pkgbuild.name)
+            # cast from set -> list
+            release_dependers = list(release_dependers)
+            cross_dependers = list(cross_dependers)
 
-            for dep in release_build:
+            jobs = [ ]
+
+            for dep in release_dependers:
                 pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(dep)
                 blog.info("Creating releasebuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = False
-                Manager.get_queue().add_job(Job(False, pkgbuild, branch_client.get_identifier()))
+                jobs.append(Job(False, pkgbuild, branch_client.get_identifier()))
             
-            for dep in cross_build:
+            for dep in cross_dependers:
                 pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(dep)
                 blog.info("Creating crossbuild job for {}".format(pkgbuild.name))
                 
                 # get a job obj, crosstools = True
-                Manager.get_queue().add_job(Job(True, pkgbuild, branch_client.get_identifier()))
-
+                jobs.append(Job(True, pkgbuild, branch_client.get_identifier()))
             
+            Manager.get_queue().add_jobs(jobs)
             Manager.get_scheduler().schedule()
             return BranchResponse(BranchStatus.OK, "Rebuild dependers requested.")
 

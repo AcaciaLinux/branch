@@ -5,47 +5,45 @@ from manager import job
 # ------------------------------------------------
 # TODO: this stuff should be moved to the scheduler and queue class
 
-
-def find_dependers(pkgs: list, pkgname: str, visited: set):
+def find_dependers(pkgname, visited, use_crosstools):
     """
     Get all depender names
     """
-    release_build = [ ]
-    cross_build = [ ]
+
+    # get the appropriate dependencies for the build type
+    cross_dependers = set()
+    release_dependers = set()
+
+    blog.debug(f"Calculating dependers for '{pkgname}'")
+    pkg_dependers = pkgbuildstorage.storage.get_direct_dependers(pkgname, use_crosstools)
     
-    # iterate through all pkgbuilds.
-    for pkg in pkgs:
-
-        # if the package has cross_dependencies set, use cross deps
-        if(pkg.cross_dependencies == [ ]):
-            blog.debug("Cross dependency not set for {}, using build_dependencies.".format(pkg.name))
-
-            if(pkgname in pkg.build_dependencies):
-                if(pkg.name not in visited):
-                    blog.debug("Adding package {} to releasebuilds".format(pkg.name))
-                    visited.add(pkg.name)
-                    release_build.append(pkg.name)
-
-                    r,c = find_dependers(pkgs, pkg.name, visited) 
-                    release_build.extend(r)
-                else:
-                    blog.error("Circular dependency. {} indirectly depends on itself!".format(pkg.name))
-
-        # if the package has release dependecies set, use release deps
-        else:
-            blog.debug("Cross dependency set. Using cross_dependencies")
-            if(pkgname in pkg.cross_dependencies):
-                if(not pkg.name in visited):
-                    blog.debug("Adding package {} to crossbuilds".format(pkg.name))
-                    visited.add(pkg.name)
-                    cross_build.append(pkg.name)
-
-                    r,c = find_dependers(pkgs, pkg.name, visited)
-                    cross_build.extend(c)
-                else:
-                    blog.warn("Circular dependency. {} indirectly depends on itself!".format(pkg.name))
+    if(use_crosstools):
+        cross_dependers.add(pkgname)
+    else:
+        release_dependers.add(pkgname)
     
-    return release_build, cross_build
+    visited.add(pkgname) 
+    for dep in pkg_dependers:
+
+        # we didnt resolve this package yet
+        if dep not in visited:
+            
+            #visited.add(dep)
+            # will use release deps
+            if(len(pkgbuildstorage.storage.get_packagebuild_obj(dep).cross_dependencies) == 0):
+                blog.info(f"Cross dependencies not set for {dep}")
+                rd, cd = find_dependers(dep, visited, False)
+
+            # will use cross deps
+            else:
+                blog.info(f"Cross dependencies set for {dep}")
+                rd, cd = find_dependers(dep, visited, True)
+
+            release_dependers.update(rd)
+            cross_dependers.update(cd)
+
+    return release_dependers, cross_dependers 
+
 
 def job_arr_from_solution(client, solution, use_crosstools):
     """

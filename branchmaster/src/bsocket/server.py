@@ -108,9 +108,10 @@ def threaded_client_handler(client_socket):
             if(data_trimmed):
                 try:
                     manager_res = _client.receive_command(data_trimmed_str)
-                except TypeError:
+                except TypeError as ex:
                     blog.error("Client sent an invalid BranchPacket, disconnecting..")
                     _client.handle_disconnect()
+                    blog.debug(ex)
                     break
 
                 if(manager_res is not None):
