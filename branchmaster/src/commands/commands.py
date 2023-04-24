@@ -55,7 +55,7 @@ def handle_command_untrusted(branch_client, branch_request: BranchRequest) -> Br
             
             # Check if protocol version matches
             if(main.BRANCH_PROTOCOL_VERSION != machine_version):
-                return BranchResponse(BranchStatus.REQUEST_FAILURE, f"Protocol version is not matching. Requested protocol {main.BRANCH_PROTOCOL_VERSION}, while the server only provides protocol {machine_version}.")
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, f"Protocol version is not matching. Requested protocol {machine_version}, while the server only provides protocol {main.BRANCH_PROTOCOL_VERSION}.")
             
             # Check if authkey is valid
             if(Manager.is_authkey_valid(machine_authkey)):
@@ -150,16 +150,27 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
         # Get job log
         #
         case "GETJOBLOG":
-            job = Manager.get_queue().get_job_by_id(branch_request.payload)
+            if(not "jobid" in branch_request.payload):
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Missing request data: jobid")
+
+            if(not "offset" in branch_request.payload):
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Missing request data: offset")
             
+            job = Manager.get_queue().get_job_by_id(branch_request.payload["jobid"])
+            offset: int = branch_request.payload["offset"]
+
             if(job is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No such job is available.")
             
             build_log = job.get_buildlog()
             if(build_log is None):
                 return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job log available.")
+            
+            # out of bounds
+            if(len(build_log) < offset):
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Offset is out of bounds.")
 
-            return BranchResponse(BranchStatus.OK, build_log)
+            return BranchResponse(BranchStatus.OK, build_log[offset:len(build_log)])
         
         #
         # Get syslog
@@ -556,13 +567,12 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
         #
         # Submit a log for the current job
         #
-        case "SUBMITLOG":
+        case "APPENDLOG":
             job = Manager.get_queue().get_running_job_by_client(branch_client)
 
             if(not job is None):
-                blog.info("Build job '{}' log received.".format(job.get_jobid()))
-                job.set_buildlog(branch_request.payload)
-                return BranchResponse(BranchStatus.OK, "Build log accepted.")
+                job.append_buildlog(branch_request.payload)
+                return BranchResponse(BranchStatus.OK, "Build log update acknowleged.")
 
             return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned to buildbot.")
 

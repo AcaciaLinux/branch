@@ -1,19 +1,30 @@
+"""
+Handle a command from the masterserver
+handle_command() function
+"""
 import blog
 import packagebuild
-
-from builder import builder
 from branchpacket import BranchRequest
 
+from buildenvmanager import buildenv
+from builder import builder
+
 def handle_command(bc, branch_request) -> BranchRequest:
-     
+    """
+    Handle a command from the masterserver
+
+    :param bc: BranchClient
+    :param branch_request: Request to handle
+    :return: BranchRequest to send back to the server
+    """
+
     match branch_request.command:
-        
         #
         # Build a package using realroot
         #
         case "BUILD":
             blog.info("Got a job from masterserver. Using realroot")
-            
+
             if(not "buildtype" in branch_request.payload):
                 return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
 
@@ -26,18 +37,14 @@ def handle_command(bc, branch_request) -> BranchRequest:
             except Exception:
                 return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
 
-            match builder.handle_build_request(bc, pkgbuild, buildtype == "CROSS"):
-
+            match builder.Builder(bc).build(pkgbuild, buildtype == "CROSS"):
                 case True:
                     blog.info("Build job completed successfully.")
-            
+                            
                 case False:
                     blog.warn("Build job failed.")
             
-                case "CRIT_ERR":
-                    blog.error("Build environment damaged.")
-                    return "CRIT_ERR"
-
+            buildenv.clean_env()
             bc.send_recv_msg(BranchRequest("SIGREADY", ""))
             return None
 

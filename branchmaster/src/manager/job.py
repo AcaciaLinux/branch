@@ -20,7 +20,7 @@ class Job():
         self.solution_mode: bool = solution_mode
         self.pkg_payload: package_build = pkg_payload
         self.requesting_client: str = requesting_client
-        self.build_log = None
+        self.build_log = [ ]
         self.set_status("WAITING")
 
         self.buildbot = None
@@ -58,11 +58,11 @@ class Job():
         """
         return self.job_status
     
-    def set_buildlog(self, log: list):
+    def append_buildlog(self, log: list):
         """
         Set the jobs buildlog
         """
-        self.build_log = log
+        self.build_log.extend(log)
     
     def get_buildlog(self) -> list:
         """

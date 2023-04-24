@@ -23,8 +23,8 @@ import branchclient
 from commands import commands
 from config.config import Config
 
-BRANCH_CODENAME = "The Northern Star"
-BRANCH_VERSION = "0.6"
+BRANCH_CODENAME = "Anticitizen One"
+BRANCH_VERSION = "0.7-pre"
 
 def main():
     print("Branch (CONTROLLER) - The AcaciaLinux package build system.")
@@ -81,6 +81,7 @@ def main():
     argparser.add_argument("-tes", "--transferextrasource", help="Transfer an extra source to the server")
     argparser.add_argument("-ves", "--viewextrasources", help="View all managed extra sources.", action="store_true")
     argparser.add_argument("-rmes", "--rmextrasource", help="Delete extra source from the server")
+    argparser.add_argument("-ll", "--livelog", help="View a jobs log live.")
 
     # dictionary mapping arguments to functions
     arg_funcs = {
@@ -108,7 +109,8 @@ def main():
         "clientinfo": commands.get_client_info,
         "transferextrasource": commands.transfer_extra_source,
         "viewextrasources": commands.view_extra_sources,
-        "rmextrasource": commands.remove_extra_source
+        "rmextrasource": commands.remove_extra_source,
+        "livelog": commands.view_livelog
     }
 
     # parse arguments

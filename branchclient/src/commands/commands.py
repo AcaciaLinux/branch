@@ -286,7 +286,10 @@ def get_buildlog(bc, job_id):
     :param job_id: job_id
     """
     joblog_response: BranchResponse = bc.send_recv_msg(
-        BranchRequest("GETJOBLOG", job_id))
+        BranchRequest("GETJOBLOG", {
+            "jobid": job_id,
+            "offset": 0
+        }))
 
     match joblog_response.statuscode:
         case BranchStatus.OK:
@@ -297,6 +300,34 @@ def get_buildlog(bc, job_id):
         case other:
             blog.error(f"Server: {joblog_response.payload}")
 
+def view_livelog(bc, job_id):
+    """
+    Views a job log in "realtime"
+
+    :param bc: BranchClient
+    :param job_id: job id
+    """
+    offset = 0
+
+    while True:
+        running_jobs: list = bc.send_recv_msg(BranchRequest("GETJOBSTATUS", "")).payload["runningjobs"]
+
+        if(len([job for job in running_jobs if job["job_id"] == job_id]) == 0):
+            blog.info("Build job completed.")
+            return
+
+        blog.debug(f"Current offset: {offset}")
+        lines = bc.send_recv_msg(BranchRequest("GETJOBLOG", {
+            "jobid": job_id,
+            "offset": offset
+        })).payload
+        
+        blog.debug(f"Got lines {lines}")
+        for line in lines:
+            print(line)
+
+        time.sleep(2)
+        offset = offset + len(lines)
 
 def clear_completed_jobs(bc):
     """
