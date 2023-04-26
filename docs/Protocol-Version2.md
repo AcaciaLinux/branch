@@ -1,6 +1,6 @@
-# Branch Protocol V2 specification
+# Branch Protocol specification (subversion 1)
 New version of the branch protocol. "BYTE_LENGTH" refers to length 
-in bytes of the actual request string. 
+in bytes of the actual request string.
 
 ## Versioning
 A version check is implemented in the authentication command. 
@@ -589,7 +589,7 @@ because it confirms the job to overwatch.
 ### Request
 ```json
 BYTE_LEN {
-	"command": "SUBMITLOG",
+	"command": "APPENDLOG",
 	"payload": [ "line1", "line2", "line3", "line4" ]
 }
 ```
@@ -597,7 +597,7 @@ BYTE_LEN {
 ```json
 BYTE_LEN {
 	statuscode: 200 ||  500,
-	"payload": "Log accepted" 
+	"payload": "Log accepted" || "No such job"
 }
 ```
 

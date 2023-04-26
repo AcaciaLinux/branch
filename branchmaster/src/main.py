@@ -29,7 +29,7 @@ from web import endpoints
 
 BRANCH_CODENAME = "Anticitizen One"
 BRANCH_VERSION = "0.7-pre"
-BRANCH_PROTOCOL_VERSION = 0
+BRANCH_PROTOCOL_VERSION = 1
 
 def main():
     print("Branch (SERVER) - The AcaciaLinux package build / distribution system.")
