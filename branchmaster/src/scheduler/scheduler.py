@@ -57,7 +57,7 @@ class BranchScheduler():
         else:
             fastest_buildbot.send_command(BranchRequest("BUILD", {
                 "pkgbuild": job.pkg_payload.get_dict(),
-                "buildtype": "CROSS"
+                "buildtype": "RELEASE"
             }))
 
         blog.info(f"Spawning overwatch thread for '{fastest_buildbot.get_identifier()}'")
