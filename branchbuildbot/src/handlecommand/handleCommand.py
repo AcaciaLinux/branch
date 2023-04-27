@@ -36,13 +36,16 @@ def handle_command(bc, branch_request) -> BranchRequest:
                 pkgbuild = packagebuild.package_build.from_dict(branch_request.payload["pkgbuild"])
             except Exception:
                 return BranchRequest("REPORTSTATUSUPDATE", "INVALID_REQUEST")
+            
+            b: Builder = builder.Builder(bc)
 
-            match builder.Builder(bc).build(pkgbuild, buildtype == "CROSS"):
+            match b.build(pkgbuild, buildtype == "CROSS"):
                 case True:
                     blog.info("Build job completed successfully.")
                             
                 case False:
                     blog.warn("Build job failed.")
+                    bc.report_build_status_update("BUILD_FAILED")
             
             buildenv.clean_env()
             bc.send_recv_msg(BranchRequest("SIGREADY", ""))

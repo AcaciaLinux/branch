@@ -114,7 +114,6 @@ class Builder():
                     f"[Builder] Could not acquire deployment configuration: {deploymentconf_response.payload}",
                     "[Builder] No possible action to take, aborting."
                 ])
-                self.report_build_status_update("BUILD_FAILED")
                 return False
 
         # Setup buildenv
@@ -124,7 +123,6 @@ class Builder():
                 "[Builder] Could not setup buildenvironment.",
                 "[Builder] No possible action to take, aborting."
             ])
-            self.report_build_status_update("BUILD_FAILED")
             return False
         
         # Setup buildenvironment
@@ -135,7 +133,6 @@ class Builder():
                 "[Builder] Could not setup buildenvironment. Leaf failed to upgrade environment.",
                 "[Builder] No possible action to take, aborting."
             ])
-            self.report_build_status_update("BUILD_FAILED")
             return False
         
         if(not os.path.exists(self.build_directory)):
@@ -149,7 +146,6 @@ class Builder():
                 "[Builder] Make sure the server and client version matches.",
                 "[Builder] No possible action to take, aborting."
             ])
-            self.report_build_status_update("BUILD_FAILED")
             return False 
         
         # build environment is ready
@@ -324,7 +320,6 @@ class Builder():
                 "[Builder] Package build failed.",
                 f"[Builder] Build script execution took {completed_time - start_time} seconds."
             ])
-            self.report_build_status_update("BUILD_FAILED")
             return False
         
         self.append_to_buildlog([
@@ -358,7 +353,6 @@ class Builder():
 
             case other:
                 blog.error(f"Server did not switch to file transfer mode: {filetransfer_response.payload}")
-                self.report_build_status_update("BUILD_FAILED")
                 return False
 
         # send file over socket
@@ -370,7 +364,6 @@ class Builder():
 
             case other:
                 blog.error("File upload failed.")
-                self.report_build_status_update("BUILD_FAILED")
                 return False
 
         self.append_to_buildlog([
