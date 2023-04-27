@@ -199,32 +199,7 @@ def main():
         
         if(res is None):
             continue
-
-        if(res == "CRIT_ERR"):
-            bc.send_recv_msg(BranchRequest("REPORTSYSEVENT", "Critical error while handling request. Attempting recovery.."))
-            blog.error("Critical failure. Disconnecting..")
-            bc.disconnect()
-            blog.info("Attempting recovery..")
-            buildenv.clean_env()
-            blog.info("Dropping build environment..")
-            buildenv.drop_buildenv()
-
-            deploymentconf_response: BranchResponse = bc.send_recv_msg(BranchRequest("GETDEPLOYMENTCONFIG", ""))
-
-            realroot_pkgs = deployment_config["realroot_packages"]
-            deploy_realroot = deployment_config["deploy_realroot"]
-            deploy_crossroot = deployment_config["deploy_crossroot"]
-            pkglist_url = deployment_config["packagelisturl"]
-
-            blog.info("Recreating build environment..")
-            if(not buildenv.check_buildenv(deploy_crossroot, deploy_realroot, realroot_pkgs)):
-                blog.error("Failed to deploy needed environment. Aborting.")
-                return
-
-            blog.info("Reconnecting..")
-            bc = branchclient.branchclient(server_address, int(server_port), identifier, authkey, "BUILD")
-            continue
-
+       
         # send response back to the server.
         bc.send_msg(res)
 

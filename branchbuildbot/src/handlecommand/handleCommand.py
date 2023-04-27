@@ -45,7 +45,7 @@ def handle_command(bc, branch_request) -> BranchRequest:
                             
                 case False:
                     blog.warn("Build job failed.")
-                    bc.report_build_status_update("BUILD_FAILED")
+                    b.report_build_status_update("BUILD_FAILED")
             
             buildenv.clean_env()
             bc.send_recv_msg(BranchRequest("SIGREADY", ""))
