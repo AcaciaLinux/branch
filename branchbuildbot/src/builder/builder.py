@@ -336,8 +336,8 @@ class Builder():
             "[Builder] Build job completed successfully.",
             "[Builder] Creating tar file.."
         ])
-
-        pkg_file_path: str = lfpkg.create_tar_package(build_destdir)
+        
+        pkg_file_path: str = lfpkg.create_tar_package(build_sub_directory)
         pkg_file_size: int = os.path.getsize(pkg_file_path)
 
         self.append_to_buildlog([
