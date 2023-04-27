@@ -133,7 +133,10 @@ BYTE_LENGTH {
 ```json
 BYTE_LEN {
 	"command": "GETJOBLOG",
-	"payload": "JOBID"
+	"payload": {
+       "jobid": job_id,
+       "offset": offset
+   }
 }
 ```
 ### Response
