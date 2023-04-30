@@ -23,8 +23,7 @@ from branchweb import webserver
 from config.config import Config
 from bsocket import server
 from manager.manager import Manager
-from localstorage import pkgbuildstorage
-from localstorage import extrasourcestorage
+from localstorage import pkgbuildstorage, extrasourcestorage, pkgcontentstorage
 from web import endpoints
 
 BRANCH_CODENAME = "Anticitizen One"
@@ -74,7 +73,10 @@ def main():
             endpoints.branch_web_providers.get_get_providers())
     webserver.web_server.register_post_endpoints(
             endpoints.branch_web_providers.get_post_providers())
-    
+   
+    blog.info("Setting up local Packagecontent database..")
+    pkgcontentstorage.storage.populate()
+
     blog.info("Setting up local Packagebuild database..")
     pkgbuildstorage.storage.populate()
 

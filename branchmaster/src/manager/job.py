@@ -21,6 +21,8 @@ class Job():
         self.pkg_payload: package_build = pkg_payload
         self.requesting_client: str = requesting_client
         self.build_log = [ ]
+        self.package_content = [ ]
+        self.rejected = False
         self.set_status("WAITING")
 
         self.buildbot = None
@@ -75,3 +77,9 @@ class Job():
         Set the buildbot (client) the job is running on
         """
         self.buildbot = buildbot
+
+    def set_package_content(self, paths: list):
+        """
+        Set the received content list
+        """
+        self.package_content = paths

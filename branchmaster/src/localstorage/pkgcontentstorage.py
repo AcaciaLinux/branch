@@ -1,7 +1,7 @@
 import blog
 import packagebuild
 import sqlite3
-import manager
+from manager.manager import Manager
 
 from threading import Lock
 
@@ -31,7 +31,7 @@ class storage():
             blog.debug("Releasing Database lock")
         except Exception as ex:
             blog.error("Could not populate database: {}".format(ex))
-            manager.manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
+            Manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
 
         storage.lock.release()
     
@@ -46,6 +46,7 @@ class storage():
             cur = db_connection.cursor()
             
             # delete old entries from this package
+            blog.info(f"Deleting all files with pkgname {pkgname}")
             cur.execute("DELETE FROM files WHERE pkgname = ?", (pkgname, ))
             db_connection.commit()
 
@@ -56,6 +57,7 @@ class storage():
             for path in paths:
                 _tuples.append((pkgname, path))
 
+            blog.info(f"Inserting new files for pkgname {pkgname}: {paths}")
             cur.executemany("INSERT INTO files VALUES (?,?)", _tuples)
             db_connection.commit()
             storage.lock.release()
@@ -63,12 +65,12 @@ class storage():
 
         except Exception as ex:
             blog.error("Could not add to database: {}".format(ex))
-            manager.manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
+            Manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
             storage.lock.release()
             return True
 
     @staticmethod
-    def check_file_conflicts(paths: list) -> list:
+    def check_file_conflicts(pkgname: str, paths: list) -> list:
 
         try:
             storage.lock.acquire()
@@ -93,7 +95,7 @@ class storage():
 
         except Exception as ex:
             blog.error("Could not check database: {}".format(ex))
-            manager.manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
+            Manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
             storage.lock.release()
             return [ ] 
         
@@ -116,4 +118,7 @@ class storage():
             return owner[0]
 
         except Exception as ex:
-            pass
+            blog.error("Could not check database: {}".format(ex))
+            Manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
+            storage.lock.release()
+            return None
