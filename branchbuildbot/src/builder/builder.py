@@ -275,7 +275,7 @@ class Builder():
         os.system("chmod +x {}".format(entry_sh_path))
 
         self.append_to_buildlog([
-            f"[Builder] Wrote build script to: {build_sub_directory}",
+            f"[Builder] Wrote build script to: {build_script_path}",
             "[Builder] Executable bit set.",
             "[Builder] Chrooting to build environment.."
         ])
