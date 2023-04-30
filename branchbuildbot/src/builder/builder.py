@@ -319,15 +319,41 @@ class Builder():
         if(build_process.returncode != 0):
             self.append_to_buildlog([
                 "[Builder] Package build failed.",
-                f"[Builder] Build script execution took {completed_time - start_time} seconds."
+                f"[Builder] Build script execution took {completed_time - start_time} seconds.",
+                "[Builder] No possible action to take, aborting."
             ])
             return False
         
         self.append_to_buildlog([
             "[Builder] Package build completed successfully.",
             f"[Builder] Build script execution took {round(completed_time - start_time, 3)} seconds.",
-            "[Builder] Stripping binaries.."
+            "[Builder] Checking for file conflicts.."
         ])
+        
+        self.report_build_status_update("CONFLICT_CHECK")
+        
+        conflictcheck_response: BranchResponse = self.bc.send_recv_msg(BranchRequest("SUBMITCONTENT", self.get_package_content(build_destdir)))
+        match conflictcheck_response.statuscode:
+
+            case BranchStatus.OK:
+                self.append_to_buildlog([
+                    "[Builder] No file conflicts found. Package accepted.",
+                    "[Builder] Stripping binaries.."
+                ])
+
+            case other:
+                conflicts = [ "[Builder] Package rejected. Conflicts found:"]
+
+                for conflict in conflictcheck_response.payload:
+                    pkg_name = list(conflict.keys())[0]
+                    pkg_path = conflict[pkg_name]
+                    conflicts.append(f"[CONFLICT] {pkg_name} provides conflicting file: {pkg_path}")
+                conflicts.extend([
+                    "[Builder] No possible action to take, aborting."
+                ])
+
+                self.append_to_buildlog(conflicts)
+                return False
 
         self.report_build_status_update("STRIPPING_BINARIES")
         self.strip(build_destdir)
@@ -478,6 +504,23 @@ class Builder():
         blog.info(f"Extra '{esid}'sourced downloaded from server.")
         return target_file
     
+    def get_package_content(self, root_dir: str) -> list:
+        """
+        Get package content
+
+        :param root_dir: path to package data dir
+        :return: list of all files
+        """
+        content = [ ]
+
+        for root, _dir, files in os.walk(root_dir):
+            for file in files:
+                root = root.replace(root_dir, "")
+                file_path = os.path.join(root, file)
+                content.append(file_path)
+        
+        return content
+
     def strip(self, root_dir: str) -> list:
         """
         Strips binaries from a given root_dir
