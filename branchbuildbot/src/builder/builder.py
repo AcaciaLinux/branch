@@ -1,11 +1,12 @@
 import os
-import pycurl
 import datetime
 import subprocess
 import time
 from threading import Thread
 import leafpkg
 import tarfile
+
+import pycurl
 
 import blog
 from branchclient import branchclient
@@ -166,7 +167,7 @@ class Builder():
         build_sub_directory: str = os.path.join(self.build_directory, "build")
         os.mkdir(build_sub_directory)
 
-        build_destdir: str = lfpkg.write_package_directory(build_sub_directory)
+        build_destdir: str = lfpkg.write_package_directory(self.build_directory)
         self.report_build_status_update("FETCHING_SOURCES")
 
         if(pkgbuild.source):
@@ -336,8 +337,8 @@ class Builder():
             "[Builder] Build job completed successfully.",
             "[Builder] Creating tar file.."
         ])
-        
-        pkg_file_path: str = lfpkg.create_tar_package(build_sub_directory)
+
+        pkg_file_path: str = lfpkg.create_tar_package(self.build_directory)
         pkg_file_size: int = os.path.getsize(pkg_file_path)
 
         self.append_to_buildlog([
