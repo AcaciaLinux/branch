@@ -12,7 +12,7 @@ from bsocket import server
 from manager.manager import Manager
 from manager.job import Job
 from dependency import dependency
-from localstorage import packagestorage, pkgbuildstorage, extrasourcestorage
+from localstorage import packagestorage, pkgbuildstorage, extrasourcestorage, pkgcontentstorage
 from overwatch import overwatch
 
 def handle_command(branch_client, branch_request: BranchRequest) -> BranchResponse:
@@ -480,9 +480,19 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             if(not job is None):
                 blog.info("Build job '{}' completed.".format(job.get_jobid()))
 
-                if(job.get_status() == "BUILD_FAILED"):
+                if(job.get_status() == "BUILD_FAILED" or job.rejected):
                     job.set_status("FAILED")
+                    try:
+                        if(job.buildbot is None):
+                            blog.debug("Removing already uploaded package..")
+                            if(os.path.exists(job.buildbot.file_target)):
+                                os.remove(job.buildbot.file_target)
+                    except Exception:
+                        pass
+
                 else:
+                    blog.info("Adding package content to database")
+                    pkgcontentstorage.storage.insert_package_content(job.pkg_payload.name, job.package_content)
                     stor = packagestorage.storage()
                     
                     blog.info("Hashing package..")
@@ -596,8 +606,31 @@ def handle_command_buildbot(branch_client, branch_request: BranchRequest) -> Bra
             branch_client.file_target = os.path.join(server.STAGING_AREA, "{}-{}.lfpkg".format(job.pkg_payload.name, job.id))
             branch_client.file_target_bytes = datalength
             return BranchResponse(BranchStatus.OK, "File transfer setup completed.")
-
         
+        #
+        # Submit the current packages file content
+        # as a list of paths and check for conflicts
+        # 
+        case "SUBMITCONTENT":
+            if(branch_request.payload == "" or not type(branch_request.payload) is list):
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "Invalid file list.")
+            
+            job = Manager.get_queue().get_running_job_by_client(branch_client)
+            
+            if(job is None):
+                return BranchResponse(BranchStatus.REQUEST_FAILURE, "No job assigned.")
+
+            job.set_status("CONFLICT_CHECK")
+            conflicts: list = pkgcontentstorage.storage.check_file_conflicts(job.pkg_payload.name, branch_request.payload)
+
+            if(conflicts == [ ]):
+                job.set_package_content(branch_request.payload)
+                return BranchResponse(BranchStatus.OK, "No conflicts found.")
+            
+            job.rejected = True
+            return BranchResponse(BranchStatus.REQUEST_FAILURE, conflicts)
+
+
         #
         # Get extra source information by ID
         #

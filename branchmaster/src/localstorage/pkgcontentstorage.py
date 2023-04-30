@@ -78,7 +78,7 @@ class storage():
             file_conflicts: list = [ ]
             
             for path in paths:
-                res = cur.execute("SELECT pkgname FROM files WHERE filepath = ?", (path,))
+                res = cur.execute("SELECT pkgname FROM files WHERE filepath = ? AND pkgname != ?", (path, pkgname))
                 content_result = res.fetchone()
 
                 if(content_result is None):
