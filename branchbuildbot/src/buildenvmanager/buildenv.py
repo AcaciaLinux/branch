@@ -170,7 +170,7 @@ def check_buildenv(crossroot_enabled: bool, realroot_enabled: bool, realroot_pkg
     
     if(realroot_enabled):
         if(not os.path.exists(control_file)):
-            if(deploy_buildenv(root_dir, realroot_pkgs) != 0):
+            if(not deploy_buildenv(root_dir, realroot_pkgs)):
                 blog.error("Real root deployment failed.")
                 return False
     else:
