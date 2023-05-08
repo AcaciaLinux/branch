@@ -24,7 +24,7 @@ import branchclient
 import blog
 
 from branchpacket import BranchRequest, BranchResponse, BranchStatus
-from handlecommand import handleCommand
+from commands import commands
 from buildenvmanager import buildenv
 from config.config import Config
 
@@ -178,7 +178,7 @@ def main():
 
         # try to handle command
         try:
-            res = handleCommand.handle_command(bc, recv_request)
+            res = commands.handle_command(bc, recv_request)
         
         # recv_msg returns NoneType if Connection is lost, except it here
         except AttributeError:
