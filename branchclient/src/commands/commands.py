@@ -772,7 +772,7 @@ def transfer_extra_source(bc, file_path):
     blog.info("Loading extra source..")
 
     file_name = os.path.basename(file_path)
-    blog.info(f"Will commit as filename: {filename}")
+    blog.info(f"Will commit as filename: {file_name}")
 
     byte_count = os.path.getsize(file_path)
 
