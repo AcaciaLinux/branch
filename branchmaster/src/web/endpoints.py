@@ -230,7 +230,7 @@ class branch_web_providers():
              
             pkgbuild = pkgbuildstorage.storage.get_packagebuild_obj(pkgname)
 
-            Manager.get_queue().add_job(Job(True, pkgbuild, user.name))
+            Manager.get_queue().add_job(Job(use_crosstools, pkgbuild, user.name))
             Manager.get_scheduler().schedule()
             httphandler.send_web_response(webserver.webstatus.SUCCESS, "Package build queued successfully.")
         else:
