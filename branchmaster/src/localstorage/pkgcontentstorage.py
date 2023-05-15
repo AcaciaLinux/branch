@@ -130,10 +130,11 @@ class storage():
             storage.lock.acquire()
             db_connection = sqlite3.connect(PKG_CONTENT_STORAGE_FILE)
             cur = db_connection.cursor()
-
+            
             res = cur.execute("DELETE FROM files WHERE pkgname = ?", (owner,))
             deleted = res.fetchone()
 
+            db_connection.commit()
             storage.lock.release()
         except Exception as ex:
             blog.error("Could not remove conflicting files: {}".format(ex))
