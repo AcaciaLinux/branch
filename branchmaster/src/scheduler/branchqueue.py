@@ -235,6 +235,7 @@ class BranchQueue():
 
         self.queued_jobs.remove(job)
         self.update_job_blocking()
+        return True
 
 
     def cancel_queued_jobs(self):
