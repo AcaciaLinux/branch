@@ -361,6 +361,9 @@ def handle_command_controller(branch_client, branch_request: BranchRequest) -> B
             blog.debug("Deleting packagebuild..")
             pkgbuildstorage.storage.remove_packagebuild(branch_request.payload)
 
+            blog.debug("Removing all remaining file conflicts..")
+            pkgcontentstorage.storage.delete_all_from_owner(branch_request.payload)
+
             blog.debug("Deleting package..")
             
             # not locked, can delete

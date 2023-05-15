@@ -122,3 +122,19 @@ class storage():
             Manager.report_system_event("PKGCONTENTSTORAGE", "CRITICAL-ERROR: {}".format(ex))
             storage.lock.release()
             return None
+
+
+    @staticmethod
+    def delete_all_from_owner(owner: str):
+        try:
+            storage.lock.acquire()
+            db_connection = sqlite3.connect(PKG_CONTENT_STORAGE_FILE)
+            cur = db_connection.cursor()
+
+            res = cur.execute("DELETE FROM files WHERE pkgname = ?", (owner,))
+            deleted = res.fetchone()
+
+            storage.lock.release()
+        except Exception as ex:
+            blog.error("Could not remove conflicting files: {}".format(ex))
+            storage.lock.release()
